@@ -16,9 +16,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     const start_rest_timer_button = document.getElementById("start_rest_timer_button");
     const rest_timer_status = document.getElementById("rest_timer_status");
     const rest_timer_countdown = document.getElementById("rest_timer_countdown");
+    const workout_template_selector = document.getElementById("workout_template_selector");
+    const load_template_button = document.getElementById("load_template_button");
+    const save_template_button = document.getElementById("save_template_button");
+    const delete_template_button = document.getElementById("delete_template_button");
+    const new_template_name_input = document.getElementById("new_template_name");
+    const workout_template_feedback = document.getElementById("workout_template_feedback");
     const should_prefill_from_last = workout_logging_form && workout_logging_form.dataset.prefillFromLast === "true";
     let master_exercise_list = [];
     let last_used_values_map = {};
+    let workout_templates = [];
     let rest_timer_interval_identifier = null;
     let rest_remaining_seconds = 0;
 
@@ -94,6 +101,24 @@ document.addEventListener("DOMContentLoaded", async function() {
             return;
         }
         exercise_catalogue_count_badge.textContent = `Exercises: ${master_exercise_list.length}`;
+    }
+
+    function get_query_parameter(parameter_name) {
+        const current_url = new URL(window.location.href);
+        return current_url.searchParams.get(parameter_name);
+    }
+
+    function set_template_feedback(message, status = "muted") {
+        if (!workout_template_feedback) {
+            return;
+        }
+        const class_name_by_status = {
+            success: "small text-success",
+            danger: "small text-danger",
+            muted: "small text-muted",
+        };
+        workout_template_feedback.className = class_name_by_status[status] || class_name_by_status.muted;
+        workout_template_feedback.textContent = message;
     }
 
     function create_set_row_markup(set_data = null) {
@@ -221,6 +246,30 @@ document.addEventListener("DOMContentLoaded", async function() {
         last_used_values_map = payload.last_used_values || {};
     }
 
+    function render_workout_templates_selector() {
+        if (!workout_template_selector) {
+            return;
+        }
+        const selector_options = ["<option value=\"\">Select a template</option>"];
+        workout_templates.forEach(function(template) {
+            selector_options.push(`<option value="${template._id}">${template.template_name}</option>`);
+        });
+        workout_template_selector.innerHTML = selector_options.join("");
+    }
+
+    async function load_workout_templates() {
+        if (!workout_template_selector) {
+            return;
+        }
+        const network_response = await fetch("/api/workout-templates");
+        if (!network_response.ok) {
+            set_template_feedback("Unable to load templates right now.", "danger");
+            return;
+        }
+        workout_templates = await network_response.json();
+        render_workout_templates_selector();
+    }
+
     function find_exercise_by_identifier(exercise_identifier) {
         return master_exercise_list.find(function(exercise_definition) {
             return exercise_definition._id === exercise_identifier;
@@ -246,6 +295,22 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
     }
 
+    async function load_selected_template(template_identifier) {
+        if (!template_identifier) {
+            set_template_feedback("Please choose a template first.", "danger");
+            return false;
+        }
+        const network_response = await fetch(`/api/workout-templates/${template_identifier}`);
+        if (!network_response.ok) {
+            set_template_feedback("Template could not be loaded.", "danger");
+            return false;
+        }
+        const template_payload = await network_response.json();
+        populate_form_from_previous_workout(template_payload);
+        set_template_feedback(`Loaded template: ${template_payload.template_name}`, "success");
+        return true;
+    }
+
     async function prefill_from_last_workout_if_requested() {
         if (!should_prefill_from_last) {
             return false;
@@ -258,6 +323,17 @@ document.addEventListener("DOMContentLoaded", async function() {
         const previous_workout = await network_response.json();
         populate_form_from_previous_workout(previous_workout);
         return true;
+    }
+
+    async function prefill_from_template_query_if_requested() {
+        const template_identifier = get_query_parameter("template_id");
+        if (!template_identifier) {
+            return false;
+        }
+        if (workout_template_selector) {
+            workout_template_selector.value = template_identifier;
+        }
+        return load_selected_template(template_identifier);
     }
 
     function calculate_plate_distribution(target_weight, bar_weight) {
@@ -393,6 +469,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         };
     }
 
+    function build_template_payload() {
+        const workout_payload = build_workout_payload();
+        return {
+            template_name: (new_template_name_input?.value || "").trim(),
+            target_muscle_groups: workout_payload.target_muscle_groups,
+            exercises: workout_payload.exercises,
+        };
+    }
+
     function validate_selected_exercises() {
         const invalid_exercise_block = Array.from(exercises_container.querySelectorAll(".exercise-block")).find(function(exercise_block) {
             const identifier_input = exercise_block.querySelector(".exercise-identifier-input");
@@ -406,12 +491,16 @@ document.addEventListener("DOMContentLoaded", async function() {
     try {
         await load_standardised_exercises();
         await load_last_used_values();
+        await load_workout_templates();
     } catch (network_error) {
         console.error("Failed to load standardised exercises:", network_error);
         alert("Unable to load exercises right now. Please refresh and try again.");
     }
 
-    const prefill_applied = await prefill_from_last_workout_if_requested();
+    let prefill_applied = await prefill_from_template_query_if_requested();
+    if (!prefill_applied) {
+        prefill_applied = await prefill_from_last_workout_if_requested();
+    }
     if (!prefill_applied) {
         append_new_exercise_block();
     }
@@ -435,6 +524,72 @@ document.addEventListener("DOMContentLoaded", async function() {
     if (start_rest_timer_button) {
         start_rest_timer_button.addEventListener("click", function() {
             start_rest_timer();
+        });
+    }
+
+    if (load_template_button) {
+        load_template_button.addEventListener("click", async function() {
+            await load_selected_template(workout_template_selector?.value || "");
+        });
+    }
+
+    if (save_template_button) {
+        save_template_button.addEventListener("click", async function() {
+            const template_payload = build_template_payload();
+            if (!template_payload.template_name) {
+                set_template_feedback("Enter a template name before saving.", "danger");
+                return;
+            }
+            if (!template_payload.exercises.length) {
+                set_template_feedback("Add at least one exercise before saving a template.", "danger");
+                return;
+            }
+            const network_response = await fetch("/api/workout-templates", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": get_csrf_token(),
+                },
+                body: JSON.stringify(template_payload),
+            });
+            if (!network_response.ok) {
+                const error_payload = await network_response.json().catch(function() {
+                    return { error: "Unable to save template." };
+                });
+                set_template_feedback(error_payload.error || "Unable to save template.", "danger");
+                return;
+            }
+            set_template_feedback("Template saved.", "success");
+            if (new_template_name_input) {
+                new_template_name_input.value = "";
+            }
+            await load_workout_templates();
+        });
+    }
+
+    if (delete_template_button) {
+        delete_template_button.addEventListener("click", async function() {
+            const template_identifier = workout_template_selector?.value || "";
+            if (!template_identifier) {
+                set_template_feedback("Select a template to delete.", "danger");
+                return;
+            }
+            const user_confirmed = confirm("Delete this template? This cannot be undone.");
+            if (!user_confirmed) {
+                return;
+            }
+            const network_response = await fetch(`/api/workout-templates/${template_identifier}`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-Token": get_csrf_token(),
+                },
+            });
+            if (!network_response.ok) {
+                set_template_feedback("Unable to delete template.", "danger");
+                return;
+            }
+            set_template_feedback("Template deleted.", "success");
+            await load_workout_templates();
         });
     }
 

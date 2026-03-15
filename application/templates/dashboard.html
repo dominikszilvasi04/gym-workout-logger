@@ -13,6 +13,23 @@
     <div class="col-12"><hr class="mt-3"></div>
 </div>
 
+{% if workout_templates %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="text-muted small me-2">Quick start from template:</span>
+                    {% for template in workout_templates %}
+                        <a href="/log?template_id={{ template.identifier }}" class="btn btn-sm btn-outline-secondary">{{ template.template_name }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <label for="dashboard_range_filter" class="form-label">Time Range</label>
