@@ -22,6 +22,13 @@ class ApplicationConfiguration:
     RATE_LIMIT_DEFAULT: str = os.environ.get("APPLICATION_RATE_LIMIT_DEFAULT", "300 per hour")
     RATE_LIMIT_AUTH: str = os.environ.get("APPLICATION_RATE_LIMIT_AUTH", "60 per minute")
     RATE_LIMIT_API_WRITE: str = os.environ.get("APPLICATION_RATE_LIMIT_API_WRITE", "120 per minute")
+    EXERCISE_REQUEST_RECIPIENT_EMAIL: Optional[str] = os.environ.get("APPLICATION_EXERCISE_REQUEST_RECIPIENT_EMAIL")
+    SMTP_HOST: Optional[str] = os.environ.get("APPLICATION_SMTP_HOST")
+    SMTP_PORT: int = int(os.environ.get("APPLICATION_SMTP_PORT", "587"))
+    SMTP_USERNAME: Optional[str] = os.environ.get("APPLICATION_SMTP_USERNAME")
+    SMTP_PASSWORD: Optional[str] = os.environ.get("APPLICATION_SMTP_PASSWORD")
+    SMTP_SENDER_EMAIL: Optional[str] = os.environ.get("APPLICATION_SMTP_SENDER_EMAIL")
+    SMTP_USE_TLS: bool = os.environ.get("APPLICATION_SMTP_USE_TLS", "true").lower() == "true"
     TESTING: bool = False
     DEBUG: bool = False
 

@@ -41,6 +41,12 @@ class ExerciseDefinitionRepository:
         logger.debug("Retrieved %d exercise definitions.", len(exercise_definitions))
         return exercise_definitions
 
+    def count_exercise_definitions(self) -> int:
+        """
+        Counts all exercise definitions in the collection.
+        """
+        return self.collection.count_documents({})
+
     def create_exercise_definition(self, exercise_definition: ExerciseDefinition) -> str:
         """
         Inserts a new standardised exercise into the master list.
@@ -55,3 +61,17 @@ class ExerciseDefinitionRepository:
         insertion_result = self.collection.insert_one(document_dictionary)
         logger.info("Exercise definition inserted with identifier=%s", str(insertion_result.inserted_id))
         return str(insertion_result.inserted_id)
+
+    def upsert_exercise_definition_by_name(self, exercise_definition: ExerciseDefinition) -> bool:
+        """
+        Upserts an exercise definition by its standardised name.
+
+        Returns:
+            True if a new document was inserted, otherwise False.
+        """
+        filter_query = {"exercise_name": exercise_definition.exercise_name}
+        update_payload = {
+            "$setOnInsert": exercise_definition.model_dump(by_alias=True, exclude={"identifier"})
+        }
+        update_result = self.collection.update_one(filter_query, update_payload, upsert=True)
+        return update_result.upserted_id is not None
