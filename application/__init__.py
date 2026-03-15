@@ -36,7 +36,7 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
         logger.info("Ensured users collection unique index on email.")
     else:
         logger.warning("Database configuration missing. Client initialisation skipped.")
-    from application.controllers.workout_controller import workout_blueprint
+
     flask_application.register_blueprint(workout_blueprint)
     flask_application.register_blueprint(exercise_blueprint)
     flask_application.register_blueprint(auth_blueprint)
