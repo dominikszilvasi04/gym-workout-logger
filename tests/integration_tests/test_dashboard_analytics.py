@@ -65,6 +65,8 @@ def test_dashboard_analytics_returns_real_chart_data_for_authenticated_user(test
     assert analytics_response.status_code == 200
 
     analytics_payload = analytics_response.get_json()
+    assert analytics_payload["filters"]["available_exercises"] == ["Bench Press"]
+    assert analytics_payload["filters"]["selected_exercise"] is None
     assert analytics_payload["summary"]["total_workouts"] == 2
     assert analytics_payload["summary"]["total_volume"] == 860.0
     assert analytics_payload["summary"]["average_workout_volume"] == 430.0
@@ -72,6 +74,8 @@ def test_dashboard_analytics_returns_real_chart_data_for_authenticated_user(test
     assert analytics_payload["summary"]["total_repetitions"] == 8
     assert analytics_payload["summary"]["total_exercises"] == 2
     assert analytics_payload["summary"]["strongest_estimated_one_rep_maximum"] == 132.0
+    assert analytics_payload["summary"]["average_session_rpe"] == 9.5
+    assert analytics_payload["summary"]["current_training_streak_weeks"] == 2
 
     assert analytics_payload["charts"]["workout_volume_progression"]["labels"] == ["2026-03-01", "2026-03-08"]
     assert analytics_payload["charts"]["workout_volume_progression"]["values"] == [500.0, 360.0]
@@ -79,6 +83,11 @@ def test_dashboard_analytics_returns_real_chart_data_for_authenticated_user(test
     assert analytics_payload["charts"]["muscle_group_distribution"]["labels"] == ["Chest", "Triceps"]
     assert analytics_payload["charts"]["muscle_group_distribution"]["values"] == [2, 1]
     assert analytics_payload["charts"]["weekly_frequency"]["values"] == [1, 1]
+    assert analytics_payload["charts"]["average_rpe_progression"]["values"] == [9.0, 10.0]
+    assert analytics_payload["charts"]["top_exercise_volume"]["labels"] == ["Bench Press"]
+    assert analytics_payload["charts"]["top_exercise_volume"]["values"] == [860.0]
+    assert analytics_payload["leaderboards"]["personal_records"][0]["exercise_name"] == "Bench Press"
+    assert analytics_payload["leaderboards"]["personal_records"][0]["estimated_one_rep_maximum"] == 132.0
 
 
 
@@ -154,3 +163,67 @@ def test_dashboard_analytics_is_scoped_to_logged_in_user(test_client):
     assert analytics_payload["summary"]["total_workouts"] == 1
     assert analytics_payload["charts"]["workout_volume_progression"]["labels"] == ["2026-03-12"]
     assert analytics_payload["charts"]["muscle_group_distribution"]["labels"] == ["Back"]
+
+
+def test_dashboard_analytics_supports_exercise_specific_strength_filter(test_client):
+    """
+    Verifies the 1RM progression can be focused on a specific exercise.
+    """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Filtered Charts",
+            "email": "filtered.charts@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
+    test_client.post(
+        "/api/workouts",
+        json={
+            "date_of_workout": "2026-03-01T09:00",
+            "target_muscle_groups": ["Chest"],
+            "exercises": [
+                {
+                    "exercise_name": "Bench Press",
+                    "exercise_definition_identifier": "bench-001",
+                    "sets": [
+                        {
+                            "repetitions": 5,
+                            "weight_in_kilograms": 100.0,
+                            "rate_of_perceived_exertion": 9,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    test_client.post(
+        "/api/workouts",
+        json={
+            "date_of_workout": "2026-03-04T09:00",
+            "target_muscle_groups": ["Back"],
+            "exercises": [
+                {
+                    "exercise_name": "Barbell Row",
+                    "exercise_definition_identifier": "row-001",
+                    "sets": [
+                        {
+                            "repetitions": 8,
+                            "weight_in_kilograms": 70.0,
+                            "rate_of_perceived_exertion": 8,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+
+    analytics_response = test_client.get("/api/dashboard/analytics?exercise_name=Bench%20Press")
+    assert analytics_response.status_code == 200
+
+    analytics_payload = analytics_response.get_json()
+    assert analytics_payload["filters"]["selected_exercise"] == "Bench Press"
+    assert analytics_payload["charts"]["one_rep_max_progression"]["labels"] == ["2026-03-01"]
+    assert analytics_payload["charts"]["one_rep_max_progression"]["values"] == [116.67]
