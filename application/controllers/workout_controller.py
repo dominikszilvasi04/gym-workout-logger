@@ -48,3 +48,20 @@ def view_workout_logging_form() -> str:
         The rendered HTML string for the workout logging form.
     """
     return render_template("log_workout.html")
+
+@workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
+def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    API endpoint to permanently delete a workout session.
+    
+    Args:
+        identifier: The unique database identifier passed via the URL path.
+        
+    Returns:
+        A tuple containing the JSON response and the HTTP status code.
+    """
+    deletion_successful = application_workout_service.remove_workout_session(identifier=identifier)
+    if deletion_successful:
+        return jsonify({"message": "Workout successfully deleted."}), 200
+    else:
+        return jsonify({"error": "Workout not found or invalid identifier provided."}), 404

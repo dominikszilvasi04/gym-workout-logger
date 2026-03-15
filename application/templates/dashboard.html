@@ -52,10 +52,18 @@
                         <td>{{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>{{ workout.target_muscle_groups | join(', ') }}</td>
                         <td>{{ workout.exercises | length }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger delete-workout-button" 
+                                    data-workout-identifier="{{ workout.identifier }}">
+                                Delete
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="3" class="text-center text-muted">No workout history found. Time to hit the gym!</td>
+                        <td colspan="4" class="text-center text-muted">
+                            No workout history found. Time to hit the gym!
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -67,4 +75,5 @@
 
 {% block javascript_scripts %}
 <script src="{{ url_for('static', filename='javascript/dashboard_visualisation.js') }}"></script>
+<script src="{{ url_for('static', filename='javascript/dashboard_actions.js') }}"></script>
 {% endblock %}

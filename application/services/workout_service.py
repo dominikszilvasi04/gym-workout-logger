@@ -101,3 +101,15 @@ class WorkoutService:
             The WorkoutDocument if found, otherwise None.
         """
         return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier)
+    
+    def remove_workout_session(self, identifier: str) -> bool:
+        """
+        Delegates the deletion of a specific workout session to the repository.
+        
+        Args:
+            identifier: The string representation of the database unique identifier.
+            
+        Returns:
+            A boolean indicating the success of the deletion operation.
+        """
+        return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
