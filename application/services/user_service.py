@@ -31,6 +31,8 @@ class UserService:
         """
         Verifies a plain password against current and legacy hash formats.
         """
+        if not stored_password_hash:
+            return False
         if stored_password_hash.startswith("$argon2"):
             return password_hashing_context.verify(plain_password, stored_password_hash)
         return check_password_hash(stored_password_hash, plain_password)
@@ -39,6 +41,8 @@ class UserService:
         """
         Determines whether a password hash should be upgraded to current policy.
         """
+        if not stored_password_hash:
+            return False
         if stored_password_hash.startswith("$argon2"):
             return password_hashing_context.needs_update(stored_password_hash)
         return True
@@ -61,6 +65,7 @@ class UserService:
         user_document = UserDocument(
             email=normalised_email,
             password_hash=self.hash_password(password),
+            auth_provider="local",
             display_name=display_name.strip() if display_name else None,
         )
         try:
@@ -80,6 +85,9 @@ class UserService:
         if not user:
             logger.info("Authentication failed: unknown email=%s", normalised_email)
             return None
+        if not user.password_hash:
+            logger.info("Authentication failed: account requires external provider for email=%s", normalised_email)
+            return None
         if not self.verify_password(password, user.password_hash):
             logger.info("Authentication failed: invalid password for email=%s", normalised_email)
             return None
@@ -95,3 +103,56 @@ class UserService:
         Retrieves a user by id.
         """
         return self.user_repository.retrieve_user_by_identifier(identifier)
+
+    def authenticate_or_register_google_user(
+        self,
+        email: str,
+        google_subject: str,
+        display_name: Optional[str] = None,
+    ) -> Optional[UserDocument]:
+        """
+        Authenticates or creates a user from Google OAuth identity.
+        """
+        normalised_email = email.lower().strip()
+        if len(normalised_email) < 3 or "@" not in normalised_email or not google_subject:
+            return None
+
+        existing_provider_user = self.user_repository.retrieve_user_by_auth_provider_subject(
+            auth_provider="google",
+            auth_provider_subject=google_subject,
+        )
+        if existing_provider_user:
+            if existing_provider_user.identifier and display_name and not existing_provider_user.display_name:
+                self.user_repository.update_user_display_name(existing_provider_user.identifier, display_name.strip())
+                return self.user_repository.retrieve_user_by_identifier(existing_provider_user.identifier)
+            return existing_provider_user
+
+        existing_email_user = self.user_repository.retrieve_user_by_email(normalised_email)
+        if existing_email_user:
+            if existing_email_user.auth_provider == "google" and existing_email_user.auth_provider_subject != google_subject:
+                logger.warning("Google subject mismatch for existing email=%s", normalised_email)
+                return None
+            if existing_email_user.identifier:
+                self.user_repository.update_user_auth_provider(
+                    identifier=existing_email_user.identifier,
+                    auth_provider="google",
+                    auth_provider_subject=google_subject,
+                )
+                if display_name and not existing_email_user.display_name:
+                    self.user_repository.update_user_display_name(existing_email_user.identifier, display_name.strip())
+                return self.user_repository.retrieve_user_by_identifier(existing_email_user.identifier)
+            return existing_email_user
+
+        user_document = UserDocument(
+            email=normalised_email,
+            password_hash=None,
+            auth_provider="google",
+            auth_provider_subject=google_subject,
+            display_name=display_name.strip() if display_name else None,
+        )
+        try:
+            created_identifier = self.user_repository.create_user(user_document)
+            return self.user_repository.retrieve_user_by_identifier(created_identifier)
+        except DuplicateKeyError:
+            logger.warning("Duplicate Google OAuth creation attempted for email=%s", normalised_email)
+            return self.user_repository.retrieve_user_by_email(normalised_email)
