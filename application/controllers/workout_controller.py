@@ -238,6 +238,40 @@ def delete_workout_template_endpoint(identifier: str) -> tuple[Response, int]:
         return jsonify({"error": "Template not found."}), 404
     return jsonify({"message": "Workout template deleted."}), 200
 
+
+@workout_blueprint.route("/api/workout-templates/<identifier>", methods=["PUT"])
+@login_required
+@limiter.limit("120 per minute")
+def update_workout_template_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    Updates a saved workout template for the authenticated user.
+    """
+    request_data = request.get_json(silent=True)
+    if request_data is None or not isinstance(request_data, dict):
+        return jsonify({"error": "A valid JSON payload is required."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    if user_identifier is not None:
+        request_data["user_identifier"] = user_identifier
+
+    try:
+        template_document = WorkoutTemplateDocument(**request_data)
+    except ValidationError as validation_error:
+        return jsonify({"error": "Validation failed", "details": validation_error.errors()}), 422
+
+    try:
+        updated = application_workout_template_service.update_template(
+            identifier=identifier,
+            workout_template_document=template_document,
+            user_identifier=user_identifier,
+        )
+    except RuntimeError:
+        logger.exception("Template update failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    if not updated:
+        return jsonify({"error": "Template not found."}), 404
+    return jsonify({"message": "Workout template updated."}), 200
+
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
 @login_required
 @limiter.limit("120 per minute")

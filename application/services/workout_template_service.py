@@ -46,3 +46,19 @@ class WorkoutTemplateService:
             identifier=identifier,
             user_identifier=user_identifier,
         )
+
+    def update_template(
+        self,
+        identifier: str,
+        workout_template_document: WorkoutTemplateDocument,
+        user_identifier: Optional[str] = None,
+    ) -> bool:
+        """
+        Updates one template for active user scope.
+        """
+        logger.info("Updating workout template identifier=%s", identifier)
+        return self.workout_template_repository.update_workout_template_by_identifier(
+            identifier=identifier,
+            updated_workout_template_document=workout_template_document,
+            user_identifier=user_identifier,
+        )

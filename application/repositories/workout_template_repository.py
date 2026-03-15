@@ -78,3 +78,25 @@ class WorkoutTemplateRepository:
         query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
         deletion_result = self.collection.delete_one(query_filter)
         return deletion_result.deleted_count > 0
+
+    def update_workout_template_by_identifier(
+        self,
+        identifier: str,
+        updated_workout_template_document: WorkoutTemplateDocument,
+        user_identifier: Optional[str] = None,
+    ) -> bool:
+        """
+        Updates a workout template for the active user scope.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        update_payload: Dict[str, Any] = {
+            "$set": {
+                "template_name": updated_workout_template_document.template_name,
+                "target_muscle_groups": updated_workout_template_document.target_muscle_groups,
+                "exercises": [exercise.model_dump() for exercise in updated_workout_template_document.exercises],
+            }
+        }
+        update_result = self.collection.update_one(query_filter, update_payload)
+        return update_result.matched_count > 0
