@@ -59,13 +59,17 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     database_uri = flask_application.config.get("DATABASE_URI")
     database_name = flask_application.config.get("DATABASE_NAME")
     if database_uri and database_name:
-        database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
-        logger.info("Database client initialised for database: %s", database_name)
-        database_manager.database["users"].create_index("email", unique=True)
-        database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
-        database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
-        logger.info("Ensured users collection unique index on email.")
-        logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
+        try:
+            database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
+            logger.info("Database client initialised for database: %s", database_name)
+            database_manager.database["users"].create_index("email", unique=True)
+            database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
+            database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
+            logger.info("Ensured users collection unique index on email.")
+            logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
+        except Exception:
+            database_manager.database = None
+            logger.exception("Database initialisation failed during application startup.")
     else:
         logger.warning("Database configuration missing. Client initialisation skipped.")
 
