@@ -9,6 +9,18 @@ from application.models.workout import WorkoutDocument
 
 logger = logging.getLogger(__name__)
 
+
+def _build_user_scope_filter(user_identifier: Optional[str]) -> Dict[str, Any]:
+    """
+    Builds a MongoDB filter for user scoping.
+
+    - Authenticated users: only their own workouts.
+    - Unauthenticated users: only legacy anonymous workouts.
+    """
+    if user_identifier is not None:
+        return {"user_identifier": user_identifier}
+    return {"$or": [{"user_identifier": {"$exists": False}}, {"user_identifier": None}]}
+
 class WorkoutRepository:
     """
     Handles all database operations for WorkoutDocument entities.
@@ -41,7 +53,7 @@ class WorkoutRepository:
         logger.info("Workout inserted with identifier=%s", str(insertion_result.inserted_id))
         return str(insertion_result.inserted_id)
 
-    def retrieve_workout_by_identifier(self, identifier: str) -> Optional[WorkoutDocument]:
+    def retrieve_workout_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
         """
         Retrieves a single workout document by its unique identifier.
         
@@ -54,7 +66,8 @@ class WorkoutRepository:
         if not ObjectId.is_valid(identifier):
             logger.warning("Invalid workout identifier requested: %s", identifier)
             return None
-        document = self.collection.find_one({"_id": ObjectId(identifier)})
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        document = self.collection.find_one(query_filter)
         if document:
             document["_id"] = str(document["_id"])
             logger.debug("Workout retrieved for identifier=%s", identifier)
@@ -62,14 +75,16 @@ class WorkoutRepository:
         logger.info("Workout not found for identifier=%s", identifier)
         return None
 
-    def retrieve_all_workouts(self) -> List[WorkoutDocument]:
+    def retrieve_all_workouts(self, user_identifier: Optional[str] = None) -> List[WorkoutDocument]:
         """
         Retrieves all workout documents in the database.
         
         Returns:
             A list of WorkoutDocument models.
         """
-        cursor = self.collection.find()
+        query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
+
+        cursor = self.collection.find(query_filter)
         workouts: List[WorkoutDocument] = []
         for document in cursor:
             document["_id"] = str(document["_id"])
@@ -77,7 +92,7 @@ class WorkoutRepository:
         logger.debug("Retrieved %d workouts from database.", len(workouts))
         return workouts
     
-    def delete_workout_by_identifier(self, identifier: str) -> bool:
+    def delete_workout_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
         """
         Permanently removes a workout document from the database.
         
@@ -90,11 +105,18 @@ class WorkoutRepository:
         if not ObjectId.is_valid(identifier):
             logger.warning("Delete rejected due to invalid identifier: %s", identifier)
             return False
-        deletion_result = self.collection.delete_one({"_id": ObjectId(identifier)})
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+
+        deletion_result = self.collection.delete_one(query_filter)
         logger.info("Delete workout identifier=%s deleted_count=%d", identifier, deletion_result.deleted_count)
         return deletion_result.deleted_count > 0
     
-    def update_workout_by_identifier(self, identifier: str, updated_workout: WorkoutDocument) -> bool:
+    def update_workout_by_identifier(
+        self,
+        identifier: str,
+        updated_workout: WorkoutDocument,
+        user_identifier: Optional[str] = None
+    ) -> bool:
         """
         Updates specific fields of an existing workout document using $set.
         This preserves the original date_of_workout during an edit.
@@ -109,10 +131,9 @@ class WorkoutRepository:
                 "exercises": [exercise.model_dump() for exercise in updated_workout.exercises]
             }
         }
-        update_result = self.collection.update_one(
-            {"_id": ObjectId(identifier)}, 
-            update_payload
-        )
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+
+        update_result = self.collection.update_one(query_filter, update_payload)
         logger.info(
             "Update workout identifier=%s matched=%d modified=%d",
             identifier,

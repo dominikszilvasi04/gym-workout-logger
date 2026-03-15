@@ -85,18 +85,21 @@ class WorkoutService:
         logger.info("Recording new workout session with %d exercises.", len(workout_document.exercises))
         return self.workout_repository.create_workout(workout_document=workout_document)
 
-    def retrieve_workout_history(self) -> List[WorkoutDocument]:
+    def retrieve_workout_history(self, user_identifier: Optional[str] = None) -> List[WorkoutDocument]:
         """
         Retrieves the complete history of all logged workouts.
         
         Returns:
             A list of validated WorkoutDocument models.
         """
-        workout_history = self.workout_repository.retrieve_all_workouts()
+        if user_identifier is None:
+            workout_history = self.workout_repository.retrieve_all_workouts()
+        else:
+            workout_history = self.workout_repository.retrieve_all_workouts(user_identifier=user_identifier)
         logger.debug("Retrieved workout history count=%d", len(workout_history))
         return workout_history
         
-    def retrieve_specific_workout(self, identifier: str) -> Optional[WorkoutDocument]:
+    def retrieve_specific_workout(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
         """
         Retrieves a single workout session by its unique database identifier.
         
@@ -107,9 +110,11 @@ class WorkoutService:
             The WorkoutDocument if found, otherwise None.
         """
         logger.debug("Retrieving workout identifier=%s", identifier)
-        return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier)
+        if user_identifier is None:
+            return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier)
+        return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier, user_identifier=user_identifier)
     
-    def remove_workout_session(self, identifier: str) -> bool:
+    def remove_workout_session(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
         """
         Delegates the deletion of a specific workout session to the repository.
         
@@ -120,9 +125,16 @@ class WorkoutService:
             A boolean indicating the success of the deletion operation.
         """
         logger.info("Removing workout identifier=%s", identifier)
-        return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
+        if user_identifier is None:
+            return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
+        return self.workout_repository.delete_workout_by_identifier(identifier=identifier, user_identifier=user_identifier)
     
-    def modify_workout_session(self, identifier: str, workout_document: WorkoutDocument) -> bool:
+    def modify_workout_session(
+        self,
+        identifier: str,
+        workout_document: WorkoutDocument,
+        user_identifier: Optional[str] = None
+    ) -> bool:
         """
         Coordinates the update of a workout session after validation.
         
@@ -134,7 +146,13 @@ class WorkoutService:
             Success status of the update operation.
         """
         logger.info("Modifying workout identifier=%s", identifier)
+        if user_identifier is None:
+            return self.workout_repository.update_workout_by_identifier(
+                identifier=identifier,
+                updated_workout=workout_document
+            )
         return self.workout_repository.update_workout_by_identifier(
-            identifier=identifier, 
-            updated_workout=workout_document
+            identifier=identifier,
+            updated_workout=workout_document,
+            user_identifier=user_identifier
         )
