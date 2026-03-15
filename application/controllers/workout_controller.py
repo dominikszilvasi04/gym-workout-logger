@@ -31,6 +31,17 @@ def view_dashboard() -> str:
     logger.debug("Dashboard rendering with %d workouts.", len(workout_history))
     return render_template("dashboard.html", workouts=workout_history)
 
+
+@workout_blueprint.route("/api/dashboard/analytics", methods=["GET"])
+def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
+    """
+    Returns real dashboard analytics data for charts and summary cards.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    analytics_payload = application_workout_service.build_dashboard_analytics(user_identifier=user_identifier)
+    logger.debug("Dashboard analytics generated for user_identifier=%s", user_identifier)
+    return jsonify(analytics_payload), 200
+
 @workout_blueprint.route("/workouts/<identifier>", methods=["GET"])
 def view_workout_detail(identifier: str) -> str | tuple[str, int]:
     """
