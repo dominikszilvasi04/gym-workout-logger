@@ -24,6 +24,8 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     database_name = flask_application.config.get("DATABASE_NAME")
     if database_uri and database_name:
         database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
+    from application.controllers.workout_controller import workout_blueprint
+    flask_application.register_blueprint(workout_blueprint)
 
     @flask_application.route("/health_check")
     def health_check() -> dict[str, str]:
