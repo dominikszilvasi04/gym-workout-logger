@@ -418,6 +418,21 @@ class WorkoutService:
         if range_days is None:
             return workouts
 
+        # Validate and normalise range_days to avoid confusing future-oriented windows.
+        if range_days < 0:
+            logger.warning("Invalid range_days value provided to filter_workouts_by_range: %s", range_days)
+            raise ValueError("range_days must be a non-negative integer")
+
+        # Optionally cap the range to a reasonable maximum to prevent excessive queries.
+        max_days = 3650  # e.g. limit to the last 10 years
+        if range_days > max_days:
+            logger.info(
+                "range_days value %s exceeds max_days=%s; capping to maximum.",
+                range_days,
+                max_days,
+            )
+            range_days = max_days
+
         range_start = datetime.now(timezone.utc) - timedelta(days=range_days)
         return [
             workout
