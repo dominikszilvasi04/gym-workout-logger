@@ -11,9 +11,34 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container">
             <a class="navbar-brand" href="/">Gym Workout Logger</a>
+            <div class="d-flex align-items-center gap-2">
+                {% if session.get('user_identifier') %}
+                    <span class="text-white-50 small me-2">{{ session.get('user_display_name') }}</span>
+                    <form method="post" action="/logout" class="mb-0">
+                        <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="/login" class="btn btn-sm btn-outline-light">Login</a>
+                    <a href="/register" class="btn btn-sm btn-light">Register</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
     <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
         {% block content %}
         {% endblock %}
     </main>

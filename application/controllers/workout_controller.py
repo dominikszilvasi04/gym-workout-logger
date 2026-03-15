@@ -2,13 +2,20 @@
 Controller layer for handling workout-related HTTP requests and web views.
 """
 import logging
-from flask import Blueprint, render_template, request, jsonify, Response
+from flask import Blueprint, render_template, request, jsonify, Response, session
 from application.services import application_workout_service
 from application.models.workout import WorkoutDocument
 from pydantic import ValidationError
 
 workout_blueprint = Blueprint("workout_controller", __name__, template_folder="../templates")
 logger = logging.getLogger(__name__)
+
+
+def get_authenticated_user_identifier() -> str | None:
+    """
+    Retrieves the logged-in user's identifier from session state.
+    """
+    return session.get("user_identifier")
 
 @workout_blueprint.route("/", methods=["GET"])
 def view_dashboard() -> str:
@@ -19,7 +26,8 @@ def view_dashboard() -> str:
         The rendered HTML string for the dashboard.
     """
     logger.info("Dashboard requested.")
-    workout_history = application_workout_service.retrieve_workout_history()
+    user_identifier = get_authenticated_user_identifier()
+    workout_history = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
     logger.debug("Dashboard rendering with %d workouts.", len(workout_history))
     return render_template("dashboard.html", workouts=workout_history)
 
@@ -35,7 +43,11 @@ def view_workout_detail(identifier: str) -> str | tuple[str, int]:
         The rendered HTML string for the detail page, or a 404 response.
     """
     logger.info("Workout detail requested for identifier=%s", identifier)
-    selected_workout = application_workout_service.retrieve_specific_workout(identifier=identifier)
+    user_identifier = get_authenticated_user_identifier()
+    selected_workout = application_workout_service.retrieve_specific_workout(
+        identifier=identifier,
+        user_identifier=user_identifier
+    )
     if not selected_workout:
         logger.warning("Workout detail not found for identifier=%s", identifier)
         return "Workout not found", 404
@@ -55,6 +67,11 @@ def create_workout_endpoint() -> tuple[Response, int]:
     if not request_data:
         logger.warning("Create workout request rejected: missing JSON payload.")
         return jsonify({"error": "No JSON payload provided."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    if user_identifier is not None:
+        request_data["user_identifier"] = user_identifier
+
     try:
         workout_document = WorkoutDocument(**request_data)
     except ValidationError as validation_error:
@@ -87,7 +104,11 @@ def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
         A tuple containing the JSON response and the HTTP status code.
     """
     logger.info("Delete workout request received for identifier=%s", identifier)
-    deletion_successful = application_workout_service.remove_workout_session(identifier=identifier)
+    user_identifier = get_authenticated_user_identifier()
+    deletion_successful = application_workout_service.remove_workout_session(
+        identifier=identifier,
+        user_identifier=user_identifier
+    )
     if deletion_successful:
         logger.info("Workout deleted successfully for identifier=%s", identifier)
         return jsonify({"message": "Workout successfully deleted."}), 200
@@ -101,7 +122,11 @@ def view_edit_workout_form(identifier: str) -> str:
     Renders the workout form pre-populated with existing data.
     """
     logger.info("Edit workout form requested for identifier=%s", identifier)
-    workout_to_edit = application_workout_service.retrieve_specific_workout(identifier=identifier)
+    user_identifier = get_authenticated_user_identifier()
+    workout_to_edit = application_workout_service.retrieve_specific_workout(
+        identifier=identifier,
+        user_identifier=user_identifier
+    )
     if not workout_to_edit:
         logger.warning("Edit requested for missing workout identifier=%s", identifier)
         return "Workout not found", 404
@@ -119,7 +144,12 @@ def update_workout_endpoint(identifier: str) -> tuple[Response, int]:
         return jsonify({"error": "A valid JSON payload is required."}), 400
     try:
         workout_document = WorkoutDocument(**request_data)
-        success = application_workout_service.modify_workout_session(identifier, workout_document)
+        user_identifier = get_authenticated_user_identifier()
+        success = application_workout_service.modify_workout_session(
+            identifier,
+            workout_document,
+            user_identifier=user_identifier
+        )
         if success:
             logger.info("Workout updated successfully for identifier=%s", identifier)
             return jsonify({"message": "Workout updated successfully."}), 200

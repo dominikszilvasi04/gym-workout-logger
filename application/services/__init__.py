@@ -5,11 +5,15 @@ from application.repositories.workout_repository import WorkoutRepository
 from application.services.workout_service import WorkoutService
 from application.repositories.exercise_definition_repository import ExerciseDefinitionRepository
 from application.services.exercise_definition_service import ExerciseDefinitionService
+from application.repositories.user_repository import UserRepository
+from application.services.user_service import UserService
 
 # Instantiate the repositories
 application_workout_repository = WorkoutRepository()
 application_exercise_definition_repository = ExerciseDefinitionRepository()
+application_user_repository = UserRepository()
 
 # Inject the repositories into the services
 application_workout_service = WorkoutService(workout_repository=application_workout_repository)
 application_exercise_definition_service = ExerciseDefinitionService(exercise_definition_repository=application_exercise_definition_repository)
+application_user_service = UserService(user_repository=application_user_repository)

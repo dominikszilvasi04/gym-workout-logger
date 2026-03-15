@@ -29,6 +29,7 @@ class WorkoutDocument(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: Optional[str] = Field(default=None, alias="_id", description="The MongoDB ObjectId as a string.")
+    user_identifier: Optional[str] = Field(default=None, description="The owning user account identifier.")
     date_of_workout: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="The date and time the workout occurred.")
     target_muscle_groups: List[str] = Field(default_factory=list, description="The primary muscle groups targeted.")
     exercises: List[ExerciseLog] = Field(default_factory=list, description="A list of all exercises performed during the workout.")
