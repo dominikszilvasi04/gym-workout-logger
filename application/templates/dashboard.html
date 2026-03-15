@@ -1,0 +1,70 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-8">
+        <h2 class="mb-0">Workout Dashboard</h2>
+    </div>
+    <div class="col-4 text-end">
+        <a href="/log" class="btn btn-primary">Log New Workout</a>
+    </div>
+    <div class="col-12"><hr class="mt-3"></div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Estimated 1RM Progression</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="maximum_repetition_chart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Total Workout Volume</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="workout_volume_chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h4 class="mb-3">Recent Workout History</h4>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered bg-white shadow-sm">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Target Muscles</th>
+                        <th>Total Exercises</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for workout in workouts %}
+                    <tr>
+                        <td>{{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ workout.target_muscle_groups | join(', ') }}</td>
+                        <td>{{ workout.exercises | length }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No workout history found. Time to hit the gym!</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript_scripts %}
+<script src="{{ url_for('static', filename='javascript/dashboard_visualisation.js') }}"></script>
+{% endblock %}

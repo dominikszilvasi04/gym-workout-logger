@@ -1,6 +1,8 @@
 """
 Main entry point to run the Flask development server.
 """
+from dotenv import load_dotenv
+load_dotenv()
 from application import create_application
 
 gym_logger_application = create_application()

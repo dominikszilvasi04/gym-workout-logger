@@ -79,12 +79,6 @@ class WorkoutService:
         Returns:
             The unique string identifier of the newly created database record.
         """
-        if workout_document.date_of_workout > workout_document.date_of_workout.now():
-            raise ValueError("The date of the workout cannot be in the future.")
-        if not workout_document.exercises:
-            raise ValueError("At least one exercise must be logged in the workout.")
-        if any(exercise.sets == [] for exercise in workout_document.exercises):
-            raise ValueError("Each exercise must contain at least one set.")
         return self.workout_repository.create_workout(workout_document=workout_document)
 
     def retrieve_workout_history(self) -> List[WorkoutDocument]:
@@ -94,8 +88,6 @@ class WorkoutService:
         Returns:
             A list of validated WorkoutDocument models.
         """
-        if not self.workout_repository.retrieve_all_workouts():
-            raise ValueError("No workout history found in the database.")
         return self.workout_repository.retrieve_all_workouts()
         
     def retrieve_specific_workout(self, identifier: str) -> Optional[WorkoutDocument]:

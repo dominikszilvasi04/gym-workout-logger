@@ -1,0 +1,68 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">Log a New Workout</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form id="workout_logging_form">
+                    
+                    <div class="mb-4">
+                        <h5 class="card-title">Workout Details</h5>
+                        <div class="mb-3">
+                            <label for="target_muscle_groups" class="form-label">Target Muscle Groups (comma separated)</label>
+                            <input type="text" class="form-control" id="target_muscle_groups" placeholder="e.g. Chest, Triceps, Shoulders" required>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div id="exercises_container" class="mb-4">
+                        <h5 class="card-title mb-3">Exercises</h5>
+                        
+                        <div class="exercise-block border rounded p-3 mb-3 bg-light">
+                            <div class="mb-3">
+                                <label class="form-label">Exercise Name</label>
+                                <input type="text" class="form-control exercise-name-input" placeholder="e.g. Barbell Bench Press" required>
+                            </div>
+                            
+                            <h6>Sets</h6>
+                            <div class="sets-container">
+                                <div class="row mb-2 set-row">
+                                    <div class="col">
+                                        <input type="number" class="form-control weight-input" placeholder="Weight (kg)" step="0.5" min="0" required>
+                                    </div>
+                                    <div class="col">
+                                        <input type="number" class="form-control repetitions-input" placeholder="Repetitions" min="1" required>
+                                    </div>
+                                    <div class="col">
+                                        <input type="number" class="form-control exertion-input" placeholder="RPE (1-10)" min="1" max="10" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-2 add-set-button">Add Another Set</button>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-outline-primary mb-4" id="add_exercise_button">Add Another Exercise</button>
+                    
+                    <hr>
+                    
+                    <button type="submit" class="btn btn-success w-100 btn-lg">Save Workout Session</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript_scripts %}
+<script src="{{ url_for('static', filename='javascript/workout_submission.js') }}"></script>
+{% endblock %}

@@ -37,3 +37,14 @@ def create_workout_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "Data validation failed.", "details": validation_error.errors()}), 422
     inserted_identifier = application_workout_service.record_new_workout_session(workout_document=workout_document)
     return jsonify({"message": "Workout successfully recorded.", "identifier": inserted_identifier}), 201
+
+
+@workout_blueprint.route("/log", methods=["GET"])
+def view_workout_logging_form() -> str:
+    """
+    Renders the web form allowing users to input a new workout session.
+    
+    Returns:
+        The rendered HTML string for the workout logging form.
+    """
+    return render_template("log_workout.html")
