@@ -224,3 +224,126 @@ class WorkoutService:
             "latest_workout": recent_workouts[0] if recent_workouts else None,
             "recent_workouts": recent_workouts[:5],
         }
+
+    def calculate_total_sets(self, workout_document: WorkoutDocument) -> int:
+        """
+        Calculates the number of sets performed in a workout.
+
+        Args:
+            workout_document: The complete workout record.
+
+        Returns:
+            The total set count.
+        """
+        return sum(len(exercise.sets) for exercise in workout_document.exercises)
+
+    def calculate_total_repetitions(self, workout_document: WorkoutDocument) -> int:
+        """
+        Calculates total repetitions completed in a workout.
+
+        Args:
+            workout_document: The complete workout record.
+
+        Returns:
+            The total repetition count.
+        """
+        return sum(
+            workout_set.repetitions
+            for exercise in workout_document.exercises
+            for workout_set in exercise.sets
+        )
+
+    def calculate_best_estimated_one_repetition_maximum(self, workout_document: WorkoutDocument) -> float:
+        """
+        Calculates the best estimated 1RM within a workout based on all sets.
+
+        Args:
+            workout_document: The complete workout record.
+
+        Returns:
+            The highest estimated 1RM value found.
+        """
+        estimated_maximums = [
+            self.calculate_estimated_one_repetition_maximum(
+                weight_in_kilograms=workout_set.weight_in_kilograms,
+                repetitions=workout_set.repetitions
+            )
+            for exercise in workout_document.exercises
+            for workout_set in exercise.sets
+        ]
+        return max(estimated_maximums, default=0.0)
+
+    def build_dashboard_analytics(self, user_identifier: Optional[str] = None) -> dict[str, object]:
+        """
+        Builds dashboard summary metrics and chart series from real workout data.
+
+        Args:
+            user_identifier: Optional user scope for authenticated dashboards.
+
+        Returns:
+            A serialisable dictionary containing summary cards and chart datasets.
+        """
+        workouts = sorted(
+            self.retrieve_workout_history(user_identifier=user_identifier),
+            key=lambda workout: workout.date_of_workout
+        )
+
+        total_volume = round(sum(self.calculate_total_workout_volume(workout) for workout in workouts), 2)
+        total_sets = sum(self.calculate_total_sets(workout) for workout in workouts)
+        total_repetitions = sum(self.calculate_total_repetitions(workout) for workout in workouts)
+        total_exercises = sum(len(workout.exercises) for workout in workouts)
+
+        volume_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in workouts]
+        volume_values = [self.calculate_total_workout_volume(workout) for workout in workouts]
+
+        one_rep_max_values = [
+            self.calculate_best_estimated_one_repetition_maximum(workout)
+            for workout in workouts
+        ]
+
+        weekly_frequency_counter: Counter[str] = Counter()
+        target_muscle_counter: Counter[str] = Counter()
+        for workout in workouts:
+            iso_calendar = workout.date_of_workout.isocalendar()
+            weekly_frequency_counter[f"{iso_calendar.year}-W{iso_calendar.week:02d}"] += 1
+            for muscle_group in workout.target_muscle_groups:
+                target_muscle_counter[muscle_group] += 1
+
+        sorted_weekly_labels = sorted(weekly_frequency_counter.keys())
+        weekly_frequency_values = [weekly_frequency_counter[label] for label in sorted_weekly_labels]
+
+        muscle_labels = [entry[0] for entry in target_muscle_counter.most_common()]
+        muscle_values = [entry[1] for entry in target_muscle_counter.most_common()]
+
+        strongest_estimated_one_rep_maximum = max(one_rep_max_values, default=0.0)
+        average_workout_volume = round(total_volume / len(workouts), 2) if workouts else 0.0
+
+        return {
+            "summary": {
+                "total_workouts": len(workouts),
+                "total_volume": total_volume,
+                "average_workout_volume": average_workout_volume,
+                "total_sets": total_sets,
+                "total_repetitions": total_repetitions,
+                "total_exercises": total_exercises,
+                "strongest_estimated_one_rep_maximum": strongest_estimated_one_rep_maximum,
+            },
+            "charts": {
+                "one_rep_max_progression": {
+                    "labels": volume_labels,
+                    "values": one_rep_max_values,
+                },
+                "workout_volume_progression": {
+                    "labels": volume_labels,
+                    "values": volume_values,
+                },
+                "muscle_group_distribution": {
+                    "labels": muscle_labels,
+                    "values": muscle_values,
+                },
+                "weekly_frequency": {
+                    "labels": sorted_weekly_labels,
+                    "values": weekly_frequency_values,
+                },
+            },
+        }
