@@ -20,7 +20,7 @@ def get_authenticated_user_identifier() -> str | None:
     return session.get("user_identifier")
 
 @workout_blueprint.route("/", methods=["GET"])
-def view_dashboard() -> str:
+def view_dashboard() -> tuple[str, int] | str:
     """
     Renders the main dashboard view, displaying workout history.
     
@@ -29,7 +29,11 @@ def view_dashboard() -> str:
     """
     logger.info("Dashboard requested.")
     user_identifier = get_authenticated_user_identifier()
-    workout_history = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
+    try:
+        workout_history = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Dashboard request failed because the database client is not initialised.")
+        return render_template("dashboard.html", workouts=[]), 503
     logger.debug("Dashboard rendering with %d workouts.", len(workout_history))
     return render_template("dashboard.html", workouts=workout_history)
 
@@ -43,11 +47,15 @@ def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
     user_identifier = get_authenticated_user_identifier()
     requested_range_days = request.args.get("range_days", default=None, type=int)
     selected_exercise_name = request.args.get("exercise_name", default=None, type=str)
-    analytics_payload = application_workout_service.build_dashboard_analytics(
-        user_identifier=user_identifier,
-        range_days=requested_range_days,
-        exercise_name=selected_exercise_name
-    )
+    try:
+        analytics_payload = application_workout_service.build_dashboard_analytics(
+            user_identifier=user_identifier,
+            range_days=requested_range_days,
+            exercise_name=selected_exercise_name
+        )
+    except RuntimeError:
+        logger.exception("Dashboard analytics failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
     logger.debug("Dashboard analytics generated for user_identifier=%s", user_identifier)
     return jsonify(analytics_payload), 200
 
