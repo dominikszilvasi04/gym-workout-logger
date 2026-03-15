@@ -17,7 +17,8 @@ class ExerciseLog(BaseModel):
     """
     Represents an exercise performed during a workout, containing multiple sets.
     """
-    exercise_name: str = Field(..., min_length=1, description="The full name of the exercise.")
+    exercise_name: str = Field(..., min_length=1, description="The standard name of the exercise.")
+    exercise_definition_identifier: Optional[str] = Field(default=None, description="The unique identifier mapping to the master ExerciseDefinition collection.")
     sets: List[WorkoutSet] = Field(default_factory=list, description="A list of sets performed for this exercise.")
 
 class WorkoutDocument(BaseModel):
