@@ -5,6 +5,8 @@ from flask import Flask
 from typing import Type
 from application.configuration import ApplicationConfiguration, DevelopmentConfiguration
 from application.database import database_manager
+from application.controllers.workout_controller import workout_blueprint
+from application.controllers.exercise_controller import exercise_blueprint
 import os
 
 def create_application(configuration_class: Type[ApplicationConfiguration] = DevelopmentConfiguration) -> Flask:
@@ -26,6 +28,7 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
         database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
     from application.controllers.workout_controller import workout_blueprint
     flask_application.register_blueprint(workout_blueprint)
+    flask_application.register_blueprint(exercise_blueprint)
 
     @flask_application.route("/health_check")
     def health_check() -> dict[str, str]:
