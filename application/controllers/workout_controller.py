@@ -4,6 +4,7 @@ Controller layer for handling workout-related HTTP requests and web views.
 import logging
 from flask import Blueprint, render_template, request, jsonify, Response, session
 from application.authentication import login_required
+from application.security import limiter
 from application.services import application_workout_service
 from application.models.workout import WorkoutDocument
 from pydantic import ValidationError
@@ -75,6 +76,7 @@ def view_workout_detail(identifier: str) -> str | tuple[str, int]:
 
 @workout_blueprint.route("/api/workouts", methods=["POST"])
 @login_required
+@limiter.limit("120 per minute")
 def create_workout_endpoint() -> tuple[Response, int]:
     """
     API endpoint to record a new workout session.
@@ -116,6 +118,7 @@ def view_workout_logging_form() -> str:
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
 @login_required
+@limiter.limit("120 per minute")
 def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
     """
     API endpoint to permanently delete a workout session.
@@ -158,6 +161,7 @@ def view_edit_workout_form(identifier: str) -> str:
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["PUT"])
 @login_required
+@limiter.limit("120 per minute")
 def update_workout_endpoint(identifier: str) -> tuple[Response, int]:
     """
     API endpoint to update an existing workout session with strict validation.

@@ -9,6 +9,11 @@ document.addEventListener("DOMContentLoaded", async function() {
     const add_exercise_button = document.getElementById("add_exercise_button");
     const workout_identifier = document.getElementById("workout_identifier").value;
 
+    function get_csrf_token() {
+        const csrf_meta_element = document.querySelector('meta[name="csrf-token"]');
+        return csrf_meta_element ? csrf_meta_element.getAttribute("content") : "";
+    }
+
     let master_exercise_list = [];
 
     try {
@@ -106,7 +111,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         try {
             const response = await fetch(`/api/workouts/${workout_identifier}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": get_csrf_token()
+                },
                 body: JSON.stringify({
                     target_muscle_groups: muscles_array,
                     exercises: exercises_payload

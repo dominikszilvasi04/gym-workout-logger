@@ -4,6 +4,11 @@
  * specifically the deletion of historical workout sessions.
  */
 document.addEventListener("DOMContentLoaded", function() {
+    function get_csrf_token() {
+        const csrf_meta_element = document.querySelector('meta[name="csrf-token"]');
+        return csrf_meta_element ? csrf_meta_element.getAttribute("content") : "";
+    }
+
     document.addEventListener("click", async function(click_event) {
         const delete_button = click_event.target.closest(".delete-workout-button");
         if (!delete_button) {
@@ -25,7 +30,10 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!user_confirmed) return;
         try {
             const network_response = await fetch(`/api/workouts/${workout_identifier}`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-Token": get_csrf_token()
+                }
             });
             if (network_response.ok) {
                 if (redirect_url) {

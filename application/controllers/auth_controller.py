@@ -4,6 +4,7 @@ Controller layer for user registration and authentication routes.
 import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from application.authentication import login_required
+from application.security import limiter
 from application.services import application_user_service, application_workout_service
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ def get_authenticated_user_identifier() -> str | None:
     return session.get("user_identifier")
 
 @auth_blueprint.route("/register", methods=["GET", "POST"])
+@limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
 def register() -> str:
     """
     Renders and handles account registration.
@@ -38,6 +40,7 @@ def register() -> str:
     if not user:
         flash("Account created, but automatic login failed. Please log in.", "warning")
         return redirect(url_for("auth_controller.login"))
+    session.clear()
     session["user_identifier"] = user.identifier
     session["user_email"] = user.email
     session["user_display_name"] = user.display_name or user.email
@@ -46,6 +49,7 @@ def register() -> str:
     return redirect(url_for("workout_controller.view_dashboard"))
 
 @auth_blueprint.route("/login", methods=["GET", "POST"])
+@limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
 def login() -> str:
     """
     Renders and handles user login.
@@ -58,6 +62,7 @@ def login() -> str:
     if not authenticated_user:
         flash("Invalid email or password.", "danger")
         return render_template("login.html"), 401
+    session.clear()
     session["user_identifier"] = authenticated_user.identifier
     session["user_email"] = authenticated_user.email
     session["user_display_name"] = authenticated_user.display_name or authenticated_user.email
@@ -66,6 +71,7 @@ def login() -> str:
     return redirect(url_for("workout_controller.view_dashboard"))
 
 @auth_blueprint.route("/logout", methods=["POST"])
+@limiter.limit("60 per minute")
 def logout() -> str:
     """
     Logs the current user out and clears the session.

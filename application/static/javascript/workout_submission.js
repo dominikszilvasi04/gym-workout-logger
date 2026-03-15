@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", async function() {
      */
     let master_exercise_list = [];
 
+    function get_csrf_token() {
+        const csrf_meta_element = document.querySelector('meta[name="csrf-token"]');
+        return csrf_meta_element ? csrf_meta_element.getAttribute("content") : "";
+    }
+
     /**
      * Sets the date input to the current local date and time.
      */
@@ -168,7 +173,10 @@ document.addEventListener("DOMContentLoaded", async function() {
         try {
             const network_response = await fetch("/api/workouts", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": get_csrf_token()
+                },
                 body: JSON.stringify(application_programming_interface_payload)
             });
 
