@@ -1,0 +1,112 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+{% set session_summary = namespace(total_volume=0, total_sets=0, total_repetitions=0) %}
+{% for exercise in workout.exercises %}
+    {% set session_summary.total_sets = session_summary.total_sets + (exercise.sets | length) %}
+    {% for set in exercise.sets %}
+        {% set session_summary.total_volume = session_summary.total_volume + (set.weight_in_kilograms * set.repetitions) %}
+        {% set session_summary.total_repetitions = session_summary.total_repetitions + set.repetitions %}
+    {% endfor %}
+{% endfor %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="mb-1">Workout Session</h2>
+        <p class="text-muted mb-0">{{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="/" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+    <div class="col-12"><hr class="mt-3"></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-8 mb-3 mb-lg-0">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Workout Overview</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-3"><strong>Target Muscle Groups:</strong> {{ workout.target_muscle_groups | join(', ') }}</p>
+                <p class="mb-2"><strong>Total Exercises:</strong> {{ workout.exercises | length }}</p>
+                <p class="mb-2"><strong>Total Session Volume:</strong> {{ '%.2f' | format(session_summary.total_volume) }} kg</p>
+                <p class="mb-2"><strong>Total Sets:</strong> {{ session_summary.total_sets }}</p>
+                <p class="mb-0"><strong>Total Repetitions:</strong> {{ session_summary.total_repetitions }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body d-grid gap-2">
+                <a href="/edit/{{ workout.identifier }}" class="btn btn-outline-primary">Edit Workout</a>
+                <button 
+                    class="btn btn-outline-danger delete-workout-button"
+                    data-workout-identifier="{{ workout.identifier }}"
+                    data-redirect-url="/">
+                    Delete Workout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Exercises and Sets</h5>
+            </div>
+            <div class="card-body">
+                {% for exercise in workout.exercises %}
+                <div class="mb-4">
+                    <h6 class="mb-2">{{ loop.index }}. {{ exercise.exercise_name }}</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-2">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Set</th>
+                                    <th>Weight (kg)</th>
+                                    <th>Reps</th>
+                                    <th>RPE</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set exercise_volume = namespace(total=0) %}
+                                {% for set in exercise.sets %}
+                                {% set set_volume = set.weight_in_kilograms * set.repetitions %}
+                                {% set exercise_volume.total = exercise_volume.total + set_volume %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ '%.2f' | format(set.weight_in_kilograms) }}</td>
+                                    <td>{{ set.repetitions }}</td>
+                                    <td>{{ set.rate_of_perceived_exertion }}</td>
+                                    <td>{{ '%.2f' | format(set_volume) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <th colspan="4" class="text-end">Exercise Total Volume</th>
+                                    <th>{{ '%.2f' | format(exercise_volume.total) }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No exercises were recorded for this workout.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript_scripts %}
+<script src="{{ url_for('static', filename='javascript/dashboard_actions.js') }}"></script>
+{% endblock %}

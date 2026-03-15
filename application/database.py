@@ -1,9 +1,12 @@
 """
 Database client initialisation module.
 """
+import logging
 from pymongo import MongoClient
 from pymongo.database import Database
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 class DatabaseManager:
     """
@@ -17,7 +20,9 @@ class DatabaseManager:
         """
         Initialises the PyMongo client and sets the active database.
         """
+        logger.info("Initialising MongoDB client for database: %s", database_name)
         cls.client = MongoClient(connection_uri)
         cls.database = cls.client[database_name]
+        logger.info("MongoDB client initialised successfully.")
 
 database_manager = DatabaseManager()

@@ -1,9 +1,12 @@
 """
 Service layer for handling standardised exercise definitions.
 """
+import logging
 from typing import List
 from application.repositories.exercise_definition_repository import ExerciseDefinitionRepository
 from application.models.exercise_definition import ExerciseDefinition
+
+logger = logging.getLogger(__name__)
 
 class ExerciseDefinitionService:
     """
@@ -26,4 +29,6 @@ class ExerciseDefinitionService:
         Returns:
             A strictly typed list of ExerciseDefinition models.
         """
-        return self.exercise_definition_repository.retrieve_all_exercise_definitions()
+        exercises = self.exercise_definition_repository.retrieve_all_exercise_definitions()
+        logger.debug("Retrieved %d standardised exercises from repository.", len(exercises))
+        return exercises

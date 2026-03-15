@@ -1,6 +1,7 @@
 """
 Unit tests for the pure business logic contained within the WorkoutService.
 """
+from unittest.mock import Mock
 from application.services.workout_service import WorkoutService
 from application.repositories.workout_repository import WorkoutRepository
 from application.models.workout import ExerciseLog, WorkoutSet
@@ -38,11 +39,11 @@ def test_calculate_exercise_volume() -> None:
     
     assert calculated_volume == 940.0
 
-def test_remove_workout_session_delegation(mocker):
+def test_remove_workout_session_delegation() -> None:
     """
     Verifies that the service correctly delegates deletion to the repository.
     """
-    mock_repo = mocker.Mock(spec=WorkoutRepository)
+    mock_repo = Mock(spec=WorkoutRepository)
     mock_repo.delete_workout_by_identifier.return_value = True
     service = WorkoutService(workout_repository=mock_repo)
     

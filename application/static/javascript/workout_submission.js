@@ -11,6 +11,20 @@ document.addEventListener("DOMContentLoaded", async function() {
      */
     let master_exercise_list = [];
 
+    /**
+     * Sets the date input to the current local date and time.
+     */
+    function initialise_default_date() {
+        const date_input = document.getElementById("date_of_workout");
+        if (date_input) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            date_input.value = now.toISOString().slice(0, 16);
+        }
+    }
+
+    initialise_default_date();
+
     // This initial fetch populates the master_exercise_list which is used to generate dropdown options for exercise selection.
     try {
         const network_response = await fetch("/api/exercises");
@@ -110,6 +124,14 @@ document.addEventListener("DOMContentLoaded", async function() {
      */
     workout_logging_form.addEventListener("submit", async function(submission_event) {
         submission_event.preventDefault();
+        const date_input = document.getElementById("date_of_workout");
+        let date_of_workout_value = date_input ? date_input.value : "";
+        if (!date_of_workout_value) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            date_of_workout_value = now.toISOString().slice(0, 16);
+        }
+
         const muscles_input_string = document.getElementById("target_muscle_groups").value;
         const target_muscle_groups_array = muscles_input_string.split(",").map(item => item.trim()).filter(item => item.length > 0);
         const exercise_blocks = document.querySelectorAll(".exercise-block");
@@ -138,6 +160,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         });
 
         const application_programming_interface_payload = {
+            date_of_workout: date_of_workout_value,
             target_muscle_groups: target_muscle_groups_array,
             exercises: parsed_exercises_list
         };

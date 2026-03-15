@@ -1,9 +1,12 @@
 """
 Service layer containing logic for the logger.
 """
+import logging
 from typing import List, Optional
 from application.models.workout import WorkoutDocument, ExerciseLog, WorkoutSet
 from application.repositories.workout_repository import WorkoutRepository
+
+logger = logging.getLogger(__name__)
 
 class WorkoutService:
     """
@@ -79,6 +82,7 @@ class WorkoutService:
         Returns:
             The unique string identifier of the newly created database record.
         """
+        logger.info("Recording new workout session with %d exercises.", len(workout_document.exercises))
         return self.workout_repository.create_workout(workout_document=workout_document)
 
     def retrieve_workout_history(self) -> List[WorkoutDocument]:
@@ -88,7 +92,9 @@ class WorkoutService:
         Returns:
             A list of validated WorkoutDocument models.
         """
-        return self.workout_repository.retrieve_all_workouts()
+        workout_history = self.workout_repository.retrieve_all_workouts()
+        logger.debug("Retrieved workout history count=%d", len(workout_history))
+        return workout_history
         
     def retrieve_specific_workout(self, identifier: str) -> Optional[WorkoutDocument]:
         """
@@ -100,6 +106,7 @@ class WorkoutService:
         Returns:
             The WorkoutDocument if found, otherwise None.
         """
+        logger.debug("Retrieving workout identifier=%s", identifier)
         return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier)
     
     def remove_workout_session(self, identifier: str) -> bool:
@@ -112,6 +119,7 @@ class WorkoutService:
         Returns:
             A boolean indicating the success of the deletion operation.
         """
+        logger.info("Removing workout identifier=%s", identifier)
         return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
     
     def modify_workout_session(self, identifier: str, workout_document: WorkoutDocument) -> bool:
@@ -125,6 +133,7 @@ class WorkoutService:
         Returns:
             Success status of the update operation.
         """
+        logger.info("Modifying workout identifier=%s", identifier)
         return self.workout_repository.update_workout_by_identifier(
             identifier=identifier, 
             updated_workout=workout_document

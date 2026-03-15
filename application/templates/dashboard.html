@@ -50,10 +50,15 @@
                 <tbody>
                     {% for workout in workouts %}
                     <tr>
-                        <td>{{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="/workouts/{{ workout.identifier }}" class="text-decoration-none fw-semibold">
+                                {{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}
+                            </a>
+                        </td>
                         <td>{{ workout.target_muscle_groups | join(', ') }}</td>
                         <td>{{ workout.exercises | length }}</td>
                         <td class="text-center">
+                            <a href="/workouts/{{ workout.identifier }}" class="btn btn-sm btn-outline-secondary">View</a>
                             <a href="/edit/{{ workout.identifier }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <button class="btn btn-sm btn-outline-danger delete-workout-button" 
                                     data-workout-identifier="{{ workout.identifier }}">

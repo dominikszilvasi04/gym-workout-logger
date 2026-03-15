@@ -4,22 +4,23 @@
  * specifically the deletion of historical workout sessions.
  */
 document.addEventListener("DOMContentLoaded", function() {
-    const workout_history_table = document.querySelector("table");
-    if (workout_history_table) {
-        workout_history_table.addEventListener("click", async function(click_event) {
-            if (click_event.target.classList.contains("delete-workout-button")) {
-                const workout_identifier = click_event.target.getAttribute("data-workout-identifier");
-                await execute_workout_deletion(workout_identifier);
-            }
-        });
-    }
+    document.addEventListener("click", async function(click_event) {
+        const delete_button = click_event.target.closest(".delete-workout-button");
+        if (!delete_button) {
+            return;
+        }
+        const workout_identifier = delete_button.getAttribute("data-workout-identifier");
+        const redirect_url = delete_button.getAttribute("data-redirect-url");
+        await execute_workout_deletion(workout_identifier, redirect_url);
+    });
 
     /**
      * Executes an asynchronous HTTP DELETE request to remove a workout.
      * @param {string} workout_identifier - The unique database identifier of the workout.
+     * @param {string | null} redirect_url - Where to send the user after deletion.
      * @returns {Promise<void>}
      */
-    async function execute_workout_deletion(workout_identifier) {
+    async function execute_workout_deletion(workout_identifier, redirect_url = null) {
         const user_confirmed = confirm("Are you absolutely certain you wish to delete this workout? This action cannot be undone.");
         if (!user_confirmed) return;
         try {
@@ -27,7 +28,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 method: "DELETE"
             });
             if (network_response.ok) {
-                window.location.reload();
+                if (redirect_url) {
+                    window.location.href = redirect_url;
+                } else {
+                    window.location.reload();
+                }
             } else {
                 alert("Failed to delete the workout session. Please try again.");
             }
