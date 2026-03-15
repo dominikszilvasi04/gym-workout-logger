@@ -3,6 +3,16 @@ Integration tests for dashboard analytics and real chart data.
 """
 
 
+def test_dashboard_analytics_requires_login(test_client):
+    """
+    Verifies dashboard analytics API rejects unauthenticated requests.
+    """
+    analytics_response = test_client.get("/api/dashboard/analytics")
+    assert analytics_response.status_code == 401
+    payload = analytics_response.get_json()
+    assert payload["error"] == "Authentication required."
+
+
 def test_dashboard_analytics_returns_real_chart_data_for_authenticated_user(test_client):
     """
     Verifies the analytics API returns real summary and chart series from saved workouts.

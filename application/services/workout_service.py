@@ -372,19 +372,10 @@ class WorkoutService:
         records_by_exercise: dict[str, dict[str, object]] = {}
         for workout in workouts:
             for exercise in workout.exercises:
-                # Compute the best estimated one-repetition maximum directly from this exercise's sets
-                best_estimated_maximum = 0.0
-                for workout_set in exercise.sets:
-                    # Skip sets that don't have the necessary data
-                    if workout_set.weight is None or workout_set.repetitions is None:
-                        continue
-
-                    estimated_max = self.calculate_one_repetition_maximum(
-                        workout_set.weight,
-                        workout_set.repetitions,
-                    )
-                    if estimated_max > best_estimated_maximum:
-                        best_estimated_maximum = estimated_max
+                best_estimated_maximum = self.calculate_best_estimated_one_repetition_maximum_for_exercise(
+                    workout_document=workout,
+                    exercise_name=exercise.exercise_name
+                )
 
                 if best_estimated_maximum <= 0:
                     continue

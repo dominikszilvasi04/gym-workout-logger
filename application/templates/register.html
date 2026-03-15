@@ -7,6 +7,7 @@
             <div class="card-body p-4">
                 <h3 class="mb-3">Create Account</h3>
                 <form method="post" action="/register">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                     <div class="mb-3">
                         <label for="display_name" class="form-label">Display Name (optional)</label>
                         <input id="display_name" name="display_name" type="text" class="form-control">
