@@ -7,6 +7,7 @@ from flask import Flask
 from flask_session import Session
 from cachelib import FileSystemCache
 from pymongo import ASCENDING, DESCENDING
+from pymongo.errors import OperationFailure
 from typing import Type
 from application.configuration import ApplicationConfiguration, DevelopmentConfiguration
 from application.database import database_manager
@@ -63,20 +64,28 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
             database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
             logger.info("Database client initialised for database: %s", database_name)
             database_manager.database["users"].create_index("email", unique=True)
-            database_manager.database["users"].create_index(
-                [("auth_provider", ASCENDING), ("auth_provider_subject", ASCENDING)],
-                unique=True,
-                partialFilterExpression={
-                    "auth_provider": {"$type": "string"},
-                    "auth_provider_subject": {"$type": "string"},
-                },
-            )
+            try:
+                database_manager.database["users"].create_index(
+                    [("auth_provider", ASCENDING), ("auth_provider_subject", ASCENDING)],
+                    unique=True,
+                    partialFilterExpression={
+                        "auth_provider": {"$type": "string"},
+                        "auth_provider_subject": {"$type": "string"},
+                    },
+                )
+            except OperationFailure as operation_failure:
+                if operation_failure.code in (85, 86):
+                    logger.warning(
+                        "User auth provider index already exists with different options; continuing with existing index."
+                    )
+                else:
+                    raise
             database_manager.database["exercise_definitions"].create_index("exercise_name", unique=True)
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
             database_manager.database["workout_templates"].create_index([("user_identifier", ASCENDING), ("template_name", ASCENDING)])
             logger.info("Ensured users collection unique index on email.")
-            logger.info("Ensured users collection sparse unique index on auth_provider/auth_provider_subject.")
+            logger.info("Ensured users collection unique index on auth_provider/auth_provider_subject.")
             logger.info("Ensured exercise_definitions collection unique index on exercise_name.")
             logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
             logger.info("Ensured workout_templates index for user/template lookups.")
