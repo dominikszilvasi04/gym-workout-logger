@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     /**
      * Executes an asynchronous HTTP DELETE request to remove a workout.
-     * * @param {string} workout_identifier - The unique database identifier of the workout.
+     * @param {string} workout_identifier - The unique database identifier of the workout.
      * @returns {Promise<void>}
      */
     async function execute_workout_deletion(workout_identifier) {

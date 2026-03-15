@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     workout_update_form.addEventListener("submit", async function(event) {
         event.preventDefault();
-        const muscles_array = document.getElementById("target_muscle_groups").value.split(",").map(s => s.trim());
+        const muscles_array = document.getElementById("target_muscle_groups").value.split(",").map(s => s.trim()).filter(item => item.length > 0);
         const exercise_blocks = document.querySelectorAll(".exercise-block");
         const exercises_payload = [];
         exercise_blocks.forEach(function(block) {

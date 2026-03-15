@@ -37,3 +37,16 @@ def test_calculate_exercise_volume() -> None:
     calculated_volume = workout_service.calculate_exercise_volume(exercise_log=mock_exercise)
     
     assert calculated_volume == 940.0
+
+def test_remove_workout_session_delegation(mocker):
+    """
+    Verifies that the service correctly delegates deletion to the repository.
+    """
+    mock_repo = mocker.Mock(spec=WorkoutRepository)
+    mock_repo.delete_workout_by_identifier.return_value = True
+    service = WorkoutService(workout_repository=mock_repo)
+    
+    result = service.remove_workout_session("mock_id")
+    
+    assert result is True
+    mock_repo.delete_workout_by_identifier.assert_called_once_with(identifier="mock_id")

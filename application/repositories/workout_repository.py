@@ -86,20 +86,18 @@ class WorkoutRepository:
     
     def update_workout_by_identifier(self, identifier: str, updated_workout: WorkoutDocument) -> bool:
         """
-        Updates an existing workout document in the database with new data.
-        
-        Args:
-            identifier: The unique MongoDB ObjectId string.
-            updated_workout: The validated WorkoutDocument model containing new values.
-            
-        Returns:
-            True if the document was found and updated, False otherwise.
+        Updates specific fields of an existing workout document using $set.
         """
         if not ObjectId.is_valid(identifier):
             return False
-        updated_data = updated_workout.model_dump(by_alias=True, exclude={"identifier"})
-        update_result = self.collection.replace_one(
+        update_payload = {
+            "$set": {
+                "target_muscle_groups": updated_workout.target_muscle_groups,
+                "exercises": [ex.model_dump() for ex in updated_workout.exercises]
+            }
+        }
+        update_result = self.collection.update_one(
             {"_id": ObjectId(identifier)}, 
-            updated_data
+            update_payload
         )
         return update_result.matched_count > 0
