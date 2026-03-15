@@ -3,93 +3,233 @@
  * on the main dashboard view using Chart.js.
  */
 
+const dashboardChartInstances = {};
+
 document.addEventListener("DOMContentLoaded", async function() {
-    await initialise_dashboard_visualisations();
+    attach_dashboard_filter_handlers();
+    await load_dashboard_analytics();
 });
 
-async function initialise_dashboard_visualisations() {
-    try {
-        const network_response = await fetch("/api/dashboard/analytics");
-        if (!network_response.ok) {
-            throw new Error(`Dashboard analytics request failed with status ${network_response.status}`);
-        }
+function attach_dashboard_filter_handlers() {
+    const rangeFilterElement = document.getElementById("dashboard_range_filter");
+    const exerciseFilterElement = document.getElementById("dashboard_exercise_filter");
 
-        const analytics_payload = await network_response.json();
-        populate_summary_cards(analytics_payload.summary);
-        initialise_maximum_repetition_chart(analytics_payload.charts.one_rep_max_progression);
-        initialise_workout_volume_chart(analytics_payload.charts.workout_volume_progression);
-        initialise_weekly_frequency_chart(analytics_payload.charts.weekly_frequency);
-        initialise_muscle_group_distribution_chart(analytics_payload.charts.muscle_group_distribution);
-    } catch (dashboard_error) {
-        console.error("Failed to initialise dashboard visualisations:", dashboard_error);
-        display_all_chart_empty_states("Unable to load dashboard analytics right now.");
+    if (rangeFilterElement) {
+        rangeFilterElement.addEventListener("change", async function() {
+            await load_dashboard_analytics();
+        });
+    }
+
+    if (exerciseFilterElement) {
+        exerciseFilterElement.addEventListener("change", async function() {
+            await load_dashboard_analytics();
+        });
     }
 }
 
-function populate_summary_cards(summary_payload) {
-    update_summary_card_text("dashboard_total_workouts", summary_payload.total_workouts);
-    update_summary_card_text("dashboard_total_volume", `${formatNumber(summary_payload.total_volume)} kg`);
-    update_summary_card_text("dashboard_average_workout_volume", `${formatNumber(summary_payload.average_workout_volume)} kg`);
-    update_summary_card_text(
-        "dashboard_best_estimated_one_rep_maximum",
-        `${formatNumber(summary_payload.strongest_estimated_one_rep_maximum)} kg`
-    );
+async function load_dashboard_analytics() {
+    try {
+        const rangeFilterElement = document.getElementById("dashboard_range_filter");
+        const exerciseFilterElement = document.getElementById("dashboard_exercise_filter");
+        const queryParameters = new URLSearchParams();
+
+        if (rangeFilterElement && rangeFilterElement.value) {
+            queryParameters.set("range_days", rangeFilterElement.value);
+        }
+        if (exerciseFilterElement && exerciseFilterElement.value) {
+            queryParameters.set("exercise_name", exerciseFilterElement.value);
+        }
+
+        const requestUrl = queryParameters.toString()
+            ? `/api/dashboard/analytics?${queryParameters.toString()}`
+            : "/api/dashboard/analytics";
+
+        const networkResponse = await fetch(requestUrl);
+        if (!networkResponse.ok) {
+            throw new Error(`Dashboard analytics request failed with status ${networkResponse.status}`);
+        }
+
+        const analyticsPayload = await networkResponse.json();
+        populateExerciseFilterOptions(analyticsPayload.filters);
+        populateSummaryCards(analyticsPayload.summary);
+        renderPersonalRecords(analyticsPayload.leaderboards.personal_records);
+        renderLineChart("maximum_repetition_chart", analyticsPayload.charts.one_rep_max_progression, {
+            label: analyticsPayload.filters.selected_exercise
+                ? `${analyticsPayload.filters.selected_exercise} Estimated 1RM (kg)`
+                : "Estimated 1RM (kg)",
+            borderColor: "rgba(13, 110, 253, 1)",
+            backgroundColor: "rgba(13, 110, 253, 0.2)",
+            beginAtZero: false,
+            precision: null,
+        });
+        renderBarChart("workout_volume_chart", analyticsPayload.charts.workout_volume_progression, {
+            label: "Total Volume (kg)",
+            backgroundColor: "rgba(25, 135, 84, 0.6)",
+            borderColor: "rgba(25, 135, 84, 1)",
+        });
+        renderLineChart("weekly_frequency_chart", analyticsPayload.charts.weekly_frequency, {
+            label: "Workouts per Week",
+            borderColor: "rgba(255, 193, 7, 1)",
+            backgroundColor: "rgba(255, 193, 7, 0.2)",
+            beginAtZero: true,
+            precision: 0,
+        });
+        renderDoughnutChart("muscle_group_distribution_chart", analyticsPayload.charts.muscle_group_distribution);
+        renderLineChart("average_rpe_chart", analyticsPayload.charts.average_rpe_progression, {
+            label: "Average Workout RPE",
+            borderColor: "rgba(220, 53, 69, 1)",
+            backgroundColor: "rgba(220, 53, 69, 0.2)",
+            beginAtZero: false,
+            min: 0,
+            max: 10,
+            precision: 1,
+        });
+        renderBarChart("top_exercise_volume_chart", analyticsPayload.charts.top_exercise_volume, {
+            label: "Exercise Volume (kg)",
+            backgroundColor: "rgba(111, 66, 193, 0.6)",
+            borderColor: "rgba(111, 66, 193, 1)",
+            indexAxis: "y",
+        });
+    } catch (dashboardError) {
+        console.error("Failed to initialise dashboard visualisations:", dashboardError);
+        displayAllChartEmptyStates("Unable to load dashboard analytics right now.");
+    }
 }
 
-function update_summary_card_text(element_identifier, value) {
-    const element = document.getElementById(element_identifier);
+function populateExerciseFilterOptions(filtersPayload) {
+    const exerciseFilterElement = document.getElementById("dashboard_exercise_filter");
+    if (!exerciseFilterElement || !filtersPayload) {
+        return;
+    }
+
+    const selectedExercise = filtersPayload.selected_exercise || "";
+    const availableExercises = filtersPayload.available_exercises || [];
+    const optionsMarkup = ["<option value=\"\">All exercises</option>"];
+    availableExercises.forEach(function(exerciseName) {
+        const selectedAttribute = exerciseName === selectedExercise ? " selected" : "";
+        optionsMarkup.push(`<option value="${escapeHtmlAttribute(exerciseName)}"${selectedAttribute}>${exerciseName}</option>`);
+    });
+    exerciseFilterElement.innerHTML = optionsMarkup.join("");
+}
+
+function populateSummaryCards(summaryPayload) {
+    updateSummaryCardText("dashboard_total_workouts", summaryPayload.total_workouts);
+    updateSummaryCardText("dashboard_total_volume", `${formatNumber(summaryPayload.total_volume)} kg`);
+    updateSummaryCardText("dashboard_average_workout_volume", `${formatNumber(summaryPayload.average_workout_volume)} kg`);
+    updateSummaryCardText(
+        "dashboard_best_estimated_one_rep_maximum",
+        `${formatNumber(summaryPayload.strongest_estimated_one_rep_maximum)} kg`
+    );
+    updateSummaryCardText("dashboard_average_session_rpe", formatNumber(summaryPayload.average_session_rpe));
+    updateSummaryCardText("dashboard_current_training_streak_weeks", `${summaryPayload.current_training_streak_weeks} wk`);
+}
+
+function updateSummaryCardText(elementIdentifier, value) {
+    const element = document.getElementById(elementIdentifier);
     if (element) {
         element.textContent = value;
     }
+}
+
+function renderPersonalRecords(personalRecords) {
+    const tableElement = document.getElementById("dashboard_personal_records_table");
+    const tableBodyElement = document.getElementById("dashboard_personal_records_body");
+    const emptyStateElement = document.getElementById("dashboard_personal_records_empty_state");
+    if (!tableElement || !tableBodyElement || !emptyStateElement) {
+        return;
+    }
+
+    if (!personalRecords.length) {
+        tableElement.classList.add("d-none");
+        emptyStateElement.classList.remove("d-none");
+        tableBodyElement.innerHTML = "";
+        return;
+    }
+
+    tableElement.classList.remove("d-none");
+    emptyStateElement.classList.add("d-none");
+    tableBodyElement.innerHTML = personalRecords.map(function(record) {
+        return `
+            <tr>
+                <td>${escapeHtml(record.exercise_name)}</td>
+                <td>${formatNumber(record.estimated_one_rep_maximum)} kg</td>
+                <td>${escapeHtml(record.date)}</td>
+            </tr>
+        `;
+    }).join("");
 }
 
 function formatNumber(value) {
     return Number(value || 0).toFixed(2);
 }
 
-function toggle_chart_empty_state(canvas_identifier, should_show, message = null) {
-    const canvas_element = document.getElementById(canvas_identifier);
-    const empty_state_element = document.getElementById(`${canvas_identifier}_empty_state`);
-    if (!canvas_element || !empty_state_element) {
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+function escapeHtmlAttribute(value) {
+    return escapeHtml(value);
+}
+
+function toggleChartEmptyState(canvasIdentifier, shouldShow, message = null) {
+    const canvasElement = document.getElementById(canvasIdentifier);
+    const emptyStateElement = document.getElementById(`${canvasIdentifier}_empty_state`);
+    if (!canvasElement || !emptyStateElement) {
         return;
     }
 
-    canvas_element.classList.toggle("d-none", should_show);
-    empty_state_element.classList.toggle("d-none", !should_show);
+    canvasElement.classList.toggle("d-none", shouldShow);
+    emptyStateElement.classList.toggle("d-none", !shouldShow);
     if (message) {
-        empty_state_element.textContent = message;
+        emptyStateElement.textContent = message;
     }
 }
 
-function display_all_chart_empty_states(message) {
+function displayAllChartEmptyStates(message) {
     [
         "maximum_repetition_chart",
         "workout_volume_chart",
         "weekly_frequency_chart",
-        "muscle_group_distribution_chart"
-    ].forEach(function(chart_identifier) {
-        toggle_chart_empty_state(chart_identifier, true, message);
+        "muscle_group_distribution_chart",
+        "average_rpe_chart",
+        "top_exercise_volume_chart"
+    ].forEach(function(chartIdentifier) {
+        toggleChartEmptyState(chartIdentifier, true, message);
     });
 }
 
-function initialise_maximum_repetition_chart(chart_series) {
-    const canvas_element = document.getElementById("maximum_repetition_chart");
-    if (!canvas_element) return;
-    if (!chart_series.labels.length) {
-        toggle_chart_empty_state("maximum_repetition_chart", true);
+function destroyExistingChart(chartIdentifier) {
+    const existingChart = dashboardChartInstances[chartIdentifier];
+    if (existingChart) {
+        existingChart.destroy();
+    }
+}
+
+function renderLineChart(chartIdentifier, chartSeries, chartOptions) {
+    const canvasElement = document.getElementById(chartIdentifier);
+    if (!canvasElement) return;
+    destroyExistingChart(chartIdentifier);
+
+    if (!chartSeries.labels.length) {
+        toggleChartEmptyState(chartIdentifier, true);
         return;
     }
 
-    toggle_chart_empty_state("maximum_repetition_chart", false);
-    new Chart(canvas_element, {
+    toggleChartEmptyState(chartIdentifier, false);
+    dashboardChartInstances[chartIdentifier] = new Chart(canvasElement, {
         type: "line",
         data: {
-            labels: chart_series.labels,
+            labels: chartSeries.labels,
             datasets: [{
-                label: "Estimated 1RM (kg)",
-                data: chart_series.values,
-                borderColor: "rgba(13, 110, 253, 1)",
-                backgroundColor: "rgba(13, 110, 253, 0.2)",
+                label: chartOptions.label,
+                data: chartSeries.values,
+                borderColor: chartOptions.borderColor,
+                backgroundColor: chartOptions.backgroundColor,
                 borderWidth: 2,
                 tension: 0.25,
                 fill: true
@@ -99,79 +239,47 @@ function initialise_maximum_repetition_chart(chart_series) {
             responsive: true,
             scales: {
                 y: {
-                    beginAtZero: false
+                    beginAtZero: chartOptions.beginAtZero,
+                    min: chartOptions.min,
+                    max: chartOptions.max,
+                    ticks: chartOptions.precision === null ? {} : { precision: chartOptions.precision }
                 }
             }
         }
     });
 }
 
-function initialise_workout_volume_chart(chart_series) {
-    const canvas_element = document.getElementById("workout_volume_chart");
-    if (!canvas_element) return;
+function renderBarChart(chartIdentifier, chartSeries, chartOptions) {
+    const canvasElement = document.getElementById(chartIdentifier);
+    if (!canvasElement) return;
+    destroyExistingChart(chartIdentifier);
 
-    if (!chart_series.labels.length) {
-        toggle_chart_empty_state("workout_volume_chart", true);
+    if (!chartSeries.labels.length) {
+        toggleChartEmptyState(chartIdentifier, true);
         return;
     }
 
-    toggle_chart_empty_state("workout_volume_chart", false);
-
-    new Chart(canvas_element, {
+    toggleChartEmptyState(chartIdentifier, false);
+    dashboardChartInstances[chartIdentifier] = new Chart(canvasElement, {
         type: "bar",
         data: {
-            labels: chart_series.labels,
+            labels: chartSeries.labels,
             datasets: [{
-                label: "Total Volume (kg)",
-                data: chart_series.values,
-                backgroundColor: "rgba(25, 135, 84, 0.6)",
-                borderColor: "rgba(25, 135, 84, 1)",
+                label: chartOptions.label,
+                data: chartSeries.values,
+                backgroundColor: chartOptions.backgroundColor,
+                borderColor: chartOptions.borderColor,
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-}
-
-function initialise_weekly_frequency_chart(chart_series) {
-    const canvas_element = document.getElementById("weekly_frequency_chart");
-    if (!canvas_element) return;
-
-    if (!chart_series.labels.length) {
-        toggle_chart_empty_state("weekly_frequency_chart", true);
-        return;
-    }
-
-    toggle_chart_empty_state("weekly_frequency_chart", false);
-
-    new Chart(canvas_element, {
-        type: "line",
-        data: {
-            labels: chart_series.labels,
-            datasets: [{
-                label: "Workouts per Week",
-                data: chart_series.values,
-                borderColor: "rgba(255, 193, 7, 1)",
-                backgroundColor: "rgba(255, 193, 7, 0.2)",
-                borderWidth: 2,
-                tension: 0.2,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
+            indexAxis: chartOptions.indexAxis || "x",
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        precision: 0
+                        precision: chartOptions.indexAxis === "y" ? 2 : 0
                     }
                 }
             }
@@ -179,23 +287,23 @@ function initialise_weekly_frequency_chart(chart_series) {
     });
 }
 
-function initialise_muscle_group_distribution_chart(chart_series) {
-    const canvas_element = document.getElementById("muscle_group_distribution_chart");
-    if (!canvas_element) return;
+function renderDoughnutChart(chartIdentifier, chartSeries) {
+    const canvasElement = document.getElementById(chartIdentifier);
+    if (!canvasElement) return;
+    destroyExistingChart(chartIdentifier);
 
-    if (!chart_series.labels.length) {
-        toggle_chart_empty_state("muscle_group_distribution_chart", true);
+    if (!chartSeries.labels.length) {
+        toggleChartEmptyState(chartIdentifier, true);
         return;
     }
 
-    toggle_chart_empty_state("muscle_group_distribution_chart", false);
-
-    new Chart(canvas_element, {
+    toggleChartEmptyState(chartIdentifier, false);
+    dashboardChartInstances[chartIdentifier] = new Chart(canvasElement, {
         type: "doughnut",
         data: {
-            labels: chart_series.labels,
+            labels: chartSeries.labels,
             datasets: [{
-                data: chart_series.values,
+                data: chartSeries.values,
                 backgroundColor: [
                     "rgba(13, 110, 253, 0.8)",
                     "rgba(25, 135, 84, 0.8)",

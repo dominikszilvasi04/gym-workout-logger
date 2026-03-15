@@ -3,6 +3,7 @@ Service layer containing logic for the logger.
 """
 import logging
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from application.models.workout import WorkoutDocument, ExerciseLog, WorkoutSet
 from application.repositories.workout_repository import WorkoutRepository
@@ -247,11 +248,7 @@ class WorkoutService:
         Returns:
             The total repetition count.
         """
-        return sum(
-            workout_set.repetitions
-            for exercise in workout_document.exercises
-            for workout_set in exercise.sets
-        )
+        return sum(workout_set.repetitions for exercise in workout_document.exercises for workout_set in exercise.sets)
 
     def calculate_best_estimated_one_repetition_maximum(self, workout_document: WorkoutDocument) -> float:
         """
@@ -264,73 +261,253 @@ class WorkoutService:
             The highest estimated 1RM value found.
         """
         estimated_maximums = [
-            self.calculate_estimated_one_repetition_maximum(
-                weight_in_kilograms=workout_set.weight_in_kilograms,
-                repetitions=workout_set.repetitions
-            )
+            self.calculate_estimated_one_repetition_maximum(weight_in_kilograms=workout_set.weight_in_kilograms, repetitions=workout_set.repetitions)
             for exercise in workout_document.exercises
             for workout_set in exercise.sets
         ]
         return max(estimated_maximums, default=0.0)
 
-    def build_dashboard_analytics(self, user_identifier: Optional[str] = None) -> dict[str, object]:
+    def calculate_average_workout_rpe(self, workout_document: WorkoutDocument) -> float:
+        """
+        Calculates the average set RPE for a workout.
+
+        Args:
+            workout_document: The complete workout record.
+
+        Returns:
+            The average RPE across all sets.
+        """
+        workout_sets = [
+            workout_set
+            for exercise in workout_document.exercises
+            for workout_set in exercise.sets
+        ]
+        if not workout_sets:
+            return 0.0
+        total_rpe = sum(workout_set.rate_of_perceived_exertion for workout_set in workout_sets)
+        return round(total_rpe / len(workout_sets), 2)
+
+    def calculate_best_estimated_one_repetition_maximum_for_exercise(
+        self,
+        workout_document: WorkoutDocument,
+        exercise_name: str
+    ) -> float:
+        """
+        Calculates the best estimated 1RM for a specific exercise within a workout.
+
+        Args:
+            workout_document: The complete workout record.
+            exercise_name: The target exercise name.
+
+        Returns:
+            The highest estimated 1RM for the matching exercise.
+        """
+        matching_estimated_maximums = [
+            self.calculate_estimated_one_repetition_maximum(
+                weight_in_kilograms=workout_set.weight_in_kilograms,
+                repetitions=workout_set.repetitions
+            )
+            for exercise in workout_document.exercises
+            if exercise.exercise_name == exercise_name
+            for workout_set in exercise.sets
+        ]
+        return max(matching_estimated_maximums, default=0.0)
+
+    def calculate_training_streak_weeks(self, workouts: List[WorkoutDocument]) -> int:
+        """
+        Calculates the number of consecutive active training weeks.
+
+        Args:
+            workouts: The workout collection to inspect.
+
+        Returns:
+            Count of consecutive ISO calendar weeks with at least one workout.
+        """
+        if not workouts:
+            return 0
+
+        unique_weeks = sorted(
+            {(workout.date_of_workout.isocalendar().year, workout.date_of_workout.isocalendar().week) for workout in workouts},
+            reverse=True
+        )
+        streak = 1
+        previous_year, previous_week = unique_weeks[0]
+
+        for current_year, current_week in unique_weeks[1:]:
+            previous_week_start = datetime.fromisocalendar(previous_year, previous_week, 1)
+            current_week_start = datetime.fromisocalendar(current_year, current_week, 1)
+            if (previous_week_start - current_week_start).days == 7:
+                streak += 1
+                previous_year, previous_week = current_year, current_week
+                continue
+            break
+
+        return streak
+
+    def build_personal_records(self, workouts: List[WorkoutDocument], limit: int = 5) -> List[dict[str, object]]:
+        """
+        Builds a personal-record leaderboard by exercise.
+
+        Args:
+            workouts: The workout collection to inspect.
+            limit: Maximum number of records to return.
+
+        Returns:
+            Top personal records keyed by exercise.
+        """
+        records_by_exercise: dict[str, dict[str, object]] = {}
+        for workout in workouts:
+            for exercise in workout.exercises:
+                best_estimated_maximum = self.calculate_best_estimated_one_repetition_maximum_for_exercise(
+                    workout_document=workout,
+                    exercise_name=exercise.exercise_name
+                )
+                if best_estimated_maximum <= 0:
+                    continue
+
+                existing_record = records_by_exercise.get(exercise.exercise_name)
+                if existing_record is None or best_estimated_maximum > existing_record["estimated_one_rep_maximum"]:
+                    records_by_exercise[exercise.exercise_name] = {
+                        "exercise_name": exercise.exercise_name,
+                        "estimated_one_rep_maximum": best_estimated_maximum,
+                        "date": workout.date_of_workout.strftime("%Y-%m-%d"),
+                    }
+
+        sorted_records = sorted(
+            records_by_exercise.values(),
+            key=lambda record: record["estimated_one_rep_maximum"],
+            reverse=True
+        )
+        return sorted_records[:limit]
+
+    def filter_workouts_by_range(self, workouts: List[WorkoutDocument], range_days: Optional[int]) -> List[WorkoutDocument]:
+        """
+        Filters workouts to a trailing date range.
+
+        Args:
+            workouts: The workout collection to inspect.
+            range_days: Trailing day window, or None for all-time.
+
+        Returns:
+            The filtered workout list.
+        """
+        if range_days is None:
+            return workouts
+
+        range_start = datetime.now(timezone.utc) - timedelta(days=range_days)
+        return [workout for workout in workouts if workout.date_of_workout >= range_start]
+
+    def build_dashboard_analytics(
+        self,
+        user_identifier: Optional[str] = None,
+        range_days: Optional[int] = None,
+        exercise_name: Optional[str] = None
+    ) -> dict[str, object]:
         """
         Builds dashboard summary metrics and chart series from real workout data.
 
         Args:
             user_identifier: Optional user scope for authenticated dashboards.
+            range_days: Optional trailing date range for analytics.
+            exercise_name: Optional exercise filter for strength progression.
 
         Returns:
             A serialisable dictionary containing summary cards and chart datasets.
         """
-        workouts = sorted(
+        all_workouts = sorted(
             self.retrieve_workout_history(user_identifier=user_identifier),
             key=lambda workout: workout.date_of_workout
         )
+        filtered_workouts = self.filter_workouts_by_range(all_workouts, range_days=range_days)
 
-        total_volume = round(sum(self.calculate_total_workout_volume(workout) for workout in workouts), 2)
-        total_sets = sum(self.calculate_total_sets(workout) for workout in workouts)
-        total_repetitions = sum(self.calculate_total_repetitions(workout) for workout in workouts)
-        total_exercises = sum(len(workout.exercises) for workout in workouts)
+        available_exercise_names = sorted(
+            {
+                exercise.exercise_name
+                for workout in all_workouts
+                for exercise in workout.exercises
+            }
+        )
+        selected_exercise_name = exercise_name.strip() if exercise_name else None
+        if selected_exercise_name == "":
+            selected_exercise_name = None
 
-        volume_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in workouts]
-        volume_values = [self.calculate_total_workout_volume(workout) for workout in workouts]
+        total_volume = round(sum(self.calculate_total_workout_volume(workout) for workout in filtered_workouts), 2)
+        total_sets = sum(self.calculate_total_sets(workout) for workout in filtered_workouts)
+        total_repetitions = sum(self.calculate_total_repetitions(workout) for workout in filtered_workouts)
+        total_exercises = sum(len(workout.exercises) for workout in filtered_workouts)
+        average_session_rpe = round(
+            sum(self.calculate_average_workout_rpe(workout) for workout in filtered_workouts) / len(filtered_workouts),
+            2
+        ) if filtered_workouts else 0.0
 
-        one_rep_max_values = [
-            self.calculate_best_estimated_one_repetition_maximum(workout)
-            for workout in workouts
-        ]
+        volume_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in filtered_workouts]
+        volume_values = [self.calculate_total_workout_volume(workout) for workout in filtered_workouts]
+
+        if selected_exercise_name:
+            one_rep_workouts = [
+                workout for workout in filtered_workouts
+                if any(exercise.exercise_name == selected_exercise_name for exercise in workout.exercises)
+            ]
+            one_rep_max_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in one_rep_workouts]
+            one_rep_max_values = [
+                self.calculate_best_estimated_one_repetition_maximum_for_exercise(workout, selected_exercise_name)
+                for workout in one_rep_workouts
+            ]
+        else:
+            one_rep_workouts = filtered_workouts
+            one_rep_max_labels = volume_labels
+            one_rep_max_values = [
+                self.calculate_best_estimated_one_repetition_maximum(workout)
+                for workout in filtered_workouts
+            ]
 
         weekly_frequency_counter: Counter[str] = Counter()
         target_muscle_counter: Counter[str] = Counter()
-        for workout in workouts:
+        top_exercise_volume_counter: Counter[str] = Counter()
+        average_rpe_labels: List[str] = []
+        average_rpe_values: List[float] = []
+        for workout in filtered_workouts:
             iso_calendar = workout.date_of_workout.isocalendar()
             weekly_frequency_counter[f"{iso_calendar.year}-W{iso_calendar.week:02d}"] += 1
             for muscle_group in workout.target_muscle_groups:
                 target_muscle_counter[muscle_group] += 1
+            average_rpe_labels.append(workout.date_of_workout.strftime("%Y-%m-%d"))
+            average_rpe_values.append(self.calculate_average_workout_rpe(workout))
+            for exercise in workout.exercises:
+                top_exercise_volume_counter[exercise.exercise_name] += self.calculate_exercise_volume(exercise)
 
         sorted_weekly_labels = sorted(weekly_frequency_counter.keys())
         weekly_frequency_values = [weekly_frequency_counter[label] for label in sorted_weekly_labels]
-
         muscle_labels = [entry[0] for entry in target_muscle_counter.most_common()]
         muscle_values = [entry[1] for entry in target_muscle_counter.most_common()]
-
+        top_exercise_volume_entries = top_exercise_volume_counter.most_common(5)
+        top_exercise_volume_labels = [entry[0] for entry in top_exercise_volume_entries]
+        top_exercise_volume_values = [round(entry[1], 2) for entry in top_exercise_volume_entries]
         strongest_estimated_one_rep_maximum = max(one_rep_max_values, default=0.0)
-        average_workout_volume = round(total_volume / len(workouts), 2) if workouts else 0.0
+        average_workout_volume = round(total_volume / len(filtered_workouts), 2) if filtered_workouts else 0.0
+        current_training_streak_weeks = self.calculate_training_streak_weeks(all_workouts)
+        personal_records = self.build_personal_records(filtered_workouts if filtered_workouts else all_workouts)
 
         return {
+            "filters": {
+                "range_days": range_days,
+                "selected_exercise": selected_exercise_name,
+                "available_exercises": available_exercise_names,
+            },
             "summary": {
-                "total_workouts": len(workouts),
+                "total_workouts": len(filtered_workouts),
                 "total_volume": total_volume,
                 "average_workout_volume": average_workout_volume,
                 "total_sets": total_sets,
                 "total_repetitions": total_repetitions,
                 "total_exercises": total_exercises,
                 "strongest_estimated_one_rep_maximum": strongest_estimated_one_rep_maximum,
+                "average_session_rpe": average_session_rpe,
+                "current_training_streak_weeks": current_training_streak_weeks,
             },
             "charts": {
                 "one_rep_max_progression": {
-                    "labels": volume_labels,
+                    "labels": one_rep_max_labels,
                     "values": one_rep_max_values,
                 },
                 "workout_volume_progression": {
@@ -345,5 +522,16 @@ class WorkoutService:
                     "labels": sorted_weekly_labels,
                     "values": weekly_frequency_values,
                 },
+                "average_rpe_progression": {
+                    "labels": average_rpe_labels,
+                    "values": average_rpe_values,
+                },
+                "top_exercise_volume": {
+                    "labels": top_exercise_volume_labels,
+                    "values": top_exercise_volume_values,
+                },
+            },
+            "leaderboards": {
+                "personal_records": personal_records,
             },
         }
