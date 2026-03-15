@@ -33,26 +33,32 @@ class ExerciseDefinitionService:
         Returns:
             A strictly typed list of ExerciseDefinition models.
         """
-        self.seed_standardised_exercises_if_collection_is_empty()
+        self.seed_or_refresh_standardised_exercises()
         exercises = self.exercise_definition_repository.retrieve_all_exercise_definitions()
         logger.debug("Retrieved %d standardised exercises from repository.", len(exercises))
         return exercises
 
-    def seed_standardised_exercises_if_collection_is_empty(self) -> None:
+    def seed_or_refresh_standardised_exercises(self) -> None:
         """
-        Seeds the repository with a standard exercise catalogue when empty.
+        Synchronises the repository with the standard exercise catalogue.
+        Missing exercises are inserted and existing exercises are refreshed.
         """
-        if self.exercise_definition_repository.count_exercise_definitions() > 0:
-            return
         inserted_count = 0
+        updated_count = 0
         for exercise_definition_data in STANDARDISED_EXERCISE_DEFINITIONS:
             standardised_exercise_definition = ExerciseDefinition(**exercise_definition_data)
-            inserted = self.exercise_definition_repository.upsert_exercise_definition_by_name(
+            inserted, updated = self.exercise_definition_repository.upsert_exercise_definition_by_name(
                 exercise_definition=standardised_exercise_definition
             )
             if inserted:
                 inserted_count += 1
-        logger.info("Seeded %d standardised exercise definitions.", inserted_count)
+            if updated:
+                updated_count += 1
+        logger.info(
+            "Exercise definitions synchronised. inserted=%d updated=%d",
+            inserted_count,
+            updated_count,
+        )
 
     def send_exercise_request_notification_email(
         self,

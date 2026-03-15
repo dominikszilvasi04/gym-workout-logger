@@ -62,16 +62,18 @@ class ExerciseDefinitionRepository:
         logger.info("Exercise definition inserted with identifier=%s", str(insertion_result.inserted_id))
         return str(insertion_result.inserted_id)
 
-    def upsert_exercise_definition_by_name(self, exercise_definition: ExerciseDefinition) -> bool:
+    def upsert_exercise_definition_by_name(self, exercise_definition: ExerciseDefinition) -> tuple[bool, bool]:
         """
         Upserts an exercise definition by its standardised name.
 
         Returns:
-            True if a new document was inserted, otherwise False.
+            A tuple of booleans in the format (inserted, updated).
         """
         filter_query = {"exercise_name": exercise_definition.exercise_name}
         update_payload = {
-            "$setOnInsert": exercise_definition.model_dump(by_alias=True, exclude={"identifier"})
+            "$set": exercise_definition.model_dump(by_alias=True, exclude={"identifier"})
         }
         update_result = self.collection.update_one(filter_query, update_payload, upsert=True)
-        return update_result.upserted_id is not None
+        inserted = update_result.upserted_id is not None
+        updated = (not inserted) and (update_result.modified_count > 0)
+        return inserted, updated
