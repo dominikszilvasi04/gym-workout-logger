@@ -3,7 +3,6 @@ Central logging configuration for the application.
 """
 import logging
 
-
 def configure_application_logging(log_level: str = "INFO") -> None:
     """
     Configures root logging for the application.
@@ -13,7 +12,6 @@ def configure_application_logging(log_level: str = "INFO") -> None:
     """
     resolved_level = getattr(logging, str(log_level).upper(), logging.INFO)
     root_logger = logging.getLogger()
-
     if not root_logger.handlers:
         logging.basicConfig(
             level=resolved_level,

@@ -68,23 +68,23 @@ class UserService:
 
         try:
             created_identifier = self.user_repository.create_user(user_document)
-            logger.info("New user account registered for email=%s", normalized_email)
+            logger.info("New user account registered for email=%s", normalised_email)
             return True, created_identifier
         except DuplicateKeyError:
-            logger.warning("Duplicate registration attempted for email=%s", normalized_email)
+            logger.warning("Duplicate registration attempted for email=%s", normalised_email)
             return False, "An account with this email already exists."
 
     def authenticate_user(self, email: str, password: str) -> Optional[UserDocument]:
         """
         Authenticates a user by email and password.
         """
-        normalized_email = email.lower().strip()
-        user = self.user_repository.retrieve_user_by_email(normalized_email)
+        normalised_email = email.lower().strip()
+        user = self.user_repository.retrieve_user_by_email(normalised_email)
         if not user:
-            logger.info("Authentication failed: unknown email=%s", normalized_email)
+            logger.info("Authentication failed: unknown email=%s", normalised_email)
             return None
         if not self.verify_password(password, user.password_hash):
-            logger.info("Authentication failed: invalid password for email=%s", normalized_email)
+            logger.info("Authentication failed: invalid password for email=%s", normalised_email)
             return None
 
         if user.identifier and self.needs_password_rehash(user.password_hash):
@@ -92,7 +92,7 @@ class UserService:
             self.user_repository.update_user_password_hash(user.identifier, upgraded_hash)
             logger.info("Upgraded password hash policy for user_identifier=%s", user.identifier)
 
-        logger.info("Authentication successful for email=%s", normalized_email)
+        logger.info("Authentication successful for email=%s", normalised_email)
         return user
 
     def retrieve_user(self, identifier: str) -> Optional[UserDocument]:
