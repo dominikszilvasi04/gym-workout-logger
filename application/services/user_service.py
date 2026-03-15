@@ -65,7 +65,6 @@ class UserService:
         user_document = UserDocument(
             email=normalised_email,
             password_hash=self.hash_password(password),
-            auth_provider="local",
             display_name=display_name.strip() if display_name else None,
         )
         try:

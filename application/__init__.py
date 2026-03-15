@@ -66,7 +66,10 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
             database_manager.database["users"].create_index(
                 [("auth_provider", ASCENDING), ("auth_provider_subject", ASCENDING)],
                 unique=True,
-                sparse=True,
+                partialFilterExpression={
+                    "auth_provider": {"$type": "string"},
+                    "auth_provider_subject": {"$type": "string"},
+                },
             )
             database_manager.database["exercise_definitions"].create_index("exercise_name", unique=True)
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
