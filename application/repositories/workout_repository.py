@@ -9,6 +9,18 @@ from application.models.workout import WorkoutDocument
 
 logger = logging.getLogger(__name__)
 
+
+def _build_user_scope_filter(user_identifier: Optional[str]) -> Dict[str, Any]:
+    """
+    Builds a MongoDB filter for user scoping.
+
+    - Authenticated users: only their own workouts.
+    - Unauthenticated users: only legacy anonymous workouts.
+    """
+    if user_identifier is not None:
+        return {"user_identifier": user_identifier}
+    return {"$or": [{"user_identifier": {"$exists": False}}, {"user_identifier": None}]}
+
 class WorkoutRepository:
     """
     Handles all database operations for WorkoutDocument entities.
@@ -54,9 +66,7 @@ class WorkoutRepository:
         if not ObjectId.is_valid(identifier):
             logger.warning("Invalid workout identifier requested: %s", identifier)
             return None
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier)}
-        if user_identifier is not None:
-            query_filter["user_identifier"] = user_identifier
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
         document = self.collection.find_one(query_filter)
         if document:
             document["_id"] = str(document["_id"])
@@ -72,9 +82,7 @@ class WorkoutRepository:
         Returns:
             A list of WorkoutDocument models.
         """
-        query_filter: Dict[str, Any] = {}
-        if user_identifier is not None:
-            query_filter["user_identifier"] = user_identifier
+        query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
 
         cursor = self.collection.find(query_filter)
         workouts: List[WorkoutDocument] = []
@@ -97,9 +105,7 @@ class WorkoutRepository:
         if not ObjectId.is_valid(identifier):
             logger.warning("Delete rejected due to invalid identifier: %s", identifier)
             return False
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier)}
-        if user_identifier is not None:
-            query_filter["user_identifier"] = user_identifier
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
 
         deletion_result = self.collection.delete_one(query_filter)
         logger.info("Delete workout identifier=%s deleted_count=%d", identifier, deletion_result.deleted_count)
@@ -125,9 +131,7 @@ class WorkoutRepository:
                 "exercises": [exercise.model_dump() for exercise in updated_workout.exercises]
             }
         }
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier)}
-        if user_identifier is not None:
-            query_filter["user_identifier"] = user_identifier
+        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
 
         update_result = self.collection.update_one(query_filter, update_payload)
         logger.info(
