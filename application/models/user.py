@@ -14,6 +14,8 @@ class UserDocument(BaseModel):
 
     identifier: Optional[str] = Field(default=None, alias="_id", description="The MongoDB ObjectId as a string.")
     email: str = Field(..., min_length=3, description="Unique login email address.")
-    password_hash: str = Field(..., min_length=1, description="Secure hash of the user password.")
+    password_hash: Optional[str] = Field(default=None, description="Secure hash of the user password for local credentials.")
+    auth_provider: Optional[str] = Field(default=None, description="Authentication provider (e.g., local, google).")
+    auth_provider_subject: Optional[str] = Field(default=None, description="Stable subject identifier from external provider.")
     display_name: Optional[str] = Field(default=None, description="Optional name displayed in the UI.")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC account creation timestamp.")

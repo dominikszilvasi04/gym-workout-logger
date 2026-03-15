@@ -63,11 +63,17 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
             database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
             logger.info("Database client initialised for database: %s", database_name)
             database_manager.database["users"].create_index("email", unique=True)
+            database_manager.database["users"].create_index(
+                [("auth_provider", ASCENDING), ("auth_provider_subject", ASCENDING)],
+                unique=True,
+                sparse=True,
+            )
             database_manager.database["exercise_definitions"].create_index("exercise_name", unique=True)
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
             database_manager.database["workout_templates"].create_index([("user_identifier", ASCENDING), ("template_name", ASCENDING)])
             logger.info("Ensured users collection unique index on email.")
+            logger.info("Ensured users collection sparse unique index on auth_provider/auth_provider_subject.")
             logger.info("Ensured exercise_definitions collection unique index on exercise_name.")
             logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
             logger.info("Ensured workout_templates index for user/template lookups.")

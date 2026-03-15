@@ -67,3 +67,47 @@ class UserRepository:
         )
         return update_result.matched_count > 0
 
+    def retrieve_user_by_auth_provider_subject(self, auth_provider: str, auth_provider_subject: str) -> Optional[UserDocument]:
+        """
+        Retrieves a user by external auth provider subject.
+        """
+        document = self.collection.find_one(
+            {
+                "auth_provider": auth_provider,
+                "auth_provider_subject": auth_provider_subject,
+            }
+        )
+        if not document:
+            return None
+        document["_id"] = str(document["_id"])
+        return UserDocument(**document)
+
+    def update_user_auth_provider(self, identifier: str, auth_provider: str, auth_provider_subject: str) -> bool:
+        """
+        Links an existing user account to an auth provider identity.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        update_result = self.collection.update_one(
+            {"_id": ObjectId(identifier)},
+            {
+                "$set": {
+                    "auth_provider": auth_provider,
+                    "auth_provider_subject": auth_provider_subject,
+                }
+            },
+        )
+        return update_result.matched_count > 0
+
+    def update_user_display_name(self, identifier: str, display_name: str) -> bool:
+        """
+        Updates a user's display name.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        update_result = self.collection.update_one(
+            {"_id": ObjectId(identifier)},
+            {"$set": {"display_name": display_name}},
+        )
+        return update_result.matched_count > 0
+
