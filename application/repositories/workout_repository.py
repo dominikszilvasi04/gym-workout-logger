@@ -17,10 +17,10 @@ class WorkoutRepository:
         Retrieves the MongoDB collection for workouts.
         
         Raises:
-            RuntimeError: If the database manager has not been initialized.
+            RuntimeError: If the database manager has not been initialised.
         """
         if database_manager.database is None:
-            raise RuntimeError("Database client is not initialized.")
+            raise RuntimeError("Database client is not initialised.")
         return database_manager.database["workouts"]
 
     def create_workout(self, workout_document: WorkoutDocument) -> str:
@@ -49,10 +49,8 @@ class WorkoutRepository:
         """
         if not ObjectId.is_valid(identifier):
             return None
-
         document = self.collection.find_one({"_id": ObjectId(identifier)})
         if document:
-            # Convert ObjectId to string for Pydantic validation
             document["_id"] = str(document["_id"])
             return WorkoutDocument(**document)
         return None
@@ -70,3 +68,36 @@ class WorkoutRepository:
             document["_id"] = str(document["_id"])
             workouts.append(WorkoutDocument(**document))
         return workouts
+    
+    def delete_workout_by_identifier(self, identifier: str) -> bool:
+        """
+        Permanently removes a workout document from the database.
+        
+        Args:
+            identifier: The MongoDB ObjectId string.
+            
+        Returns:
+            True if a document was successfully deleted, False otherwise.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        deletion_result = self.collection.delete_one({"_id": ObjectId(identifier)})
+        return deletion_result.deleted_count > 0
+    
+    def update_workout_by_identifier(self, identifier: str, updated_workout: WorkoutDocument) -> bool:
+        """
+        Updates specific fields of an existing workout document using $set.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        update_payload = {
+            "$set": {
+                "target_muscle_groups": updated_workout.target_muscle_groups,
+                "exercises": [ex.model_dump() for ex in updated_workout.exercises]
+            }
+        }
+        update_result = self.collection.update_one(
+            {"_id": ObjectId(identifier)}, 
+            update_payload
+        )
+        return update_result.matched_count > 0
