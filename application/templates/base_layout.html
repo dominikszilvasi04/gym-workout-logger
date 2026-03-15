@@ -13,6 +13,7 @@
             <a class="navbar-brand" href="/">Gym Workout Logger</a>
             <div class="d-flex align-items-center gap-2">
                 {% if session.get('user_identifier') %}
+                    <a href="/profile" class="btn btn-sm btn-outline-light">Profile</a>
                     <span class="text-white-50 small me-2">{{ session.get('user_display_name') }}</span>
                     <form method="post" action="/logout" class="mb-0">
                         <button type="submit" class="btn btn-sm btn-outline-light">Logout</button>

@@ -103,3 +103,87 @@ def test_multi_tenant_user_cannot_access_other_users_workout(test_client):
     # User two must not access user one's workout
     forbidden_detail_response = test_client.get(f"/workouts/{user_one_workout_identifier}")
     assert forbidden_detail_response.status_code == 404
+
+
+def test_profile_requires_authenticated_user(test_client):
+    """
+    Verifies the profile page redirects anonymous users to login.
+    """
+    profile_response = test_client.get("/profile", follow_redirects=False)
+
+    assert profile_response.status_code == 302
+    assert "/login" in profile_response.headers["Location"]
+
+
+def test_profile_page_shows_logged_in_user_statistics(test_client):
+    """
+    Verifies the profile page displays only the authenticated user's summary.
+    """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Profile User",
+            "email": "profile.user@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
+    first_workout_response = test_client.post(
+        "/api/workouts",
+        json={
+            "target_muscle_groups": ["Chest", "Triceps"],
+            "exercises": [
+                {
+                    "exercise_name": "Bench Press",
+                    "exercise_definition_identifier": "bench-001",
+                    "sets": [
+                        {
+                            "repetitions": 8,
+                            "weight_in_kilograms": 80.0,
+                            "rate_of_perceived_exertion": 8,
+                        },
+                        {
+                            "repetitions": 6,
+                            "weight_in_kilograms": 85.0,
+                            "rate_of_perceived_exertion": 9,
+                        },
+                    ],
+                }
+            ],
+        },
+    )
+    assert first_workout_response.status_code == 201
+
+    second_workout_response = test_client.post(
+        "/api/workouts",
+        json={
+            "target_muscle_groups": ["Chest"],
+            "exercises": [
+                {
+                    "exercise_name": "Incline Dumbbell Press",
+                    "exercise_definition_identifier": "incline-001",
+                    "sets": [
+                        {
+                            "repetitions": 10,
+                            "weight_in_kilograms": 30.0,
+                            "rate_of_perceived_exertion": 8,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    assert second_workout_response.status_code == 201
+
+    profile_response = test_client.get("/profile")
+
+    assert profile_response.status_code == 200
+    profile_page_content = profile_response.data.decode("utf-8")
+    assert "Your Profile" in profile_page_content
+    assert "Profile User" in profile_page_content
+    assert "Total Workouts" in profile_page_content
+    assert "2" in profile_page_content
+    assert "1450.00 kg" in profile_page_content
+    assert "Chest" in profile_page_content
+    assert "Recent Workouts" in profile_page_content

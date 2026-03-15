@@ -1,0 +1,150 @@
+{% extends "base_layout.html" %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-8">
+        <h2 class="mb-1">Your Profile</h2>
+        <p class="text-muted mb-0">Personal training summary and recent activity.</p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="/log" class="btn btn-primary">Log New Workout</a>
+    </div>
+    <div class="col-12"><hr class="mt-3"></div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-lg-4 mb-3 mb-lg-0">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Account</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Name:</strong> {{ user.display_name or user.email }}</p>
+                <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
+                <p class="mb-0"><strong>Member Since:</strong> {{ user.created_at.strftime('%Y-%m-%d') }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Highlights</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <div class="text-muted small">Total Workouts</div>
+                            <div class="fs-4 fw-semibold">{{ profile_summary.total_workouts }}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <div class="text-muted small">Total Volume</div>
+                            <div class="fs-4 fw-semibold">{{ '%.2f' | format(profile_summary.total_volume) }} kg</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <div class="text-muted small">Total Sets</div>
+                            <div class="fs-4 fw-semibold">{{ profile_summary.total_sets }}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="border rounded p-3 h-100 bg-light">
+                            <div class="text-muted small">Total Reps</div>
+                            <div class="fs-4 fw-semibold">{{ profile_summary.total_repetitions }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Most Trained Muscle Group</div>
+                            <div class="fs-5 fw-semibold">{{ profile_summary.most_trained_muscle_group or 'No data yet' }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Latest Workout</div>
+                            <div class="fs-5 fw-semibold">
+                                {% if profile_summary.latest_workout %}
+                                    {{ profile_summary.latest_workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    No workouts yet
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mt-1">
+                    <div class="col-sm-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Exercises Logged</div>
+                            <div class="fs-5 fw-semibold">{{ profile_summary.total_exercises }}</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="border rounded p-3 h-100">
+                            <div class="text-muted small">Recent Sessions</div>
+                            <div class="fs-5 fw-semibold">{{ profile_summary.recent_workouts | length }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Workouts</h5>
+                <a href="/" class="btn btn-sm btn-outline-secondary">View Dashboard</a>
+            </div>
+            <div class="card-body">
+                {% if profile_summary.recent_workouts %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Target Muscles</th>
+                                <th>Exercises</th>
+                                <th>Volume</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for workout in profile_summary.recent_workouts %}
+                            {% set workout_volume = namespace(total=0) %}
+                            {% for exercise in workout.exercises %}
+                                {% for set in exercise.sets %}
+                                    {% set workout_volume.total = workout_volume.total + (set.weight_in_kilograms * set.repetitions) %}
+                                {% endfor %}
+                            {% endfor %}
+                            <tr>
+                                <td>{{ workout.date_of_workout.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ workout.target_muscle_groups | join(', ') }}</td>
+                                <td>{{ workout.exercises | length }}</td>
+                                <td>{{ '%.2f' | format(workout_volume.total) }} kg</td>
+                                <td class="text-end">
+                                    <a href="/workouts/{{ workout.identifier }}" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted mb-3">You have not logged any workouts yet.</p>
+                    <a href="/log" class="btn btn-primary">Log Your First Workout</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
