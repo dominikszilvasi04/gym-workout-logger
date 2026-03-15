@@ -92,6 +92,23 @@ class WorkoutRepository:
         logger.debug("Retrieved %d workouts from database.", len(workouts))
         return workouts
 
+    def retrieve_most_recent_workout(self, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
+        """
+        Retrieves the most recent workout document for the active user scope.
+
+        Args:
+            user_identifier: Optional user scope.
+
+        Returns:
+            The most recent WorkoutDocument, or None when no workouts exist.
+        """
+        query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
+        document = self.collection.find_one(query_filter, sort=[("date_of_workout", -1)])
+        if document is None:
+            return None
+        document["_id"] = str(document["_id"])
+        return WorkoutDocument(**document)
+
     def delete_workout_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
         """
         Permanently removes a workout document from the database.

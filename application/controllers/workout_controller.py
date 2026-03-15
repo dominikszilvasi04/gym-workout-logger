@@ -126,7 +126,6 @@ def view_workout_logging_form() -> str:
     should_prefill_from_last = log_source == "last"
     return render_template("log_workout.html", should_prefill_from_last=should_prefill_from_last)
 
-
 @workout_blueprint.route("/api/workouts/last", methods=["GET"])
 @login_required
 def retrieve_last_workout_endpoint() -> tuple[Response, int]:
@@ -142,7 +141,6 @@ def retrieve_last_workout_endpoint() -> tuple[Response, int]:
     if most_recent_workout is None:
         return jsonify({"error": "No previous workout found."}), 404
     return jsonify(most_recent_workout.model_dump(by_alias=True)), 200
-
 
 @workout_blueprint.route("/api/workouts/last-used-values", methods=["GET"])
 @login_required

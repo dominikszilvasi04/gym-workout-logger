@@ -15,7 +15,7 @@
     <div class="col-xl-8">
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4 p-lg-5">
-                <form id="workout_logging_form" novalidate>
+                <form id="workout_logging_form" data-prefill-from-last="{{ 'true' if should_prefill_from_last else 'false' }}" novalidate>
                     <section class="mb-4">
                         <h5 class="mb-3">Workout Details</h5>
                         <div class="row g-3">
@@ -69,6 +69,40 @@
                     <button type="submit" class="btn btn-outline-dark">Send Exercise Request</button>
                     <div id="exercise_request_feedback" class="small"></div>
                 </form>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h6 class="mb-3">Plate Calculator</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label for="plate_target_weight" class="form-label small">Target Weight (kg)</label>
+                        <input type="number" min="0" step="0.5" class="form-control" id="plate_target_weight" placeholder="100">
+                    </div>
+                    <div class="col-6">
+                        <label for="plate_bar_weight" class="form-label small">Bar Weight (kg)</label>
+                        <input type="number" min="0" step="0.5" class="form-control" id="plate_bar_weight" value="20">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline-primary w-100 mb-2" id="calculate_plates_button">Calculate Plates</button>
+                <div id="plate_calculator_result" class="small text-muted"></div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h6 class="mb-3">Rest Timer</h6>
+                <div class="row g-2 mb-2">
+                    <div class="col-7">
+                        <label for="rest_duration_seconds" class="form-label small">Rest Duration (seconds)</label>
+                        <input type="number" min="10" step="5" class="form-control" id="rest_duration_seconds" value="120">
+                    </div>
+                    <div class="col-5 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-secondary w-100" id="start_rest_timer_button">Start</button>
+                    </div>
+                </div>
+                <div class="small text-muted mb-1" id="rest_timer_status">Timer idle</div>
+                <div class="fw-semibold" id="rest_timer_countdown">02:00</div>
+                <div class="small text-muted mt-2">Auto-starts when you add the next set.</div>
             </div>
         </div>
         <div class="card border-0 shadow-sm">
