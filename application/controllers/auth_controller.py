@@ -3,10 +3,16 @@ Controller layer for user registration and authentication routes.
 """
 import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from application.services import application_user_service
+from application.services import application_user_service, application_workout_service
 
 logger = logging.getLogger(__name__)
 auth_blueprint = Blueprint("auth_controller", __name__, template_folder="../templates")
+
+def get_authenticated_user_identifier() -> str | None:
+    """
+    Retrieves the logged-in user's identifier from session state.
+    """
+    return session.get("user_identifier")
 
 @auth_blueprint.route("/register", methods=["GET", "POST"])
 def register() -> str:
@@ -70,3 +76,26 @@ def logout() -> str:
     logger.info("User logged out: user_identifier=%s", user_identifier)
     flash("Logged out successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
+
+
+@auth_blueprint.route("/profile", methods=["GET"])
+def profile() -> str:
+    """
+    Renders the authenticated user's profile and workout summary.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    if not user_identifier:
+        flash("Please log in to view your profile.", "warning")
+        return redirect(url_for("auth_controller.login"))
+
+    user = application_user_service.retrieve_user(user_identifier)
+    if not user:
+        session.pop("user_identifier", None)
+        session.pop("user_email", None)
+        session.pop("user_display_name", None)
+        flash("Your account could not be loaded. Please log in again.", "danger")
+        return redirect(url_for("auth_controller.login"))
+
+    profile_summary = application_workout_service.build_profile_summary(user_identifier=user_identifier)
+    logger.info("Profile page requested for user_identifier=%s", user_identifier)
+    return render_template("profile.html", user=user, profile_summary=profile_summary)
