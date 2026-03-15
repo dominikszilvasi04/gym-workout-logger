@@ -25,6 +25,20 @@ class WorkoutService:
         """
         self.workout_repository = workout_repository
 
+    def normalise_datetime_to_utc(self, date_time_value: datetime) -> datetime:
+        """
+        Normalises both naive and timezone-aware datetimes to UTC-aware values.
+
+        Args:
+            date_time_value: The datetime to normalise.
+
+        Returns:
+            A timezone-aware UTC datetime.
+        """
+        if date_time_value.tzinfo is None or date_time_value.tzinfo.utcoffset(date_time_value) is None:
+            return date_time_value.replace(tzinfo=timezone.utc)
+        return date_time_value.astimezone(timezone.utc)
+
     def calculate_estimated_one_repetition_maximum(self, weight_in_kilograms: float, repetitions: int) -> float:
         """
         Calculates the estimated one repetition maximum using the standard Epley formula.
@@ -173,7 +187,7 @@ class WorkoutService:
         workout_history = self.retrieve_workout_history(user_identifier=user_identifier)
         sorted_workouts = sorted(
             workout_history,
-            key=lambda workout: workout.date_of_workout,
+            key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout),
             reverse=True
         )
         return sorted_workouts[:limit]
@@ -191,7 +205,7 @@ class WorkoutService:
         workouts = self.retrieve_workout_history(user_identifier=user_identifier)
         recent_workouts = sorted(
             workouts,
-            key=lambda workout: workout.date_of_workout,
+            key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout),
             reverse=True
         )
 
@@ -395,7 +409,11 @@ class WorkoutService:
             return workouts
 
         range_start = datetime.now(timezone.utc) - timedelta(days=range_days)
-        return [workout for workout in workouts if workout.date_of_workout >= range_start]
+        return [
+            workout
+            for workout in workouts
+            if self.normalise_datetime_to_utc(workout.date_of_workout) >= range_start
+        ]
 
     def build_dashboard_analytics(
         self,
@@ -416,7 +434,7 @@ class WorkoutService:
         """
         all_workouts = sorted(
             self.retrieve_workout_history(user_identifier=user_identifier),
-            key=lambda workout: workout.date_of_workout
+            key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout)
         )
         filtered_workouts = self.filter_workouts_by_range(all_workouts, range_days=range_days)
 
