@@ -514,7 +514,7 @@ class WorkoutService:
         strongest_estimated_one_rep_maximum = max(one_rep_max_values, default=0.0)
         average_workout_volume = round(total_volume / len(filtered_workouts), 2) if filtered_workouts else 0.0
         current_training_streak_weeks = self.calculate_training_streak_weeks(all_workouts)
-        personal_records = self.build_personal_records(filtered_workouts if filtered_workouts else all_workouts)
+        personal_records = self.build_personal_records(all_workouts)
 
         return {
             "filters": {
