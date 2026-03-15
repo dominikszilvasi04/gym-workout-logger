@@ -81,6 +81,25 @@ class WorkoutRepository:
         """
         if not ObjectId.is_valid(identifier):
             return False
-            
         deletion_result = self.collection.delete_one({"_id": ObjectId(identifier)})
         return deletion_result.deleted_count > 0
+    
+    def update_workout_by_identifier(self, identifier: str, updated_workout: WorkoutDocument) -> bool:
+        """
+        Updates an existing workout document in the database with new data.
+        
+        Args:
+            identifier: The unique MongoDB ObjectId string.
+            updated_workout: The validated WorkoutDocument model containing new values.
+            
+        Returns:
+            True if the document was found and updated, False otherwise.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        updated_data = updated_workout.model_dump(by_alias=True, exclude={"identifier"})
+        update_result = self.collection.replace_one(
+            {"_id": ObjectId(identifier)}, 
+            updated_data
+        )
+        return update_result.matched_count > 0

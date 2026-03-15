@@ -113,3 +113,19 @@ class WorkoutService:
             A boolean indicating the success of the deletion operation.
         """
         return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
+    
+    def modify_workout_session(self, identifier: str, workout_document: WorkoutDocument) -> bool:
+        """
+        Coordinates the update of a workout session after validation.
+        
+        Args:
+            identifier: The unique identifier for the workout.
+            workout_document: The new validated data to be stored.
+            
+        Returns:
+            Success status of the update operation.
+        """
+        return self.workout_repository.update_workout_by_identifier(
+            identifier=identifier, 
+            updated_workout=workout_document
+        )

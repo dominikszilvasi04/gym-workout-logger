@@ -44,6 +44,7 @@
                         <th>Date</th>
                         <th>Target Muscles</th>
                         <th>Total Exercises</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,6 +54,7 @@
                         <td>{{ workout.target_muscle_groups | join(', ') }}</td>
                         <td>{{ workout.exercises | length }}</td>
                         <td class="text-center">
+                            <a href="/edit/{{ workout.identifier }}" class="btn btn-sm btn-outline-primary">Edit</a>
                             <button class="btn btn-sm btn-outline-danger delete-workout-button" 
                                     data-workout-identifier="{{ workout.identifier }}">
                                 Delete
