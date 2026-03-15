@@ -8,6 +8,7 @@ from application.models.exercise_definition import ExerciseDefinition
 
 logger = logging.getLogger(__name__)
 
+
 class ExerciseDefinitionService:
     """
     Encapsulates business logic for standard exercise definitions.

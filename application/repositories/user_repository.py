@@ -66,3 +66,4 @@ class UserRepository:
             {"$set": {"password_hash": password_hash}}
         )
         return update_result.matched_count > 0
+

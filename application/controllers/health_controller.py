@@ -1,7 +1,8 @@
 """
 Controller for system health and readiness probes.
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, Response, jsonify
+
 from application.database import database_manager
 
 health_blueprint = Blueprint("health", __name__)
@@ -9,7 +10,7 @@ health_blueprint = Blueprint("health", __name__)
 
 @health_blueprint.route("/health", methods=["GET"])
 @health_blueprint.route("/health_check", methods=["GET"])
-def health_check():
+def health_check() -> tuple[Response, int]:
     """
     Performs a shallow health check of the application and database connectivity.
     """

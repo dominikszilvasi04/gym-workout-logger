@@ -114,7 +114,7 @@ class WorkoutService:
             workout_history = self.workout_repository.retrieve_all_workouts(user_identifier=user_identifier)
         logger.debug("Retrieved workout history count=%d", len(workout_history))
         return workout_history
-        
+
     def retrieve_specific_workout(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
         """
         Retrieves a single workout session by its unique database identifier.
@@ -129,7 +129,7 @@ class WorkoutService:
         if user_identifier is None:
             return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier)
         return self.workout_repository.retrieve_workout_by_identifier(identifier=identifier, user_identifier=user_identifier)
-    
+
     def remove_workout_session(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
         """
         Delegates the deletion of a specific workout session to the repository.
@@ -144,7 +144,7 @@ class WorkoutService:
         if user_identifier is None:
             return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
         return self.workout_repository.delete_workout_by_identifier(identifier=identifier, user_identifier=user_identifier)
-    
+
     def modify_workout_session(
         self,
         identifier: str,
@@ -208,7 +208,6 @@ class WorkoutService:
             key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout),
             reverse=True
         )
-
         total_workouts = len(workouts)
         total_exercises = sum(len(workout.exercises) for workout in workouts)
         total_sets = sum(len(exercise.sets) for workout in workouts for exercise in workout.exercises)
@@ -219,16 +218,13 @@ class WorkoutService:
             for workout_set in exercise.sets
         )
         total_volume = sum(self.calculate_total_workout_volume(workout) for workout in workouts)
-
         target_muscle_counter: Counter[str] = Counter()
         for workout in workouts:
             for muscle_group in workout.target_muscle_groups:
                 target_muscle_counter[muscle_group] += 1
-
         most_trained_muscle_group = None
         if target_muscle_counter:
             most_trained_muscle_group = target_muscle_counter.most_common(1)[0][0]
-
         return {
             "total_workouts": total_workouts,
             "total_exercises": total_exercises,
@@ -339,14 +335,12 @@ class WorkoutService:
         """
         if not workouts:
             return 0
-
         unique_weeks = sorted(
             {(workout.date_of_workout.isocalendar().year, workout.date_of_workout.isocalendar().week) for workout in workouts},
             reverse=True
         )
         streak = 1
         previous_year, previous_week = unique_weeks[0]
-
         for current_year, current_week in unique_weeks[1:]:
             previous_week_start = datetime.fromisocalendar(previous_year, previous_week, 1)
             current_week_start = datetime.fromisocalendar(current_year, current_week, 1)
@@ -355,7 +349,6 @@ class WorkoutService:
                 previous_year, previous_week = current_year, current_week
                 continue
             break
-
         return streak
 
     def build_personal_records(self, workouts: List[WorkoutDocument], limit: int = 5) -> List[dict[str, object]]:
@@ -376,10 +369,8 @@ class WorkoutService:
                     workout_document=workout,
                     exercise_name=exercise.exercise_name
                 )
-
                 if best_estimated_maximum <= 0:
                     continue
-
                 existing_record = records_by_exercise.get(exercise.exercise_name)
                 if existing_record is None or best_estimated_maximum > existing_record["estimated_one_rep_maximum"]:
                     records_by_exercise[exercise.exercise_name] = {
@@ -387,7 +378,6 @@ class WorkoutService:
                         "estimated_one_rep_maximum": best_estimated_maximum,
                         "date": workout.date_of_workout.strftime("%Y-%m-%d"),
                     }
-
         sorted_records = sorted(
             records_by_exercise.values(),
             key=lambda record: record["estimated_one_rep_maximum"],
@@ -408,12 +398,10 @@ class WorkoutService:
         """
         if range_days is None:
             return workouts
-
         # Validate and normalise range_days to avoid confusing future-oriented windows.
         if range_days < 0:
             logger.warning("Invalid range_days value provided to filter_workouts_by_range: %s", range_days)
             raise ValueError("range_days must be a non-negative integer")
-
         # Optionally cap the range to a reasonable maximum to prevent excessive queries.
         max_days = 3650  # e.g. limit to the last 10 years
         if range_days > max_days:
@@ -423,7 +411,6 @@ class WorkoutService:
                 max_days,
             )
             range_days = max_days
-
         range_start = datetime.now(timezone.utc) - timedelta(days=range_days)
         return [
             workout
@@ -453,7 +440,6 @@ class WorkoutService:
             key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout)
         )
         filtered_workouts = self.filter_workouts_by_range(all_workouts, range_days=range_days)
-
         available_exercise_names = sorted(
             {
                 exercise.exercise_name
@@ -464,7 +450,6 @@ class WorkoutService:
         selected_exercise_name = exercise_name.strip() if exercise_name else None
         if selected_exercise_name == "":
             selected_exercise_name = None
-
         total_volume = round(sum(self.calculate_total_workout_volume(workout) for workout in filtered_workouts), 2)
         total_sets = sum(self.calculate_total_sets(workout) for workout in filtered_workouts)
         total_repetitions = sum(self.calculate_total_repetitions(workout) for workout in filtered_workouts)
@@ -473,10 +458,8 @@ class WorkoutService:
             sum(self.calculate_average_workout_rpe(workout) for workout in filtered_workouts) / len(filtered_workouts),
             2
         ) if filtered_workouts else 0.0
-
         volume_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in filtered_workouts]
         volume_values = [self.calculate_total_workout_volume(workout) for workout in filtered_workouts]
-
         if selected_exercise_name:
             one_rep_workouts = [
                 workout for workout in filtered_workouts
@@ -494,7 +477,6 @@ class WorkoutService:
                 self.calculate_best_estimated_one_repetition_maximum(workout)
                 for workout in filtered_workouts
             ]
-
         weekly_frequency_counter: Counter[str] = Counter()
         target_muscle_counter: Counter[str] = Counter()
         top_exercise_volume_counter: Counter[str] = Counter()
@@ -509,7 +491,6 @@ class WorkoutService:
             average_rpe_values.append(self.calculate_average_workout_rpe(workout))
             for exercise in workout.exercises:
                 top_exercise_volume_counter[exercise.exercise_name] += self.calculate_exercise_volume(exercise)
-
         sorted_weekly_labels = sorted(weekly_frequency_counter.keys())
         weekly_frequency_values = [weekly_frequency_counter[label] for label in sorted_weekly_labels]
         muscle_labels = [entry[0] for entry in target_muscle_counter.most_common()]
@@ -521,7 +502,6 @@ class WorkoutService:
         average_workout_volume = round(total_volume / len(filtered_workouts), 2) if filtered_workouts else 0.0
         current_training_streak_weeks = self.calculate_training_streak_weeks(all_workouts)
         personal_records = self.build_personal_records(all_workouts)
-
         return {
             "filters": {
                 "range_days": range_days,

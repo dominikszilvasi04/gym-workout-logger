@@ -2,7 +2,7 @@
 Controller layer for user registration and authentication routes.
 """
 import logging
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, Response, render_template, request, redirect, url_for, flash, session
 from application.authentication import login_required
 from application.security import limiter
 from application.services import application_user_service, application_workout_service
@@ -16,9 +16,10 @@ def get_authenticated_user_identifier() -> str | None:
     """
     return session.get("user_identifier")
 
+
 @auth_blueprint.route("/register", methods=["GET", "POST"])
 @limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
-def register() -> str:
+def register() -> str | tuple[str, int] | Response:
     """
     Renders and handles account registration.
     """
@@ -48,9 +49,10 @@ def register() -> str:
     flash("Registration successful. Welcome!", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
+
 @auth_blueprint.route("/login", methods=["GET", "POST"])
 @limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
-def login() -> str:
+def login() -> str | tuple[str, int] | Response:
     """
     Renders and handles user login.
     """
@@ -70,9 +72,10 @@ def login() -> str:
     flash("Logged in successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
+
 @auth_blueprint.route("/logout", methods=["POST"])
 @limiter.limit("60 per minute")
-def logout() -> str:
+def logout() -> Response:
     """
     Logs the current user out and clears the session.
     """
@@ -84,10 +87,9 @@ def logout() -> str:
     flash("Logged out successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
-
 @auth_blueprint.route("/profile", methods=["GET"])
 @login_required
-def profile() -> str:
+def profile() -> str | Response:
     """
     Renders the authenticated user's profile and workout summary.
     """

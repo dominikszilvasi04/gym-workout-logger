@@ -8,6 +8,7 @@ from application.models.exercise_definition import ExerciseDefinition
 
 logger = logging.getLogger(__name__)
 
+
 class ExerciseDefinitionRepository:
     """
     Handles all database operations for the master list of ExerciseDefinitions.

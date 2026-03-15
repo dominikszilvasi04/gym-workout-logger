@@ -3,13 +3,15 @@ Main entry point to run the Flask development server.
 """
 import logging
 import os
+from typing import Type
 from dotenv import load_dotenv
 load_dotenv()
 from application import create_application
+from application.configuration import ApplicationConfiguration
 from application.configuration import DevelopmentConfiguration, TestingConfiguration, ProductionConfiguration
 
 
-def resolve_configuration_class():
+def resolve_configuration_class() -> Type[ApplicationConfiguration]:
     """
     Selects the configuration profile based on APPLICATION_ENV.
     """

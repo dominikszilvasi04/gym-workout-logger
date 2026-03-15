@@ -55,17 +55,14 @@ class UserService:
             return False, "Please provide a valid email address."
         if len(password) < 6:
             return False, "Password must be at least 6 characters."
-
         existing_user = self.user_repository.retrieve_user_by_email(normalised_email)
         if existing_user:
             return False, "An account with this email already exists."
-
         user_document = UserDocument(
             email=normalised_email,
             password_hash=self.hash_password(password),
             display_name=display_name.strip() if display_name else None,
         )
-
         try:
             created_identifier = self.user_repository.create_user(user_document)
             logger.info("New user account registered for email=%s", normalised_email)
@@ -86,12 +83,10 @@ class UserService:
         if not self.verify_password(password, user.password_hash):
             logger.info("Authentication failed: invalid password for email=%s", normalised_email)
             return None
-
         if user.identifier and self.needs_password_rehash(user.password_hash):
             upgraded_hash = self.hash_password(password)
             self.user_repository.update_user_password_hash(user.identifier, upgraded_hash)
             logger.info("Upgraded password hash policy for user_identifier=%s", user.identifier)
-
         logger.info("Authentication successful for email=%s", normalised_email)
         return user
 

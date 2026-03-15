@@ -5,6 +5,8 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 class ExerciseDefinition(BaseModel):
+    
+    
     """
     Represents a strictly defined, standard exercise in the application.
     This ensures data consistency across all user workouts for accurate charting.
