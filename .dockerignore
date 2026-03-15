@@ -1,0 +1,16 @@
+.git
+.gitignore
+.pytest_cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+.env
+.flask_session/
+virtual_environment/
+.vscode/
+.idea/
+Dockerfile*
+docker-compose*.yml
+tests/

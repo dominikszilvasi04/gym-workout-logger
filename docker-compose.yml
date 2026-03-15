@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gym-workout-logger-app
+    environment:
+      APPLICATION_ENV: production
+      APPLICATION_SECRET_KEY: ${APPLICATION_SECRET_KEY:-change-me-in-env}
+      APPLICATION_LOG_LEVEL: ${APPLICATION_LOG_LEVEL:-INFO}
+      DATABASE_CONNECTION_URI: mongodb://mongo:27017/
+      DATABASE_NAME: ${DATABASE_NAME:-gym_workout_logger_database}
+      APPLICATION_SESSION_CACHE_DIR: /application_source/.flask_session
+      APPLICATION_SESSION_COOKIE_SECURE: ${APPLICATION_SESSION_COOKIE_SECURE:-false}
+      APPLICATION_CSRF_PROTECTION_ENABLED: "true"
+      PORT: "5000"
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app_sessions:/application_source/.flask_session
+
+  mongo:
+    image: mongo:7
+    container_name: gym-workout-logger-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${DATABASE_NAME:-gym_workout_logger_database}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  mongo_data:
+  app_sessions:

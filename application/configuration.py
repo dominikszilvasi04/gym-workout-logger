@@ -39,3 +39,11 @@ class TestingConfiguration(ApplicationConfiguration):
     TESTING: bool = True
     DATABASE_NAME: str = "gym_workout_logger_testing_database"
     CSRF_PROTECTION_ENABLED: bool = False
+
+
+class ProductionConfiguration(ApplicationConfiguration):
+    """
+    Configuration used for production and cloud deployments.
+    """
+    DEBUG: bool = False
+    SESSION_COOKIE_SECURE: bool = os.environ.get("APPLICATION_SESSION_COOKIE_SECURE", "true").lower() == "true"

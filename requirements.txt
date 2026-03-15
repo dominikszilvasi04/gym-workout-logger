@@ -2,8 +2,7 @@ Flask==3.0.2
 Flask-Session==0.8.0
 Flask-Limiter==3.7.0
 cachelib==0.13.0
-# to do later work with gunicorn for production deployment
-# gunicorn==21.2.0
+gunicorn==22.0.0
 pymongo==4.6.2
 pydantic>=2.9.0
 python-dotenv==1.0.1
