@@ -104,12 +104,26 @@ function populateExerciseFilterOptions(filtersPayload) {
 
     const selectedExercise = filtersPayload.selected_exercise || "";
     const availableExercises = filtersPayload.available_exercises || [];
-    const optionsMarkup = ["<option value=\"\">All exercises</option>"];
+
+    // Clear any existing options
+    exerciseFilterElement.innerHTML = "";
+
+    // Add default "All exercises" option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "All exercises";
+    exerciseFilterElement.appendChild(defaultOption);
+
+    // Add options for each available exercise using safe DOM APIs
     availableExercises.forEach(function(exerciseName) {
-        const selectedAttribute = exerciseName === selectedExercise ? " selected" : "";
-        optionsMarkup.push(`<option value="${escapeHtmlAttribute(exerciseName)}"${selectedAttribute}>${exerciseName}</option>`);
+        const option = document.createElement("option");
+        option.value = exerciseName;
+        option.textContent = exerciseName;
+        if (exerciseName === selectedExercise) {
+            option.selected = true;
+        }
+        exerciseFilterElement.appendChild(option);
     });
-    exerciseFilterElement.innerHTML = optionsMarkup.join("");
 }
 
 function populateSummaryCards(summaryPayload) {
