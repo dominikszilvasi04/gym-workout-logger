@@ -1,9 +1,11 @@
 """
-Application factory and initialization module.
+Application factory and initialisation module.
 """
 from flask import Flask
 from typing import Type
 from application.configuration import ApplicationConfiguration, DevelopmentConfiguration
+from application.database import database_manager
+import os
 
 def create_application(configuration_class: Type[ApplicationConfiguration] = DevelopmentConfiguration) -> Flask:
     """
@@ -18,9 +20,10 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     """
     flask_application = Flask(__name__)
     flask_application.config.from_object(configuration_class)
-
-    # Note: We will initialize our Database Client here in Phase 2
-    # Note: We will register our Blueprint Controllers here in Phase 4
+    database_uri = flask_application.config.get("DATABASE_URI")
+    database_name = flask_application.config.get("DATABASE_NAME")
+    if database_uri and database_name:
+        database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
 
     @flask_application.route("/health_check")
     def health_check() -> dict[str, str]:
