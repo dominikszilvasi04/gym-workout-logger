@@ -31,6 +31,59 @@ document.addEventListener("DOMContentLoaded", async function() {
     let rest_timer_interval_identifier = null;
     let rest_remaining_seconds = 0;
 
+    function get_toast_container() {
+        const existing_toast_container = document.getElementById("app_toast_container");
+        if (existing_toast_container) {
+            return existing_toast_container;
+        }
+        const toast_container = document.createElement("div");
+        toast_container.id = "app_toast_container";
+        toast_container.className = "toast-container position-fixed top-0 end-0 p-3";
+        toast_container.style.zIndex = "1200";
+        document.body.appendChild(toast_container);
+        return toast_container;
+    }
+
+    function show_toast(message, status = "info") {
+        if (!message) {
+            return;
+        }
+        if (window.showAppToast) {
+            window.showAppToast(message, status);
+            return;
+        }
+        const status_class_name_map = {
+            success: "text-bg-success",
+            danger: "text-bg-danger",
+            warning: "text-bg-warning",
+            info: "text-bg-primary",
+        };
+        const toast_container = get_toast_container();
+        const toast_element = document.createElement("div");
+        toast_element.className = `toast align-items-center border-0 ${status_class_name_map[status] || status_class_name_map.info}`;
+        toast_element.role = "alert";
+        toast_element.ariaLive = "assertive";
+        toast_element.ariaAtomic = "true";
+        toast_element.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        toast_container.appendChild(toast_element);
+        if (window.bootstrap && window.bootstrap.Toast) {
+            const toast_instance = new window.bootstrap.Toast(toast_element, { delay: 3500 });
+            toast_instance.show();
+            toast_element.addEventListener("hidden.bs.toast", function() {
+                toast_element.remove();
+            }, { once: true });
+            return;
+        }
+        setTimeout(function() {
+            toast_element.remove();
+        }, 3500);
+    }
+
     function get_csrf_token() {
         const csrf_meta_element = document.querySelector('meta[name="csrf-token"]');
         return csrf_meta_element ? csrf_meta_element.getAttribute("content") : "";
@@ -319,7 +372,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         }
         const network_response = await fetch("/api/workouts/last");
         if (!network_response.ok) {
-            alert("No previous workout found to repeat yet.");
+            show_toast("No previous workout found to repeat yet.", "warning");
             return false;
         }
         const previous_workout = await network_response.json();
@@ -522,7 +575,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         await load_workout_templates();
     } catch (network_error) {
         console.error("Failed to load standardised exercises:", network_error);
-        alert("Unable to load exercises right now. Please refresh and try again.");
+        show_toast("Unable to load exercises right now. Please refresh and try again.", "danger");
     }
 
     let prefill_applied = await prefill_from_template_query_if_requested();
@@ -596,8 +649,10 @@ document.addEventListener("DOMContentLoaded", async function() {
                 return template._id === template_identifier;
             });
             const current_name = selected_template?.template_name || "";
-            const updated_template_name = (window.prompt("Enter the new template name:", current_name) || "").trim();
+            const updated_template_name = (new_template_name_input?.value || "").trim();
             if (!updated_template_name) {
+                set_template_feedback(`Enter a new template name in the input field (current: ${current_name || "unnamed"}).`, "danger");
+                show_toast("Enter a new template name in the template name input before renaming.", "warning");
                 return;
             }
             const template_payload = {
@@ -618,12 +673,17 @@ document.addEventListener("DOMContentLoaded", async function() {
                     return { error: "Unable to rename template." };
                 });
                 set_template_feedback(error_payload.error || "Unable to rename template.", "danger");
+                show_toast(error_payload.error || "Unable to rename template.", "danger");
                 return;
             }
             set_template_feedback("Template updated.", "success");
+            show_toast("Template renamed successfully.", "success");
             await load_workout_templates();
             if (workout_template_selector) {
                 workout_template_selector.value = template_identifier;
+            }
+            if (new_template_name_input) {
+                new_template_name_input.value = "";
             }
         });
     }
@@ -635,7 +695,16 @@ document.addEventListener("DOMContentLoaded", async function() {
                 set_template_feedback("Select a template to delete.", "danger");
                 return;
             }
-            const user_confirmed = confirm("Delete this template? This cannot be undone.");
+            const user_confirmed = await (window.showConfirmationModal
+                ? window.showConfirmationModal({
+                    title: "Delete template",
+                    message: "Delete this template? This cannot be undone.",
+                    confirmLabel: "Delete",
+                    cancelLabel: "Keep",
+                    confirmClass: "btn-danger"
+                })
+                : Promise.resolve(confirm("Delete this template? This cannot be undone."))
+            );
             if (!user_confirmed) {
                 return;
             }
@@ -706,7 +775,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     workout_logging_form.addEventListener("submit", async function(submission_event) {
         submission_event.preventDefault();
         if (!validate_selected_exercises()) {
-            alert("Please select each exercise from the search suggestions before saving.");
+            show_toast("Please select each exercise from the search suggestions before saving.", "warning");
             return;
         }
         const workout_payload = build_workout_payload();
@@ -721,12 +790,14 @@ document.addEventListener("DOMContentLoaded", async function() {
         if (network_response.ok) {
             if (save_as_template_after_submit_checkbox && save_as_template_after_submit_checkbox.checked) {
                 const suggested_template_name = `${(workout_payload.target_muscle_groups || []).join("/") || "Workout"} Template`;
-                const template_name = (window.prompt("Template name:", suggested_template_name) || "").trim();
+                const template_name = (new_template_name_input?.value || suggested_template_name).trim();
                 if (template_name) {
                     const template_payload = build_template_payload_from_workout_payload(template_name, workout_payload);
                     const save_result = await save_template_payload(template_payload);
                     if (!save_result.success) {
-                        alert(`Workout saved, but template save failed: ${save_result.error}`);
+                        show_toast(`Workout saved, but template save failed: ${save_result.error}`, "warning");
+                    } else {
+                        show_toast("Workout saved and template created.", "success");
                     }
                 }
             }
@@ -736,7 +807,7 @@ document.addEventListener("DOMContentLoaded", async function() {
         const error_payload = await network_response.json().catch(function() {
             return { error: "Unable to save workout." };
         });
-        alert(`Validation failed: ${JSON.stringify(error_payload)}`);
+        show_toast(error_payload.error || "Unable to save workout.", "danger");
     });
 
     if (exercise_request_form) {

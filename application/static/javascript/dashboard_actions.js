@@ -26,7 +26,16 @@ document.addEventListener("DOMContentLoaded", function() {
      * @returns {Promise<void>}
      */
     async function execute_workout_deletion(workout_identifier, redirect_url = null) {
-        const user_confirmed = confirm("Are you absolutely certain you wish to delete this workout? This action cannot be undone.");
+        const user_confirmed = await (window.showConfirmationModal
+            ? window.showConfirmationModal({
+                title: "Delete workout",
+                message: "Are you absolutely certain you wish to delete this workout? This action cannot be undone.",
+                confirmLabel: "Delete",
+                cancelLabel: "Keep",
+                confirmClass: "btn-danger"
+            })
+            : Promise.resolve(confirm("Are you absolutely certain you wish to delete this workout? This action cannot be undone."))
+        );
         if (!user_confirmed) return;
         try {
             const network_response = await fetch(`/api/workouts/${workout_identifier}`, {
@@ -42,11 +51,15 @@ document.addEventListener("DOMContentLoaded", function() {
                     window.location.reload();
                 }
             } else {
-                alert("Failed to delete the workout session. Please try again.");
+                if (window.showAppToast) {
+                    window.showAppToast("Failed to delete the workout session. Please try again.", "danger");
+                }
             }
         } catch (network_error) {
             console.error("Network failure during deletion:", network_error);
-            alert("A critical network error occurred while communicating with the server.");
+            if (window.showAppToast) {
+                window.showAppToast("A critical network error occurred while communicating with the server.", "danger");
+            }
         }
     }
 });
