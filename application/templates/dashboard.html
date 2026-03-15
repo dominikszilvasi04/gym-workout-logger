@@ -4,6 +4,7 @@
 <div class="row mb-4 align-items-center">
     <div class="col-8">
         <h2 class="mb-0">Workout Dashboard</h2>
+        <p class="text-muted mb-0 mt-1">Track real progress, training load, and workout consistency.</p>
     </div>
     <div class="col-4 text-end">
         <a href="/log" class="btn btn-primary">Log New Workout</a>
@@ -11,7 +12,42 @@
     <div class="col-12"><hr class="mt-3"></div>
 </div>
 
-<div class="row mb-5">
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Total Workouts</div>
+                <div class="display-6 fw-semibold" id="dashboard_total_workouts">0</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Total Volume</div>
+                <div class="display-6 fw-semibold" id="dashboard_total_volume">0.00 kg</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Average Session Volume</div>
+                <div class="display-6 fw-semibold" id="dashboard_average_workout_volume">0.00 kg</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Best Estimated 1RM</div>
+                <div class="display-6 fw-semibold" id="dashboard_best_estimated_one_rep_maximum">0.00 kg</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4 g-4">
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header bg-white">
@@ -19,6 +55,9 @@
             </div>
             <div class="card-body">
                 <canvas id="maximum_repetition_chart"></canvas>
+                <p id="maximum_repetition_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    Log workouts with weights and reps to unlock your strength trend.
+                </p>
             </div>
         </div>
     </div>
@@ -29,6 +68,38 @@
             </div>
             <div class="card-body">
                 <canvas id="workout_volume_chart"></canvas>
+                <p id="workout_volume_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    Total session volume will appear once workouts are recorded.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5 g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Weekly Training Frequency</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="weekly_frequency_chart"></canvas>
+                <p id="weekly_frequency_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    Weekly consistency appears after your first logged session.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Target Muscle Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="muscle_group_distribution_chart"></canvas>
+                <p id="muscle_group_distribution_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    Muscle focus distribution will populate from your target muscle groups.
+                </p>
             </div>
         </div>
     </div>
