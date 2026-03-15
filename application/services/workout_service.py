@@ -2,6 +2,7 @@
 Service layer containing logic for the logger.
 """
 import logging
+from collections import Counter
 from typing import List, Optional
 from application.models.workout import WorkoutDocument, ExerciseLog, WorkoutSet
 from application.repositories.workout_repository import WorkoutRepository
@@ -156,3 +157,70 @@ class WorkoutService:
             updated_workout=workout_document,
             user_identifier=user_identifier
         )
+
+    def retrieve_recent_workouts(self, user_identifier: Optional[str] = None, limit: int = 5) -> List[WorkoutDocument]:
+        """
+        Retrieves the most recent workouts for the specified user scope.
+
+        Args:
+            user_identifier: Optional user scope for the workout history.
+            limit: Maximum number of workouts to return.
+
+        Returns:
+            A descending date-sorted list of workouts.
+        """
+        workout_history = self.retrieve_workout_history(user_identifier=user_identifier)
+        sorted_workouts = sorted(
+            workout_history,
+            key=lambda workout: workout.date_of_workout,
+            reverse=True
+        )
+        return sorted_workouts[:limit]
+
+    def build_profile_summary(self, user_identifier: str) -> dict[str, object]:
+        """
+        Calculates profile metrics for a specific authenticated user.
+
+        Args:
+            user_identifier: The owning user identifier.
+
+        Returns:
+            A dictionary containing aggregate workout statistics.
+        """
+        workouts = self.retrieve_workout_history(user_identifier=user_identifier)
+        recent_workouts = sorted(
+            workouts,
+            key=lambda workout: workout.date_of_workout,
+            reverse=True
+        )
+
+        total_workouts = len(workouts)
+        total_exercises = sum(len(workout.exercises) for workout in workouts)
+        total_sets = sum(len(exercise.sets) for workout in workouts for exercise in workout.exercises)
+        total_repetitions = sum(
+            workout_set.repetitions
+            for workout in workouts
+            for exercise in workout.exercises
+            for workout_set in exercise.sets
+        )
+        total_volume = sum(self.calculate_total_workout_volume(workout) for workout in workouts)
+
+        target_muscle_counter: Counter[str] = Counter()
+        for workout in workouts:
+            for muscle_group in workout.target_muscle_groups:
+                target_muscle_counter[muscle_group] += 1
+
+        most_trained_muscle_group = None
+        if target_muscle_counter:
+            most_trained_muscle_group = target_muscle_counter.most_common(1)[0][0]
+
+        return {
+            "total_workouts": total_workouts,
+            "total_exercises": total_exercises,
+            "total_sets": total_sets,
+            "total_repetitions": total_repetitions,
+            "total_volume": round(total_volume, 2),
+            "most_trained_muscle_group": most_trained_muscle_group,
+            "latest_workout": recent_workouts[0] if recent_workouts else None,
+            "recent_workouts": recent_workouts[:5],
+        }
