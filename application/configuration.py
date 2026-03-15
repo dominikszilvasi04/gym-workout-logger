@@ -29,6 +29,13 @@ class ApplicationConfiguration:
     SMTP_PASSWORD: Optional[str] = os.environ.get("APPLICATION_SMTP_PASSWORD")
     SMTP_SENDER_EMAIL: Optional[str] = os.environ.get("APPLICATION_SMTP_SENDER_EMAIL")
     SMTP_USE_TLS: bool = os.environ.get("APPLICATION_SMTP_USE_TLS", "true").lower() == "true"
+    GOOGLE_OAUTH_ENABLED: bool = os.environ.get("APPLICATION_GOOGLE_OAUTH_ENABLED", "false").lower() == "true"
+    GOOGLE_CLIENT_ID: Optional[str] = os.environ.get("APPLICATION_GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET: Optional[str] = os.environ.get("APPLICATION_GOOGLE_CLIENT_SECRET")
+    GOOGLE_DISCOVERY_URL: str = os.environ.get(
+        "APPLICATION_GOOGLE_DISCOVERY_URL",
+        "https://accounts.google.com/.well-known/openid-configuration",
+    )
     TESTING: bool = False
     DEBUG: bool = False
 
