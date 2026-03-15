@@ -4,7 +4,7 @@ Service layer containing logic for the logger.
 import logging
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Any, List, Optional
 from application.models.workout import WorkoutDocument, ExerciseLog, WorkoutSet
 from application.repositories.workout_repository import WorkoutRepository
 
@@ -191,6 +191,52 @@ class WorkoutService:
             reverse=True
         )
         return sorted_workouts[:limit]
+
+    def retrieve_most_recent_workout(self, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
+        """
+        Retrieves the most recent workout for the active user scope.
+
+        Args:
+            user_identifier: Optional user scope for the workout history.
+
+        Returns:
+            The newest workout document, or None when none exist.
+        """
+        return self.workout_repository.retrieve_most_recent_workout(user_identifier=user_identifier)
+
+    def build_last_used_values_map(self, user_identifier: Optional[str]) -> dict[str, dict[str, Any]]:
+        """
+        Builds a map of the most recent set values for each exercise definition.
+
+        Args:
+            user_identifier: Optional user scope.
+
+        Returns:
+            A dictionary keyed by exercise_definition_identifier.
+        """
+        workouts = self.retrieve_workout_history(user_identifier=user_identifier)
+        workouts_sorted_desc = sorted(
+            workouts,
+            key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout),
+            reverse=True,
+        )
+        last_used_values: dict[str, dict[str, Any]] = {}
+        for workout in workouts_sorted_desc:
+            for exercise in workout.exercises:
+                exercise_definition_identifier = (exercise.exercise_definition_identifier or "").strip()
+                if not exercise_definition_identifier or exercise_definition_identifier in last_used_values:
+                    continue
+                if not exercise.sets:
+                    continue
+                latest_set = exercise.sets[-1]
+                last_used_values[exercise_definition_identifier] = {
+                    "exercise_name": exercise.exercise_name,
+                    "weight_in_kilograms": latest_set.weight_in_kilograms,
+                    "repetitions": latest_set.repetitions,
+                    "rate_of_perceived_exertion": latest_set.rate_of_perceived_exertion,
+                    "workout_date": self.normalise_datetime_to_utc(workout.date_of_workout).strftime("%Y-%m-%d"),
+                }
+        return last_used_values
 
     def build_profile_summary(self, user_identifier: str) -> dict[str, object]:
         """
