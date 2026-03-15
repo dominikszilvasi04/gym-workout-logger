@@ -1,45 +1,84 @@
 {% extends "base_layout.html" %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="mb-3">Log a New Workout</h2>
-        <hr>
+<div class="row g-4 mb-3 align-items-center">
+    <div class="col-lg-8">
+        <h2 class="mb-1">Log a New Workout</h2>
+        <p class="text-muted mb-0">Build sessions quickly with searchable exercise blocks and clean set tracking.</p>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+        <span class="badge text-bg-primary fs-6" id="exercise_catalogue_count_badge">Exercises: 0</span>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-lg-8">
-        <div class="card shadow-sm mb-4">
-            <div class="card-body">
-                <form id="workout_logging_form">
-                    
-                    <div class="mb-4">
-                        <h5 class="card-title">Workout Details</h5>
-                        <div class="mb-3">
-                            <label for="date_of_workout" class="form-label">Date and Time of Workout</label>
-                            <input type="datetime-local" class="form-control" id="date_of_workout" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="target_muscle_groups" class="form-label">Target Muscle Groups (comma separated)</label>
-                            <input type="text" class="form-control" id="target_muscle_groups" placeholder="e.g. Chest, Triceps, Shoulders" required>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="mb-4">
-                        <h5 class="card-title mb-3">Exercises</h5>
-                        <div id="exercises_container">
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 p-lg-5">
+                <form id="workout_logging_form" novalidate>
+                    <section class="mb-4">
+                        <h5 class="mb-3">Workout Details</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="date_of_workout" class="form-label">Date and Time</label>
+                                <input type="datetime-local" class="form-control form-control-lg" id="date_of_workout" required>
                             </div>
-                    </div>
-
-                    <button type="button" class="btn btn-outline-primary mb-4" id="add_exercise_button">Add Another Exercise</button>
-                    
-                    <hr>
-                    
-                    <button type="submit" class="btn btn-success w-100 btn-lg">Save Workout Session</button>
+                            <div class="col-md-6">
+                                <label for="target_muscle_groups" class="form-label">Target Muscle Groups</label>
+                                <input type="text" class="form-control form-control-lg" id="target_muscle_groups" placeholder="Chest, Triceps, Shoulders" required>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Exercises</h5>
+                            <button type="button" class="btn btn-outline-primary" id="add_exercise_button">Add Exercise</button>
+                        </div>
+                        <p class="text-muted small mb-3">Start typing to search the catalogue. Select an exercise, then log as many sets as needed.</p>
+                        <div id="exercises_container" class="d-grid gap-3"></div>
+                    </section>
+                    <section class="pt-3 border-top">
+                        <button type="submit" class="btn btn-success btn-lg w-100">Save Workout Session</button>
+                    </section>
                 </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <h5 class="mb-3">Request New Exercise</h5>
+                <p class="text-muted small">Cannot find what you need? Send a request and it will be emailed to the admin for review.</p>
+                <form id="exercise_request_form" class="d-grid gap-3" novalidate>
+                    <div>
+                        <label for="exercise_requester_email" class="form-label">Your Email</label>
+                        <input type="email" class="form-control" id="exercise_requester_email" required>
+                    </div>
+                    <div>
+                        <label for="requested_exercise_name" class="form-label">Exercise Name</label>
+                        <input type="text" class="form-control" id="requested_exercise_name" required>
+                    </div>
+                    <div>
+                        <label for="requested_primary_muscle_group" class="form-label">Primary Muscle Group</label>
+                        <input type="text" class="form-control" id="requested_primary_muscle_group" required>
+                    </div>
+                    <div>
+                        <label for="requested_exercise_notes" class="form-label">Notes (Optional)</label>
+                        <textarea id="requested_exercise_notes" class="form-control" rows="3" placeholder="Equipment, movement pattern, or alternatives"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-outline-dark">Send Exercise Request</button>
+                    <div id="exercise_request_feedback" class="small"></div>
+                </form>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+                <h6 class="mb-2">Tips for Faster Logging</h6>
+                <ul class="small text-muted mb-0 ps-3">
+                    <li>Type at least 2 characters to narrow exercise results quickly.</li>
+                    <li>Use consistent muscle tags for cleaner analytics on the dashboard.</li>
+                    <li>Add exercises in your workout order for better post-session review.</li>
+                </ul>
             </div>
         </div>
     </div>

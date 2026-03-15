@@ -5,7 +5,6 @@ import logging
 import smtplib
 from email.message import EmailMessage
 from typing import List
-
 from application.exercise_seed_data import STANDARDISED_EXERCISE_DEFINITIONS
 from application.models.exercise_definition import ExerciseDefinition
 from application.repositories.exercise_definition_repository import ExerciseDefinitionRepository
@@ -73,10 +72,8 @@ class ExerciseDefinitionService:
         smtp_password = application_configuration.get("SMTP_PASSWORD")
         smtp_sender_email = application_configuration.get("SMTP_SENDER_EMAIL")
         smtp_use_tls = application_configuration.get("SMTP_USE_TLS")
-
         if not recipient_email or not smtp_host or not smtp_sender_email:
             raise RuntimeError("Exercise request email is not fully configured.")
-
         email_message = EmailMessage()
         email_message["Subject"] = f"Gym Logger Exercise Request: {requested_exercise_name}"
         email_message["From"] = smtp_sender_email
@@ -93,10 +90,10 @@ class ExerciseDefinitionService:
                 ]
             )
         )
-
         with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as smtp_client:
             if smtp_use_tls:
                 smtp_client.starttls()
             if smtp_username and smtp_password:
                 smtp_client.login(smtp_username, smtp_password)
             smtp_client.send_message(email_message)
+            
