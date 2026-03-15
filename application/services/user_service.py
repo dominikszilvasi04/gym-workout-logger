@@ -50,18 +50,18 @@ class UserService:
         Returns:
             (success, message_or_identifier)
         """
-        normalized_email = email.lower().strip()
-        if len(normalized_email) < 3 or "@" not in normalized_email:
+        normalised_email = email.lower().strip()
+        if len(normalised_email) < 3 or "@" not in normalised_email:
             return False, "Please provide a valid email address."
         if len(password) < 6:
             return False, "Password must be at least 6 characters."
 
-        existing_user = self.user_repository.retrieve_user_by_email(normalized_email)
+        existing_user = self.user_repository.retrieve_user_by_email(normalised_email)
         if existing_user:
             return False, "An account with this email already exists."
 
         user_document = UserDocument(
-            email=normalized_email,
+            email=normalised_email,
             password_hash=self.hash_password(password),
             display_name=display_name.strip() if display_name else None,
         )

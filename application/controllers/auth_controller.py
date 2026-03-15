@@ -3,6 +3,7 @@ Controller layer for user registration and authentication routes.
 """
 import logging
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from application.authentication import login_required
 from application.services import application_user_service, application_workout_service
 
 logger = logging.getLogger(__name__)
@@ -79,15 +80,12 @@ def logout() -> str:
 
 
 @auth_blueprint.route("/profile", methods=["GET"])
+@login_required
 def profile() -> str:
     """
     Renders the authenticated user's profile and workout summary.
     """
     user_identifier = get_authenticated_user_identifier()
-    if not user_identifier:
-        flash("Please log in to view your profile.", "warning")
-        return redirect(url_for("auth_controller.login"))
-
     user = application_user_service.retrieve_user(user_identifier)
     if not user:
         session.pop("user_identifier", None)

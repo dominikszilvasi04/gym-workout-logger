@@ -54,3 +54,15 @@ class UserRepository:
             return None
         document["_id"] = str(document["_id"])
         return UserDocument(**document)
+
+    def update_user_password_hash(self, identifier: str, password_hash: str) -> bool:
+        """
+        Updates a user's password hash.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        update_result = self.collection.update_one(
+            {"_id": ObjectId(identifier)},
+            {"$set": {"password_hash": password_hash}}
+        )
+        return update_result.matched_count > 0

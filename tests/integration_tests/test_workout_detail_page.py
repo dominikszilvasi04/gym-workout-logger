@@ -7,6 +7,16 @@ def test_view_workout_detail_page_shows_exercises_and_sets(test_client):
     """
     Creates a workout via API and verifies its detail page renders core data.
     """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Detail User",
+            "email": "detail.user@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
     creation_payload = {
         "target_muscle_groups": ["Chest", "Triceps"],
         "exercises": [
@@ -49,5 +59,24 @@ def test_view_workout_detail_page_returns_404_for_missing_workout(test_client):
     """
     Verifies missing workout identifiers return a proper 404 response.
     """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Detail Missing User",
+            "email": "detail.missing@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
     missing_response = test_client.get("/workouts/this-id-does-not-exist")
     assert missing_response.status_code == 404
+
+
+def test_workout_detail_page_requires_login(test_client):
+    """
+    Verifies protected workout detail routes redirect unauthenticated users.
+    """
+    unauthenticated_response = test_client.get("/workouts/any-id", follow_redirects=False)
+    assert unauthenticated_response.status_code == 302
+    assert "/login" in unauthenticated_response.headers["Location"]

@@ -3,6 +3,7 @@ Controller layer for handling workout-related HTTP requests and web views.
 """
 import logging
 from flask import Blueprint, render_template, request, jsonify, Response, session
+from application.authentication import login_required
 from application.services import application_workout_service
 from application.models.workout import WorkoutDocument
 from pydantic import ValidationError
@@ -33,6 +34,7 @@ def view_dashboard() -> str:
 
 
 @workout_blueprint.route("/api/dashboard/analytics", methods=["GET"])
+@login_required
 def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
     """
     Returns real dashboard analytics data for charts and summary cards.
@@ -49,6 +51,7 @@ def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
     return jsonify(analytics_payload), 200
 
 @workout_blueprint.route("/workouts/<identifier>", methods=["GET"])
+@login_required
 def view_workout_detail(identifier: str) -> str | tuple[str, int]:
     """
     Renders a dedicated detail page for a single workout session.
@@ -71,6 +74,7 @@ def view_workout_detail(identifier: str) -> str | tuple[str, int]:
     return render_template("workout_detail.html", workout=selected_workout)
 
 @workout_blueprint.route("/api/workouts", methods=["POST"])
+@login_required
 def create_workout_endpoint() -> tuple[Response, int]:
     """
     API endpoint to record a new workout session.
@@ -99,6 +103,7 @@ def create_workout_endpoint() -> tuple[Response, int]:
     return jsonify({"message": "Workout successfully recorded.", "identifier": inserted_identifier}), 201
 
 @workout_blueprint.route("/log", methods=["GET"])
+@login_required
 def view_workout_logging_form() -> str:
     """
     Renders the web form allowing users to input a new workout session.
@@ -110,6 +115,7 @@ def view_workout_logging_form() -> str:
     return render_template("log_workout.html")
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
+@login_required
 def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
     """
     API endpoint to permanently delete a workout session.
@@ -134,6 +140,7 @@ def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
         return jsonify({"error": "Workout not found or invalid identifier provided."}), 404
 
 @workout_blueprint.route("/edit/<identifier>", methods=["GET"])
+@login_required
 def view_edit_workout_form(identifier: str) -> str:
     """
     Renders the workout form pre-populated with existing data.
@@ -150,6 +157,7 @@ def view_edit_workout_form(identifier: str) -> str:
     return render_template("edit_workout.html", workout=workout_to_edit)
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["PUT"])
+@login_required
 def update_workout_endpoint(identifier: str) -> tuple[Response, int]:
     """
     API endpoint to update an existing workout session with strict validation.

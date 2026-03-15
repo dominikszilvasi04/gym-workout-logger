@@ -12,6 +12,13 @@ class ApplicationConfiguration:
     DATABASE_URI: Optional[str] = os.environ.get("DATABASE_CONNECTION_URI", "mongodb://localhost:27017/")
     DATABASE_NAME: str = "gym_workout_logger_database"
     LOG_LEVEL: str = os.environ.get("APPLICATION_LOG_LEVEL", "INFO")
+    SESSION_TYPE: str = os.environ.get("APPLICATION_SESSION_TYPE", "filesystem")
+    SESSION_PERMANENT: bool = False
+    SESSION_USE_SIGNER: bool = True
+    SESSION_FILE_DIR: str = os.environ.get("APPLICATION_SESSION_FILE_DIR", ".flask_session")
+    SESSION_COOKIE_HTTPONLY: bool = True
+    SESSION_COOKIE_SAMESITE: str = "Lax"
+    SESSION_COOKIE_SECURE: bool = os.environ.get("APPLICATION_SESSION_COOKIE_SECURE", "false").lower() == "true"
     TESTING: bool = False
     DEBUG: bool = False
 
@@ -28,3 +35,4 @@ class TestingConfiguration(ApplicationConfiguration):
     """
     TESTING: bool = True
     DATABASE_NAME: str = "gym_workout_logger_testing_database"
+    SESSION_TYPE: str = "filesystem"
