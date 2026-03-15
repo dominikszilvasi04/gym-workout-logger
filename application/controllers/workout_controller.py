@@ -122,7 +122,41 @@ def view_workout_logging_form() -> str:
         The rendered HTML string for the workout logging form.
     """
     logger.debug("Workout logging form requested.")
-    return render_template("log_workout.html")
+    log_source = (request.args.get("source", default="", type=str) or "").strip().lower()
+    should_prefill_from_last = log_source == "last"
+    return render_template("log_workout.html", should_prefill_from_last=should_prefill_from_last)
+
+
+@workout_blueprint.route("/api/workouts/last", methods=["GET"])
+@login_required
+def retrieve_last_workout_endpoint() -> tuple[Response, int]:
+    """
+    Returns the most recently logged workout for quick repeat flows.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        most_recent_workout = application_workout_service.retrieve_most_recent_workout(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Last workout request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    if most_recent_workout is None:
+        return jsonify({"error": "No previous workout found."}), 404
+    return jsonify(most_recent_workout.model_dump(by_alias=True)), 200
+
+
+@workout_blueprint.route("/api/workouts/last-used-values", methods=["GET"])
+@login_required
+def retrieve_last_used_values_endpoint() -> tuple[Response, int]:
+    """
+    Returns last-used set values keyed by exercise definition identifier.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        last_used_values = application_workout_service.build_last_used_values_map(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Last-used values request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    return jsonify({"last_used_values": last_used_values}), 200
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
 @login_required
