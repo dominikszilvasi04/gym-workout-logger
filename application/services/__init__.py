@@ -3,9 +3,13 @@ Service layer initialisation.
 """
 from application.repositories.workout_repository import WorkoutRepository
 from application.services.workout_service import WorkoutService
+from application.repositories.exercise_definition_repository import ExerciseDefinitionRepository
+from application.services.exercise_definition_service import ExerciseDefinitionService
 
-# Instantiate the repository
+# Instantiate the repositories
 application_workout_repository = WorkoutRepository()
+application_exercise_definition_repository = ExerciseDefinitionRepository()
 
-# Inject the repository into the service
+# Inject the repositories into the services
 application_workout_service = WorkoutService(workout_repository=application_workout_repository)
+application_exercise_definition_service = ExerciseDefinitionService(exercise_definition_repository=application_exercise_definition_repository)
