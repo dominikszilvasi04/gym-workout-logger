@@ -5,8 +5,9 @@ import logging
 from flask import Blueprint, render_template, request, jsonify, Response, session
 from application.authentication import login_required
 from application.security import limiter
-from application.services import application_workout_service
+from application.services import application_workout_service, application_workout_template_service
 from application.models.workout import WorkoutDocument
+from application.models.workout_template import WorkoutTemplateDocument
 from pydantic import ValidationError
 
 workout_blueprint = Blueprint("workout_controller", __name__, template_folder="../templates")
@@ -29,13 +30,16 @@ def view_dashboard() -> tuple[str, int] | str:
     """
     logger.info("Dashboard requested.")
     user_identifier = get_authenticated_user_identifier()
+    workout_templates = []
     try:
         workout_history = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
+        if user_identifier:
+            workout_templates = application_workout_template_service.retrieve_templates(user_identifier=user_identifier)
     except RuntimeError:
         logger.exception("Dashboard request failed because the database client is not initialised.")
-        return render_template("dashboard.html", workouts=[]), 503
+        return render_template("dashboard.html", workouts=[], workout_templates=[]), 503
     logger.debug("Dashboard rendering with %d workouts.", len(workout_history))
-    return render_template("dashboard.html", workouts=workout_history)
+    return render_template("dashboard.html", workouts=workout_history, workout_templates=workout_templates)
 
 
 @workout_blueprint.route("/api/dashboard/analytics", methods=["GET"])
@@ -155,6 +159,84 @@ def retrieve_last_used_values_endpoint() -> tuple[Response, int]:
         logger.exception("Last-used values request failed because the database client is not initialised.")
         return jsonify({"error": "Database unavailable."}), 503
     return jsonify({"last_used_values": last_used_values}), 200
+
+
+@workout_blueprint.route("/api/workout-templates", methods=["GET"])
+@login_required
+def retrieve_workout_templates_endpoint() -> tuple[Response, int]:
+    """
+    Returns all saved workout templates for the authenticated user.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        templates = application_workout_template_service.retrieve_templates(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Template list request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    return jsonify([template.model_dump(by_alias=True) for template in templates]), 200
+
+
+@workout_blueprint.route("/api/workout-templates/<identifier>", methods=["GET"])
+@login_required
+def retrieve_workout_template_by_identifier_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    Returns one saved workout template for the authenticated user.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        template = application_workout_template_service.retrieve_template(identifier=identifier, user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Template detail request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    if template is None:
+        return jsonify({"error": "Template not found."}), 404
+    return jsonify(template.model_dump(by_alias=True)), 200
+
+
+@workout_blueprint.route("/api/workout-templates", methods=["POST"])
+@login_required
+@limiter.limit("120 per minute")
+def create_workout_template_endpoint() -> tuple[Response, int]:
+    """
+    Creates a new workout template for the authenticated user.
+    """
+    request_data = request.get_json(silent=True)
+    if request_data is None or not isinstance(request_data, dict):
+        return jsonify({"error": "A valid JSON payload is required."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    if user_identifier is not None:
+        request_data["user_identifier"] = user_identifier
+
+    try:
+        template_document = WorkoutTemplateDocument(**request_data)
+    except ValidationError as validation_error:
+        return jsonify({"error": "Validation failed", "details": validation_error.errors()}), 422
+
+    try:
+        inserted_identifier = application_workout_template_service.create_template(template_document)
+    except RuntimeError:
+        logger.exception("Template creation failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    return jsonify({"message": "Workout template created.", "identifier": inserted_identifier}), 201
+
+
+@workout_blueprint.route("/api/workout-templates/<identifier>", methods=["DELETE"])
+@login_required
+@limiter.limit("120 per minute")
+def delete_workout_template_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    Deletes a saved workout template for the authenticated user.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        deleted = application_workout_template_service.delete_template(identifier=identifier, user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Template deletion failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    if not deleted:
+        return jsonify({"error": "Template not found."}), 404
+    return jsonify({"message": "Workout template deleted."}), 200
 
 @workout_blueprint.route("/api/workouts/<identifier>", methods=["DELETE"])
 @login_required
