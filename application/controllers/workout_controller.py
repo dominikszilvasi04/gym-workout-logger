@@ -38,7 +38,13 @@ def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
     Returns real dashboard analytics data for charts and summary cards.
     """
     user_identifier = get_authenticated_user_identifier()
-    analytics_payload = application_workout_service.build_dashboard_analytics(user_identifier=user_identifier)
+    requested_range_days = request.args.get("range_days", default=None, type=int)
+    selected_exercise_name = request.args.get("exercise_name", default=None, type=str)
+    analytics_payload = application_workout_service.build_dashboard_analytics(
+        user_identifier=user_identifier,
+        range_days=requested_range_days,
+        exercise_name=selected_exercise_name
+    )
     logger.debug("Dashboard analytics generated for user_identifier=%s", user_identifier)
     return jsonify(analytics_payload), 200
 

@@ -13,7 +13,30 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-md-4">
+        <label for="dashboard_range_filter" class="form-label">Time Range</label>
+        <select id="dashboard_range_filter" class="form-select">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="180">Last 180 days</option>
+            <option value="">All time</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="dashboard_exercise_filter" class="form-label">Strength Trend Exercise</label>
+        <select id="dashboard_exercise_filter" class="form-select">
+            <option value="">All exercises</option>
+        </select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <div class="small text-muted">
+            Use the filters to answer practical gym questions: how strength is moving, which exercises drive volume, and how hard you are training.
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <div class="text-muted small">Total Workouts</div>
@@ -21,7 +44,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-2">
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <div class="text-muted small">Total Volume</div>
@@ -29,7 +52,7 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-2">
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <div class="text-muted small">Average Session Volume</div>
@@ -37,11 +60,27 @@
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-sm-6 col-xl-2">
         <div class="card shadow-sm h-100">
             <div class="card-body">
                 <div class="text-muted small">Best Estimated 1RM</div>
                 <div class="display-6 fw-semibold" id="dashboard_best_estimated_one_rep_maximum">0.00 kg</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Average Session RPE</div>
+                <div class="display-6 fw-semibold" id="dashboard_average_session_rpe">0.00</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="text-muted small">Current Weekly Streak</div>
+                <div class="display-6 fw-semibold" id="dashboard_current_training_streak_weeks">0</div>
             </div>
         </div>
     </div>
@@ -51,12 +90,12 @@
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header bg-white">
-                <h5 class="mb-0">Estimated 1RM Progression</h5>
+                <h5 class="mb-0">Strength Trend</h5>
             </div>
             <div class="card-body">
                 <canvas id="maximum_repetition_chart"></canvas>
                 <p id="maximum_repetition_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
-                    Log workouts with weights and reps to unlock your strength trend.
+                    Log weighted sets for the selected exercise to unlock your strength trend.
                 </p>
             </div>
         </div>
@@ -100,6 +139,63 @@
                 <p id="muscle_group_distribution_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
                     Muscle focus distribution will populate from your target muscle groups.
                 </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5 g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Average Workout RPE</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="average_rpe_chart"></canvas>
+                <p id="average_rpe_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    RPE trends appear once set effort values are logged.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Top Exercises by Volume</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="top_exercise_volume_chart"></canvas>
+                <p id="top_exercise_volume_chart_empty_state" class="text-muted text-center mt-3 mb-0 d-none">
+                    Your highest-volume exercises will show up here.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Personal Records</h5>
+                <span class="small text-muted">Estimated 1RM leaderboard</span>
+            </div>
+            <div class="card-body">
+                <div id="dashboard_personal_records_empty_state" class="text-muted text-center py-3 d-none">
+                    Log weighted exercises to build your personal record board.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0" id="dashboard_personal_records_table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Exercise</th>
+                                <th>Estimated 1RM</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard_personal_records_body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
