@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, jsonify, Response, sessio
 from application.authentication import login_required
 from application.security import limiter
 from application.services import application_workout_service, application_workout_template_service
+from application.services import application_exercise_definition_service, application_user_service
 from application.models.workout import WorkoutDocument
 from application.models.workout_template import WorkoutTemplateDocument
 from pydantic import ValidationError
@@ -62,6 +63,69 @@ def retrieve_dashboard_analytics_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "Database unavailable."}), 503
     logger.debug("Dashboard analytics generated for user_identifier=%s", user_identifier)
     return jsonify(analytics_payload), 200
+
+
+@workout_blueprint.route("/api/dashboard/init", methods=["GET"])
+@login_required
+def retrieve_dashboard_initial_data_endpoint() -> tuple[Response, int]:
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        user = application_user_service.retrieve_user(user_identifier)
+        recent_workouts = application_workout_service.retrieve_recent_workouts(
+            user_identifier=user_identifier,
+            limit=12,
+        )
+        templates = application_workout_template_service.retrieve_templates(user_identifier=user_identifier)
+        exercises = application_exercise_definition_service.retrieve_available_exercises()
+    except RuntimeError:
+        logger.exception("Dashboard initial data request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+
+    payload = {
+        "user": user.model_dump(by_alias=True, exclude={"password_hash"}) if user else None,
+        "recent_workouts": [workout.model_dump(by_alias=True) for workout in recent_workouts],
+        "templates": [template.model_dump(by_alias=True) for template in templates],
+        "exercises": [exercise.model_dump(by_alias=True) for exercise in exercises],
+    }
+    return jsonify(payload), 200
+
+
+@workout_blueprint.route("/api/workouts", methods=["GET"])
+@login_required
+def retrieve_workouts_endpoint() -> tuple[Response, int]:
+    user_identifier = get_authenticated_user_identifier()
+    page_number = max(request.args.get("page", default=1, type=int), 1)
+    page_size = min(max(request.args.get("limit", default=20, type=int), 1), 100)
+    sort_field = (request.args.get("sort", default="date_of_workout", type=str) or "date_of_workout").strip()
+    sort_order = (request.args.get("order", default="desc", type=str) or "desc").strip().lower()
+
+    try:
+        workouts = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Workout list request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+
+    reverse_sort = sort_order != "asc"
+    if sort_field == "date_of_workout":
+        workouts = sorted(
+            workouts,
+            key=lambda workout: application_workout_service.normalise_datetime_to_utc(workout.date_of_workout),
+            reverse=reverse_sort,
+        )
+
+    total_items = len(workouts)
+    start_index = (page_number - 1) * page_size
+    end_index = start_index + page_size
+    page_items = workouts[start_index:end_index]
+
+    return jsonify(
+        {
+            "workouts": [workout.model_dump(by_alias=True) for workout in page_items],
+            "total": total_items,
+            "page": page_number,
+            "limit": page_size,
+        }
+    ), 200
 
 @workout_blueprint.route("/workouts/<identifier>", methods=["GET"])
 @login_required
@@ -249,16 +313,13 @@ def update_workout_template_endpoint(identifier: str) -> tuple[Response, int]:
     request_data = request.get_json(silent=True)
     if request_data is None or not isinstance(request_data, dict):
         return jsonify({"error": "A valid JSON payload is required."}), 400
-
     user_identifier = get_authenticated_user_identifier()
     if user_identifier is not None:
         request_data["user_identifier"] = user_identifier
-
     try:
         template_document = WorkoutTemplateDocument(**request_data)
     except ValidationError as validation_error:
         return jsonify({"error": "Validation failed", "details": validation_error.errors()}), 422
-
     try:
         updated = application_workout_template_service.update_template(
             identifier=identifier,

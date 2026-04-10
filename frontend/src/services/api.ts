@@ -16,6 +16,8 @@ import type {
 // API base URL (adjust for your environment)
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
+let csrfTokenValue: string | null = null;
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -27,13 +29,16 @@ const apiClient: AxiosInstance = axios.create({
 
 // Request interceptor to add CSRF token
 apiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Get CSRF token from meta tag if it exists
-    const csrfMeta = document.querySelector(
-      'meta[name="csrf-token"]'
-    ) as HTMLMetaElement;
-    if (csrfMeta && config.method !== "get") {
-      config.headers["X-CSRF-Token"] = csrfMeta.content;
+  async (config: InternalAxiosRequestConfig) => {
+    const requestMethod = (config.method || "get").toLowerCase();
+    if (requestMethod !== "get") {
+      if (!csrfTokenValue) {
+        const response = await apiClient.get<{ csrf_token: string }>("/api/auth/csrf");
+        csrfTokenValue = response.data.csrf_token;
+      }
+      if (csrfTokenValue) {
+        config.headers["X-CSRF-Token"] = csrfTokenValue;
+      }
     }
     return config;
   },
@@ -46,7 +51,6 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     // Handle 401 (unauthorized) - user session expired
     if (error.response?.status === 401) {
-      // Clear auth state and redirect to login
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -55,28 +59,25 @@ apiClient.interceptors.response.use(
 
 // Auth API calls
 export const authAPI = {
-  // Get current user
   getCurrentUser: async (): Promise<User> => {
     const response = await apiClient.get<User>("/api/auth/me");
     return response.data;
   },
 
-  // Login
   login: async (email: string, password: string): Promise<User> => {
-    const response = await apiClient.post<User>("/auth/login", {
+    const response = await apiClient.post<User>("/login", {
       email,
       password,
     });
     return response.data;
   },
 
-  // Register
   register: async (
     email: string,
     password: string,
     displayName?: string
   ): Promise<User> => {
-    const response = await apiClient.post<User>("/auth/register", {
+    const response = await apiClient.post<User>("/register", {
       email,
       password,
       display_name: displayName,
@@ -84,9 +85,9 @@ export const authAPI = {
     return response.data;
   },
 
-  // Logout
   logout: async (): Promise<void> => {
-    await apiClient.post("/auth/logout");
+    await apiClient.post("/logout");
+    csrfTokenValue = null;
   },
 };
 
