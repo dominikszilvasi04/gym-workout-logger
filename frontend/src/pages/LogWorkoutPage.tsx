@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Plus, Trash2, WandSparkles } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
@@ -227,17 +227,45 @@ export function LogWorkoutPage() {
         </Button>
       }
     >
-      <Card border>
-        <InputField
-          label="Workout date and time"
-          type="datetime-local"
-          value={workoutDateTime}
-          onChange={(event) => setWorkoutDateTime(event.target.value)}
-        />
+      <Card border className="overflow-hidden p-0 shadow-md">
+        <div className="bg-gradient-to-r from-navy-950 to-primary-700 px-4 py-4 text-white">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Session builder</p>
+              <p className="mt-2 font-display text-2xl font-semibold">Build the session quickly.</p>
+              <p className="mt-1 text-sm text-white/75">Select target muscles, load a template and add exercises in a few taps.</p>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3 text-white/90 backdrop-blur-sm">
+              <WandSparkles size={18} />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3 p-4">
+          <InputField
+            label="Workout date and time"
+            type="datetime-local"
+            value={workoutDateTime}
+            onChange={(event) => setWorkoutDateTime(event.target.value)}
+          />
+          <div className="flex items-center justify-between rounded-xl bg-primary-50 px-3 py-2 text-sm text-primary-800">
+            <span>{selectedMuscleGroups.length} muscle groups selected</span>
+            <span>{exerciseEntries.length} exercises added</span>
+          </div>
+        </div>
       </Card>
 
       <Card border>
-        <p className="font-display text-lg font-semibold text-navy-900">Target muscle groups</p>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Targeting</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Target muscle groups</p>
+          </div>
+          {selectedMuscleGroups.length > 0 ? (
+            <button type="button" className="text-sm font-semibold text-primary-600" onClick={() => setSelectedMuscleGroups([])}>
+              Clear
+            </button>
+          ) : null}
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {targetMuscleGroups.map((muscleGroup) => {
             const selected = selectedMuscleGroups.includes(muscleGroup);
@@ -246,12 +274,13 @@ export function LogWorkoutPage() {
                 key={muscleGroup}
                 type="button"
                 onClick={() => toggleMuscleGroup(muscleGroup)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                   selected
-                    ? "border-primary-600 bg-primary-50 text-primary-700"
-                    : "border-navy-300 text-navy-600 hover:border-navy-400 hover:text-navy-800"
+                    ? "border-primary-600 bg-primary-600 text-white shadow-sm"
+                    : "border-navy-300 bg-white text-navy-600 hover:border-navy-400 hover:text-navy-900"
                 }`}
               >
+                {selected ? <CheckCircle2 size={14} className="mr-1 inline-block" /> : null}
                 {muscleGroup}
               </button>
             );
@@ -261,9 +290,12 @@ export function LogWorkoutPage() {
 
       <Card border>
         <div className="flex items-center justify-between gap-2">
-          <p className="font-display text-lg font-semibold text-navy-900">Template</p>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Templates</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Start from a saved routine</p>
+          </div>
           <select
-            className="h-10 rounded-lg border border-navy-300 px-3 text-sm"
+            className="h-11 rounded-lg border border-navy-300 bg-white px-3 text-sm"
             defaultValue=""
             onChange={(event) => loadTemplate(event.target.value)}
           >
@@ -279,7 +311,7 @@ export function LogWorkoutPage() {
 
       <div className="space-y-3">
         {exerciseEntries.map((entry) => (
-          <Card key={entry.localIdentifier} border>
+          <Card key={entry.localIdentifier} border className="overflow-hidden bg-white/95 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-semibold text-navy-900">{entry.exerciseName}</p>
@@ -296,7 +328,7 @@ export function LogWorkoutPage() {
 
             <div className="mt-3 space-y-3">
               {entry.sets.map((set, setIndex) => (
-                <div key={`${entry.localIdentifier}-${setIndex}`} className="rounded-lg border border-navy-200 p-3">
+                <div key={`${entry.localIdentifier}-${setIndex}`} className="rounded-xl border border-navy-200 bg-navy-50/60 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-sm font-semibold text-navy-700">Set {setIndex + 1}</p>
                     <button
@@ -370,9 +402,11 @@ export function LogWorkoutPage() {
         </Card>
       ) : null}
 
-      <Button fullWidth size="lg" isLoading={loading} onClick={submitWorkout}>
-        Save workout
-      </Button>
+      <div className="sticky bottom-20 z-20 -mx-4 border-t border-white/70 bg-white/95 px-4 py-3 backdrop-blur-xl">
+        <Button fullWidth size="lg" isLoading={loading} onClick={submitWorkout}>
+          Save workout
+        </Button>
+      </div>
 
       <Dialog open={selectorOpen} onClose={() => setSelectorOpen(false)} title="Select exercise">
         <InputField
@@ -394,13 +428,13 @@ export function LogWorkoutPage() {
               }
               return (
                 <div key={muscleGroup}>
-                  <p className="mb-2 text-sm font-semibold text-navy-700">{muscleGroup}</p>
-                  <div className="space-y-2">
+                    <p className="mb-2 text-sm font-semibold text-navy-700">{muscleGroup}</p>
+                    <div className="space-y-2">
                     {availableExercises.map((exercise) => (
                       <button
                         key={exercise._id}
                         type="button"
-                        className="w-full rounded-lg border border-navy-200 px-3 py-2 text-left hover:border-primary-500 hover:bg-primary-50"
+                          className="w-full rounded-xl border border-navy-200 bg-white px-3 py-3 text-left shadow-sm hover:border-primary-500 hover:bg-primary-50"
                         onClick={() => addExercise(exercise)}
                       >
                         <p className="font-medium text-navy-900">{exercise.exercise_name}</p>
