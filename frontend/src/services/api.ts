@@ -49,10 +49,6 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Handle 401 (unauthorized) - user session expired
-    if (error.response?.status === 401) {
-      window.location.href = "/login";
-    }
     return Promise.reject(error);
   }
 );
