@@ -208,9 +208,11 @@ export function LogWorkoutPage() {
       setFeedbackMessage("Workout saved successfully.");
       setExerciseEntries([]);
       setSelectedMuscleGroups([]);
-    } catch {
+    } catch (error) {
       setFeedbackType("error");
-      setFeedbackMessage("Unable to save workout. Please try again.");
+      setFeedbackMessage(
+        error instanceof Error ? error.message : "Unable to save workout. Please try again."
+      );
     } finally {
       setLoading(false);
     }

@@ -18,6 +18,10 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 let csrfTokenValue: string | null = null;
 
+export function clearCachedCsrfToken() {
+  csrfTokenValue = null;
+}
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -65,6 +69,7 @@ export const authAPI = {
       email,
       password,
     });
+    clearCachedCsrfToken();
     return response.data;
   },
 
@@ -78,12 +83,13 @@ export const authAPI = {
       password,
       display_name: displayName,
     });
+    clearCachedCsrfToken();
     return response.data;
   },
 
   logout: async (): Promise<void> => {
     await apiClient.post("/logout");
-    csrfTokenValue = null;
+    clearCachedCsrfToken();
   },
 };
 
@@ -163,8 +169,29 @@ export const workoutAPI = {
 
   // Create workout
   create: async (data: CreateWorkoutFormData): Promise<string> => {
-    const response = await apiClient.post<ApiResponse>("/api/workouts", data);
-    return response.data.identifier || "";
+    try {
+      const response = await apiClient.post<ApiResponse>("/api/workouts", data);
+      return response.data.identifier || "";
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const serverMessage =
+          typeof error.response?.data === "object" && error.response?.data !== null
+            ? ((error.response.data as { error?: string }).error || "")
+            : "";
+        const serverDetails =
+          typeof error.response?.data === "object" && error.response?.data !== null
+            ? JSON.stringify(error.response.data)
+            : "";
+        const message = serverMessage || serverDetails || "Unable to save workout.";
+        if (message.toLowerCase().includes("csrf")) {
+          clearCachedCsrfToken();
+          const retryResponse = await apiClient.post<ApiResponse>("/api/workouts", data);
+          return retryResponse.data.identifier || "";
+        }
+        throw new Error(message);
+      }
+      throw error;
+    }
   },
 
   // Update workout
