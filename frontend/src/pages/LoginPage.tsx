@@ -9,6 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const signIn = useAuthStore((state) => state.login);
   const loading = useAuthStore((state) => state.isLoading);
+  const authenticationError = useAuthStore((state) => state.error);
 
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +28,7 @@ export function LoginPage() {
       await signIn(emailAddress, password);
       navigate("/");
     } catch {
-      setFormError("Your sign in details were not recognised.");
+      setFormError("");
     }
   };
 
@@ -56,6 +57,9 @@ export function LoginPage() {
           />
 
           {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {!formError && authenticationError ? (
+            <p className="text-sm text-red-600">{authenticationError}</p>
+          ) : null}
 
           <Button type="submit" fullWidth isLoading={loading}>
             Sign in

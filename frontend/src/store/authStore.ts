@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { AxiosError } from "axios";
 import type { User } from "../types";
 import { authAPI } from "../services/api";
 
@@ -27,7 +28,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     try {
       const user = await authAPI.getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
-    } catch (error) {
+    } catch {
       set({
         user: null,
         isAuthenticated: false,
@@ -43,7 +44,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const user = await authAPI.login(email, password);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Login failed";
+      const axiosError = error as AxiosError<{ error?: string }>;
+      const errorMessage =
+        axiosError.response?.data?.error ||
+        (error instanceof Error ? error.message : "Login failed");
       set({
         isLoading: false,
         error: errorMessage,
@@ -58,7 +62,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const user = await authAPI.register(email, password, displayName);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Registration failed";
+      const axiosError = error as AxiosError<{ error?: string }>;
+      const errorMessage =
+        axiosError.response?.data?.error ||
+        (error instanceof Error ? error.message : "Registration failed");
       set({
         isLoading: false,
         error: errorMessage,

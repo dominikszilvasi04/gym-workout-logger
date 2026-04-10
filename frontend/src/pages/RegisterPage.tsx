@@ -19,6 +19,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const register = useAuthStore((state) => state.register);
   const loading = useAuthStore((state) => state.isLoading);
+  const registrationError = useAuthStore((state) => state.error);
 
   const [displayName, setDisplayName] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
@@ -40,7 +41,7 @@ export function RegisterPage() {
       await register(emailAddress, password, displayName);
       navigate("/");
     } catch {
-      setFormError("Unable to create your account with the current details.");
+      setFormError("");
     }
   };
 
@@ -82,6 +83,9 @@ export function RegisterPage() {
           ) : null}
 
           {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {!formError && registrationError ? (
+            <p className="text-sm text-red-600">{registrationError}</p>
+          ) : null}
 
           <Button type="submit" fullWidth isLoading={loading}>
             Create account
