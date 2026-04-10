@@ -2,7 +2,9 @@
 Controller layer for user registration and authentication routes.
 """
 import logging
+from pathlib import Path
 from flask import Blueprint, Response, current_app, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import send_from_directory
 from authlib.integrations.flask_client import OAuth
 from application.authentication import login_required
 from application.security import limiter
@@ -51,6 +53,16 @@ def should_return_json_response() -> bool:
     accepted_mimetypes = request.accept_mimetypes
     return accepted_mimetypes.accept_json and not accepted_mimetypes.accept_html
 
+
+def render_react_application_if_available() -> Response | None:
+    frontend_dist_directory = current_app.config.get("FRONTEND_DIST_DIRECTORY")
+    if not frontend_dist_directory:
+        return None
+    frontend_index_file = Path(frontend_dist_directory) / "index.html"
+    if not frontend_index_file.exists():
+        return None
+    return send_from_directory(frontend_dist_directory, "index.html")
+
 @auth_blueprint.route("/register", methods=["GET", "POST"])
 @limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
 def register() -> str | tuple[str, int] | Response:
@@ -58,6 +70,9 @@ def register() -> str | tuple[str, int] | Response:
     Renders and handles account registration.
     """
     if request.method == "GET":
+        react_application_response = render_react_application_if_available()
+        if react_application_response:
+            return react_application_response
         return render_template("register.html", google_login_enabled=is_google_login_enabled())
 
     payload = request.get_json(silent=True) if request.is_json else None
@@ -98,6 +113,9 @@ def login() -> str | tuple[str, int] | Response:
     Renders and handles user login.
     """
     if request.method == "GET":
+        react_application_response = render_react_application_if_available()
+        if react_application_response:
+            return react_application_response
         return render_template("login.html", google_login_enabled=is_google_login_enabled())
     payload = request.get_json(silent=True) if request.is_json else None
     email = (payload.get("email", "") if payload else request.form.get("email", "")).strip()
@@ -219,6 +237,10 @@ def profile() -> str | Response:
     """
     Renders the authenticated user's profile and workout summary.
     """
+    react_application_response = render_react_application_if_available()
+    if react_application_response:
+        return react_application_response
+
     user_identifier = get_authenticated_user_identifier()
     user = application_user_service.retrieve_user(user_identifier)
     if not user:

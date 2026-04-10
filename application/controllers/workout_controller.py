@@ -2,7 +2,9 @@
 Controller layer for handling workout-related HTTP requests and web views.
 """
 import logging
-from flask import Blueprint, render_template, request, jsonify, Response, session
+from pathlib import Path
+from flask import Blueprint, render_template, request, jsonify, Response, session, current_app
+from flask import send_from_directory
 from application.authentication import login_required
 from application.security import limiter
 from application.services import application_workout_service, application_workout_template_service
@@ -21,14 +23,28 @@ def get_authenticated_user_identifier() -> str | None:
     """
     return session.get("user_identifier")
 
+
+def render_react_application_if_available() -> Response | None:
+    frontend_dist_directory = current_app.config.get("FRONTEND_DIST_DIRECTORY")
+    if not frontend_dist_directory:
+        return None
+    frontend_index_file = Path(frontend_dist_directory) / "index.html"
+    if not frontend_index_file.exists():
+        return None
+    return send_from_directory(frontend_dist_directory, "index.html")
+
 @workout_blueprint.route("/", methods=["GET"])
-def view_dashboard() -> tuple[str, int] | str:
+def view_dashboard() -> tuple[str, int] | str | Response:
     """
     Renders the main dashboard view, displaying workout history.
     
     Returns:
         The rendered HTML string for the dashboard.
     """
+    react_application_response = render_react_application_if_available()
+    if react_application_response:
+        return react_application_response
+
     logger.info("Dashboard requested.")
     user_identifier = get_authenticated_user_identifier()
     workout_templates = []
@@ -129,7 +145,7 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
 
 @workout_blueprint.route("/workouts/<identifier>", methods=["GET"])
 @login_required
-def view_workout_detail(identifier: str) -> str | tuple[str, int]:
+def view_workout_detail(identifier: str) -> str | tuple[str, int] | Response:
     """
     Renders a dedicated detail page for a single workout session.
 
@@ -139,6 +155,10 @@ def view_workout_detail(identifier: str) -> str | tuple[str, int]:
     Returns:
         The rendered HTML string for the detail page, or a 404 response.
     """
+    react_application_response = render_react_application_if_available()
+    if react_application_response:
+        return react_application_response
+
     logger.info("Workout detail requested for identifier=%s", identifier)
     user_identifier = get_authenticated_user_identifier()
     selected_workout = application_workout_service.retrieve_specific_workout(
@@ -182,13 +202,17 @@ def create_workout_endpoint() -> tuple[Response, int]:
 
 @workout_blueprint.route("/log", methods=["GET"])
 @login_required
-def view_workout_logging_form() -> str:
+def view_workout_logging_form() -> str | Response:
     """
     Renders the web form allowing users to input a new workout session.
     
     Returns:
         The rendered HTML string for the workout logging form.
     """
+    react_application_response = render_react_application_if_available()
+    if react_application_response:
+        return react_application_response
+
     logger.debug("Workout logging form requested.")
     log_source = (request.args.get("source", default="", type=str) or "").strip().lower()
     should_prefill_from_last = log_source == "last"
@@ -361,10 +385,14 @@ def delete_workout_endpoint(identifier: str) -> tuple[Response, int]:
 
 @workout_blueprint.route("/edit/<identifier>", methods=["GET"])
 @login_required
-def view_edit_workout_form(identifier: str) -> str:
+def view_edit_workout_form(identifier: str) -> str | Response:
     """
     Renders the workout form pre-populated with existing data.
     """
+    react_application_response = render_react_application_if_available()
+    if react_application_response:
+        return react_application_response
+
     logger.info("Edit workout form requested for identifier=%s", identifier)
     user_identifier = get_authenticated_user_identifier()
     workout_to_edit = application_workout_service.retrieve_specific_workout(

@@ -3,7 +3,10 @@ Application factory and initialisation module.
 """
 import logging
 import os
+from pathlib import Path
 from flask import Flask
+from flask import send_from_directory
+from flask import abort
 from flask_session import Session
 from cachelib import FileSystemCache
 from pymongo import ASCENDING, DESCENDING
@@ -33,6 +36,8 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     """
     flask_application = Flask(__name__)
     flask_application.config.from_object(configuration_class)
+    frontend_dist_directory = Path(flask_application.root_path).parent / "frontend" / "dist"
+    flask_application.config["FRONTEND_DIST_DIRECTORY"] = str(frontend_dist_directory)
 
     default_secret_key = "default_development_secret_key"
     configured_secret_key = flask_application.config.get("SECRET_KEY")
@@ -99,6 +104,33 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     flask_application.register_blueprint(exercise_blueprint)
     flask_application.register_blueprint(auth_blueprint)
     flask_application.register_blueprint(health_blueprint)
+
+    @flask_application.route("/assets/<path:asset_path>")
+    def serve_frontend_asset(asset_path: str):
+        if not frontend_dist_directory.exists():
+            return abort(404)
+        assets_directory = frontend_dist_directory / "assets"
+        if not assets_directory.exists():
+            return abort(404)
+        return send_from_directory(str(assets_directory), asset_path)
+
+    @flask_application.route("/<path:frontend_path>", methods=["GET"])
+    def serve_frontend_path(frontend_path: str):
+        if frontend_path.startswith("api/"):
+            return abort(404)
+        if not frontend_dist_directory.exists():
+            return abort(404)
+
+        requested_file = frontend_dist_directory / frontend_path
+        if requested_file.exists() and requested_file.is_file():
+            return send_from_directory(str(frontend_dist_directory), frontend_path)
+
+        frontend_index_file = frontend_dist_directory / "index.html"
+        if frontend_index_file.exists():
+            return send_from_directory(str(frontend_dist_directory), "index.html")
+
+        return abort(404)
+
     logger.info("Blueprints registered successfully.")
 
     return flask_application

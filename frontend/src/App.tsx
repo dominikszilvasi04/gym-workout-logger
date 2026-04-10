@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { LogWorkoutPage } from "./pages/LogWorkoutPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { useAuthStore } from "./store/authStore";
@@ -32,10 +34,7 @@ function App() {
           path="/log"
           element={
             <ProtectedRoute>
-              <PlaceholderPage
-                title="Log workout"
-                message="The new logging flow is being built next with exercise selection and set tracking optimised for phone use."
-              />
+              <LogWorkoutPage />
             </ProtectedRoute>
           }
         />
@@ -43,10 +42,7 @@ function App() {
           path="/analytics"
           element={
             <ProtectedRoute>
-              <PlaceholderPage
-                title="Analytics"
-                message="The interactive analytics view is the next stage and will include drill down and clearer progress insights."
-              />
+              <AnalyticsPage />
             </ProtectedRoute>
           }
         />
