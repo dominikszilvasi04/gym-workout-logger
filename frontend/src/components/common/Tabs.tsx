@@ -20,7 +20,7 @@ export function Tabs({ items, selectedKey, onSelect }: TabsProperties) {
           type="button"
           onClick={() => onSelect(item.key)}
           className={clsx(
-            "h-10 rounded-xl text-sm font-semibold transition-colors",
+            "h-10 rounded-xl text-sm font-semibold transition-[transform,background-color,color,box-shadow] duration-200 ease-out active:scale-[0.98]",
             selectedKey === item.key
               ? "bg-primary-500 text-navy-950 shadow-[0_8px_20px_rgba(91,108,255,0.28)]"
               : "text-navy-700 hover:bg-navy-200/60 hover:text-navy-900"

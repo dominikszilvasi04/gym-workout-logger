@@ -56,9 +56,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={clsx(
           "inline-flex items-center justify-center gap-2",
-          "rounded-xl font-medium transition-all duration-150",
-          "active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
-          "focus:outline-none focus:ring-2 focus:ring-primary-500/80",
+          "rounded-xl font-medium transition-[transform,box-shadow,background-color,color,border-color] duration-200 ease-out motion-reduce:transition-none",
+          "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/80",
           "touch-target", // min 44x44 for mobile
           variantStyles[variant],
           sizeStyles[size],

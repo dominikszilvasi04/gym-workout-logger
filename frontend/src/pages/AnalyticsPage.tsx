@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
+import { Badge } from "../components/common/Badge";
 import { Card } from "../components/common/Card";
 import { Tabs } from "../components/common/Tabs";
 import { workoutAPI } from "../services/api";
@@ -32,6 +33,35 @@ export function AnalyticsPage() {
   const [rangeDays, setRangeDays] = useState("30");
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const baseCartesianOptions = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0B1220",
+        borderColor: "#2A3D59",
+        borderWidth: 1,
+        titleColor: "#F4F8FF",
+        bodyColor: "#E7EFFB",
+      },
+    },
+    scales: {
+      x: {
+        ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
+        grid: { color: "rgba(42,61,89,0.45)" },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: { color: "#A8BCD8" },
+        grid: { color: "rgba(42,61,89,0.45)" },
+      },
+    },
+  };
+
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
+  };
 
   useEffect(() => {
     const loadAnalytics = async () => {
@@ -69,6 +99,35 @@ export function AnalyticsPage() {
 
   return (
     <ApplicationShell title="Analytics">
+      <Card border className="space-y-3 transition-shadow duration-200">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">Analytics</p>
+            <p className="mt-1 font-display text-xl font-semibold text-navy-900">Training trends</p>
+          </div>
+          <Badge colour="primary" size="small">{analyticsData.summary.total_workouts} sessions</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Volume</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{formatNumber(analyticsData.summary.total_volume)} kg</p>
+          </div>
+          <div className="rounded-xl border border-primary-300/50 bg-primary-100/30 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700">Avg session</p>
+            <p className="mt-1 font-display text-lg font-semibold text-primary-900">{formatNumber(analyticsData.summary.average_workout_volume)} kg</p>
+          </div>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Best 1RM</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{formatNumber(analyticsData.summary.strongest_estimated_one_rep_maximum)} kg</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">Streak</p>
+            <p className="mt-1 font-display text-lg font-semibold text-emerald-200">{analyticsData.summary.current_training_streak_weeks} w</p>
+          </div>
+        </div>
+      </Card>
+
       <Tabs
         items={[
           { key: "7", label: "7 days" },
@@ -79,33 +138,11 @@ export function AnalyticsPage() {
         onSelect={setRangeDays}
       />
 
-      <Card border>
-        <p className="mb-2 font-display text-lg font-semibold text-navy-900">Estimated one repetition maximum</p>
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Estimated one repetition maximum</p>
+        <p className="mb-3 text-sm text-navy-600">Peak strength trend by session.</p>
         <Line
-          options={{
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: "#0B1220",
-                borderColor: "#2A3D59",
-                borderWidth: 1,
-                titleColor: "#F4F8FF",
-                bodyColor: "#E7EFFB",
-              },
-            },
-            scales: {
-              x: {
-                ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
-                grid: { color: "rgba(42,61,89,0.45)" },
-              },
-              y: {
-                beginAtZero: true,
-                ticks: { color: "#A8BCD8" },
-                grid: { color: "rgba(42,61,89,0.45)" },
-              },
-            },
-          }}
+          options={baseCartesianOptions}
           data={{
             labels: analyticsData.charts.one_rep_max_progression.labels,
             datasets: [
@@ -121,33 +158,11 @@ export function AnalyticsPage() {
         />
       </Card>
 
-      <Card border>
-        <p className="mb-2 font-display text-lg font-semibold text-navy-900">Workout volume</p>
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Workout volume</p>
+        <p className="mb-3 text-sm text-navy-600">Total lifted weight per session.</p>
         <Bar
-          options={{
-            responsive: true,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                backgroundColor: "#0B1220",
-                borderColor: "#2A3D59",
-                borderWidth: 1,
-                titleColor: "#F4F8FF",
-                bodyColor: "#E7EFFB",
-              },
-            },
-            scales: {
-              x: {
-                ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
-                grid: { color: "rgba(42,61,89,0.45)" },
-              },
-              y: {
-                beginAtZero: true,
-                ticks: { color: "#A8BCD8" },
-                grid: { color: "rgba(42,61,89,0.45)" },
-              },
-            },
-          }}
+          options={baseCartesianOptions}
           data={{
             labels: analyticsData.charts.workout_volume_progression.labels,
             datasets: [
@@ -162,8 +177,9 @@ export function AnalyticsPage() {
         />
       </Card>
 
-      <Card border>
-        <p className="mb-2 font-display text-lg font-semibold text-navy-900">Target muscle distribution</p>
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Target muscle distribution</p>
+        <p className="mb-3 text-sm text-navy-600">How your training focus is distributed.</p>
         <Doughnut
           options={{
             responsive: true,
@@ -201,6 +217,89 @@ export function AnalyticsPage() {
             ],
           }}
         />
+      </Card>
+
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Weekly frequency</p>
+        <p className="mb-3 text-sm text-navy-600">Sessions completed each week.</p>
+        <Bar
+          options={baseCartesianOptions}
+          data={{
+            labels: analyticsData.charts.weekly_frequency.labels,
+            datasets: [
+              {
+                label: "Sessions",
+                data: analyticsData.charts.weekly_frequency.values,
+                backgroundColor: "rgba(126,138,255,0.78)",
+                borderRadius: 8,
+              },
+            ],
+          }}
+        />
+      </Card>
+
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Average session effort (RPE)</p>
+        <p className="mb-3 text-sm text-navy-600">Per-session effort trend on a 1-10 scale.</p>
+        <Line
+          options={baseCartesianOptions}
+          data={{
+            labels: analyticsData.charts.average_rpe_progression.labels,
+            datasets: [
+              {
+                label: "Average RPE",
+                data: analyticsData.charts.average_rpe_progression.values,
+                borderColor: "#F97316",
+                backgroundColor: "rgba(249,115,22,0.24)",
+                tension: 0.32,
+              },
+            ],
+          }}
+        />
+      </Card>
+
+      <Card border className="transition-shadow duration-200">
+        <p className="mb-1 font-display text-lg font-semibold text-navy-900">Top exercise volume</p>
+        <p className="mb-3 text-sm text-navy-600">Total lifted weight by exercise.</p>
+        <Bar
+          options={baseCartesianOptions}
+          data={{
+            labels: analyticsData.charts.top_exercise_volume.labels,
+            datasets: [
+              {
+                label: "Volume",
+                data: analyticsData.charts.top_exercise_volume.values,
+                backgroundColor: "rgba(14,165,233,0.78)",
+                borderRadius: 8,
+              },
+            ],
+          }}
+        />
+      </Card>
+
+      <Card border className="transition-shadow duration-200">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="font-display text-lg font-semibold text-navy-900">Personal records</p>
+          <Badge size="small" colour="neutral">Top {analyticsData.leaderboards.personal_records.length}</Badge>
+        </div>
+        {analyticsData.leaderboards.personal_records.length === 0 ? (
+          <p className="text-sm text-navy-600">No records yet. Log more workouts to populate this section.</p>
+        ) : (
+          <div className="space-y-2">
+            {analyticsData.leaderboards.personal_records.slice(0, 5).map((record) => (
+              <div
+                key={`${record.exercise_name}-${record.date}`}
+                className="flex items-center justify-between rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2"
+              >
+                <div>
+                  <p className="font-medium text-navy-900">{record.exercise_name}</p>
+                  <p className="text-xs text-navy-500">{new Date(record.date).toLocaleDateString()}</p>
+                </div>
+                <p className="font-display text-lg font-semibold text-primary-900">{Math.round(record.estimated_one_rep_maximum)} kg</p>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </ApplicationShell>
   );

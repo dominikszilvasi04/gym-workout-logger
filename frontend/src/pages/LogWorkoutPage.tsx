@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
-import { CheckCircle2, Plus, Trash2, WandSparkles } from "lucide-react";
+import { CheckCircle2, Plus, Trash2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
@@ -164,6 +164,26 @@ export function LogWorkoutPage() {
       );
     });
   }, [exerciseCatalogue, searchPhrase]);
+
+  const sessionSummary = useMemo(() => {
+    const totalSets = exerciseEntries.reduce((accumulator, entry) => accumulator + entry.sets.length, 0);
+    const totalVolume = Math.round(
+      exerciseEntries.reduce(
+        (entryVolume, entry) =>
+          entryVolume +
+          entry.sets.reduce(
+            (setVolume, set) => setVolume + set.weight_in_kilograms * set.repetitions,
+            0
+          ),
+        0
+      )
+    );
+
+    return {
+      totalSets,
+      totalVolume,
+    };
+  }, [exerciseEntries]);
 
   const toggleMuscleGroup = (muscleGroup: string) => {
     setSelectedMuscleGroups((current) =>
@@ -346,38 +366,51 @@ export function LogWorkoutPage() {
         </Button>
       }
     >
-      <Card border className="overflow-hidden p-0 shadow-md">
-        <div className="bg-gradient-to-r from-navy-950 to-primary-700 px-4 py-4 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Session builder</p>
-              <p className="mt-2 font-display text-2xl font-semibold">{isEditMode ? "Update your session cleanly." : "Build the session quickly."}</p>
-              <p className="mt-1 text-sm text-white/75">{isEditMode ? "Adjust sets, timing and exercise details before saving changes." : "Select target muscles, load a template and add exercises in a few taps."}</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-3 text-white/90 backdrop-blur-sm">
-              <WandSparkles size={18} />
-            </div>
-          </div>
+      <Card border className="space-y-4 transition-shadow duration-200">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">Session</p>
+          <p className="mt-1 font-display text-xl font-semibold text-navy-900">
+            {isEditMode ? "Edit workout" : "Log workout"}
+          </p>
+          <p className="mt-1 text-sm text-navy-600">
+            {isEditMode
+              ? "Update time, sets, and exercises."
+              : "Choose muscles, load a template, then add exercises."}
+          </p>
         </div>
-        <div className="space-y-3 p-4">
-          <InputField
-            label="Workout date and time"
-            type="datetime-local"
-            value={workoutDateTime}
-            onChange={(event) => setWorkoutDateTime(event.target.value)}
-          />
-          <div className="flex items-center justify-between rounded-xl border border-primary-300/40 bg-primary-100/35 px-3 py-2 text-sm text-primary-900">
-            <span>{selectedMuscleGroups.length} muscle groups selected</span>
-            <span>{exerciseEntries.length} exercises added</span>
+
+        <InputField
+          label="Workout date and time"
+          type="datetime-local"
+          value={workoutDateTime}
+          onChange={(event) => setWorkoutDateTime(event.target.value)}
+        />
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Muscles</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{selectedMuscleGroups.length}</p>
+          </div>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Exercises</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{exerciseEntries.length}</p>
+          </div>
+          <div className="rounded-xl border border-primary-300/50 bg-primary-100/30 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700">Sets</p>
+            <p className="mt-1 font-display text-lg font-semibold text-primary-900">{sessionSummary.totalSets}</p>
+          </div>
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">Volume</p>
+            <p className="mt-1 font-display text-lg font-semibold text-emerald-200">{sessionSummary.totalVolume} kg</p>
           </div>
         </div>
       </Card>
 
-      <Card border>
+      <Card border className="transition-shadow duration-200">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Targeting</p>
-            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Target muscle groups</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Target muscles</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Muscle groups</p>
           </div>
           {selectedMuscleGroups.length > 0 ? (
             <button type="button" className="text-sm font-semibold text-primary-600" onClick={() => setSelectedMuscleGroups([])}>
@@ -393,7 +426,7 @@ export function LogWorkoutPage() {
                 key={muscleGroup}
                 type="button"
                 onClick={() => toggleMuscleGroup(muscleGroup)}
-                className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-3 py-2 text-sm font-medium transition-[transform,background-color,color,border-color] duration-200 active:scale-[0.98] ${
                   selected
                     ? "border-primary-500 bg-primary-500 text-navy-950 shadow-sm"
                     : "border-navy-300 bg-navy-100/80 text-navy-700 hover:border-navy-400 hover:text-navy-900"
@@ -407,30 +440,40 @@ export function LogWorkoutPage() {
         </div>
       </Card>
 
-      <Card border>
+      <Card border className="transition-shadow duration-200">
         <div className="flex items-center justify-between gap-2">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Templates</p>
-            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Start from a saved routine</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">Use saved routine</p>
           </div>
-          <select
-            className="h-11 rounded-lg border border-navy-300 bg-navy-100/80 px-3 text-sm text-navy-900"
-            value={activeTemplateIdentifier}
-            onChange={(event) => loadTemplate(event.target.value)}
-          >
-            <option value="">Choose template</option>
-            {templateList.map((template) => (
-              <option key={template._id} value={template._id}>
-                {template.template_name}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-[9.5rem]">
+            <label htmlFor="template-selector" className="sr-only">Choose template</label>
+            <select
+              id="template-selector"
+              className="h-11 w-full rounded-lg border border-navy-300 bg-navy-100/80 px-3 text-sm text-navy-900 shadow-sm"
+              value={activeTemplateIdentifier}
+              onChange={(event) => loadTemplate(event.target.value)}
+            >
+              <option value="">Choose template</option>
+              {templateList.map((template) => (
+                <option key={template._id} value={template._id}>
+                  {template.template_name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </Card>
 
       <div className="space-y-3">
+        {exerciseEntries.length === 0 ? (
+          <Card border className="transition-colors duration-200">
+            <p className="text-sm text-navy-600">No exercises yet. Tap Add exercise to begin.</p>
+          </Card>
+        ) : null}
+
         {exerciseEntries.map((entry) => (
-          <Card key={entry.localIdentifier} border className="overflow-hidden bg-navy-100/95 shadow-sm">
+          <Card key={entry.localIdentifier} border className="overflow-hidden bg-navy-100/95 shadow-sm transition-shadow duration-200">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-semibold text-navy-900">{entry.exerciseName}</p>
@@ -450,20 +493,25 @@ export function LogWorkoutPage() {
                 <div key={`${entry.localIdentifier}-${setIndex}`} className="rounded-xl border border-navy-200 bg-navy-50/60 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-sm font-semibold text-navy-700">Set {setIndex + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => removeSet(entry.localIdentifier, setIndex)}
-                      className="text-xs font-medium text-red-600"
-                    >
-                      Remove
-                    </button>
+                    {entry.sets.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeSet(entry.localIdentifier, setIndex)}
+                        className="text-xs font-medium text-red-600"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-navy-500">Minimum 1 set</span>
+                    )}
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <InputField
                       label="Kilograms"
                       type="number"
                       min={0}
                       step={0.5}
+                      inputMode="decimal"
                       value={set.weight_in_kilograms}
                       onChange={(event) =>
                         updateSetValue(
@@ -478,6 +526,7 @@ export function LogWorkoutPage() {
                       label="Repetitions"
                       type="number"
                       min={1}
+                      inputMode="numeric"
                       value={set.repetitions}
                       onChange={(event) =>
                         updateSetValue(
@@ -493,6 +542,7 @@ export function LogWorkoutPage() {
                       type="number"
                       min={1}
                       max={10}
+                      inputMode="numeric"
                       value={set.rate_of_perceived_exertion}
                       onChange={(event) =>
                         updateSetValue(
@@ -516,12 +566,17 @@ export function LogWorkoutPage() {
       </div>
 
       {feedbackMessage ? (
-        <Card border>
-          <p className={feedbackType === "success" ? "text-emerald-700" : "text-red-700"}>{feedbackMessage}</p>
+        <Card border className={feedbackType === "success" ? "border-emerald-500/40 bg-emerald-500/12" : "border-red-500/40 bg-red-500/10"}>
+          <div className="flex items-start gap-2">
+            {feedbackType === "success" ? (
+              <CheckCircle2 size={16} className="mt-0.5 text-emerald-300" />
+            ) : null}
+            <p className={feedbackType === "success" ? "text-emerald-200" : "text-red-300"}>{feedbackMessage}</p>
+          </div>
         </Card>
       ) : null}
 
-      <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/90 px-4 py-3 backdrop-blur-xl">
+      <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(8,14,26,0.45)] backdrop-blur-xl">
         <div className="grid grid-cols-2 gap-2">
           <Button size="lg" variant="outline" onClick={openTemplateSaveDialog} disabled={templateSaving || loading}>
             Save template
@@ -558,7 +613,7 @@ export function LogWorkoutPage() {
                       <button
                         key={exercise._id}
                         type="button"
-                          className="w-full rounded-xl border border-navy-300 bg-navy-100 px-3 py-3 text-left shadow-sm hover:border-primary-500 hover:bg-primary-100/30"
+                          className="w-full rounded-xl border border-navy-300 bg-navy-100 px-3 py-3 text-left shadow-sm transition-[transform,background-color,border-color] duration-200 active:scale-[0.99] hover:border-primary-500 hover:bg-primary-100/30"
                         onClick={() => addExercise(exercise)}
                       >
                         <p className="font-medium text-navy-900">{exercise.exercise_name}</p>
@@ -588,7 +643,7 @@ export function LogWorkoutPage() {
         )}
       >
         <p className="mb-3 text-sm text-navy-700">
-          Save this structure so you can start similar workouts in one tap.
+          Save this layout to reuse it next time.
         </p>
         <InputField
           label="Template name"
