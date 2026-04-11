@@ -73,22 +73,33 @@ export function ProfilePage() {
 
   return (
     <ApplicationShell title="Profile">
-      <Card border className="overflow-hidden p-0 shadow-md">
-        <div className="bg-gradient-to-br from-navy-950 via-primary-700 to-primary-500 px-4 py-5 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Account</p>
-              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight">Training at a glance.</h2>
-              <p className="mt-2 text-sm text-white/80">
-                Cleaner progress summaries, recent sessions and a stronger account overview.
-              </p>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-3 text-white/90 backdrop-blur-sm">
-              <UserCircle2 size={20} />
-            </div>
+      <section className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Athlete profile</p>
+            <h2 className="mt-1 font-display text-2xl font-semibold text-navy-950">Progress snapshot</h2>
+            <p className="mt-1 text-sm text-navy-700">Your consistency and training output in one place.</p>
+          </div>
+          <div className="rounded-2xl border border-navy-300/70 bg-navy-100/70 p-3 text-navy-700">
+            <UserCircle2 size={18} />
           </div>
         </div>
-      </Card>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-primary-300/40 bg-primary-100/30 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700">Ninety day volume</p>
+            <p className="mt-1 font-display text-lg font-semibold text-primary-900">
+              {analyticsData ? Math.round(analyticsData.summary.total_volume) : 0} kg
+            </p>
+          </div>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-navy-600">Current streak</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-950">
+              {analyticsData ? analyticsData.summary.current_training_streak_weeks : 0} weeks
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section className="grid grid-cols-2 gap-3">
         {loading

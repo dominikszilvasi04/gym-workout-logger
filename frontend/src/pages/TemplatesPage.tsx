@@ -108,30 +108,29 @@ export function TemplatesPage() {
         </Button>
       }
     >
-      <Card border className="overflow-hidden p-0 shadow-md">
-        <div className="bg-gradient-to-br from-primary-700 to-navy-950 px-4 py-5 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div className="max-w-[16rem]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Routines</p>
-              <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight">Saved plans, ready to load in one tap.</h2>
-              <p className="mt-2 text-sm text-white/80">Turn repeat sessions into quick starts instead of rebuilding them each time.</p>
-            </div>
-            <div className="rounded-2xl bg-white/10 p-3 text-white/90 backdrop-blur-sm">
-              <BookOpenText size={18} />
-            </div>
+      <section className="space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Template library</p>
+            <h2 className="mt-1 font-display text-2xl font-semibold text-navy-950">Saved routines</h2>
+            <p className="mt-1 text-sm text-navy-700">Load proven session structures in one tap.</p>
+          </div>
+          <div className="rounded-2xl border border-navy-300/70 bg-navy-100/70 p-3 text-navy-700">
+            <BookOpenText size={18} />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 p-4">
-          <div className="rounded-2xl border border-navy-300/50 bg-navy-100 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Templates</p>
-            <p className="mt-1 font-display text-2xl font-semibold text-navy-950">{templateSummary.totalTemplates}</p>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-navy-300/60 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-navy-600">Templates</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-950">{templateSummary.totalTemplates}</p>
           </div>
-          <div className="rounded-2xl border border-primary-300/40 bg-primary-100/30 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">Exercises</p>
-            <p className="mt-1 font-display text-2xl font-semibold text-primary-900">{templateSummary.totalExercises}</p>
+          <div className="rounded-xl border border-primary-300/35 bg-primary-100/30 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700">Exercises</p>
+            <p className="mt-1 font-display text-lg font-semibold text-primary-900">{templateSummary.totalExercises}</p>
           </div>
         </div>
-      </Card>
+      </section>
 
       {feedback ? (
         <Card border>
@@ -167,6 +166,7 @@ export function TemplatesPage() {
                     <p className="mt-1 text-sm text-navy-600">
                       {template.exercises.length} exercises · {totalSets} sets
                     </p>
+                    <p className="mt-1 text-xs text-navy-500">Updated {format(new Date(template.created_at), "d MMM yyyy")}</p>
                   </div>
                   <Badge colour="primary" size="small">
                     Ready
@@ -181,24 +181,18 @@ export function TemplatesPage() {
                   ))}
                 </div>
 
-                <div className="mt-4 flex items-center justify-between rounded-2xl bg-navy-50 px-3 py-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Updated</p>
-                    <p className="mt-1 text-sm font-medium text-navy-800">
-                      {format(new Date(template.created_at), "d MMM yyyy")}
-                    </p>
-                  </div>
+                <div className="mt-4 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" icon={<PencilLine size={16} />} onClick={() => openRenameDialog(template)}>
+                    <Button size="sm" variant="ghost" icon={<PencilLine size={14} />} onClick={() => openRenameDialog(template)}>
                       Rename
                     </Button>
-                    <Button size="sm" variant="outline" icon={<Trash2 size={16} />} onClick={() => setTemplateBeingDeleted(template)}>
+                    <Button size="sm" variant="ghost" icon={<Trash2 size={14} />} onClick={() => setTemplateBeingDeleted(template)}>
                       Delete
                     </Button>
-                    <Button size="sm" variant="outline" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
-                      Load
-                    </Button>
                   </div>
+                  <Button size="sm" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
+                    Load
+                  </Button>
                 </div>
               </Card>
             );
