@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { BookOpenText, Dumbbell, Layers3, Plus } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -9,6 +10,7 @@ import { templateAPI } from "../services/api";
 import type { WorkoutTemplate } from "../types";
 
 export function TemplatesPage() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +40,7 @@ export function TemplatesPage() {
     <ApplicationShell
       title="Templates"
       action={
-        <Button size="sm" icon={<Plus size={16} />}>
+        <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/log')}>
           New template
         </Button>
       }
@@ -117,7 +119,7 @@ export function TemplatesPage() {
                       {format(new Date(template.created_at), "d MMM yyyy")}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" icon={<Dumbbell size={16} />}>
+                  <Button size="sm" variant="outline" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
                     Load
                   </Button>
                 </div>

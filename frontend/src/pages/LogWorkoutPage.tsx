@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { CheckCircle2, Plus, Trash2, WandSparkles } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -50,6 +51,7 @@ function createExerciseEntry(exercise: ExerciseDefinition): ExerciseEntry {
 }
 
 export function LogWorkoutPage() {
+  const [searchParams] = useSearchParams();
   const [workoutDateTime, setWorkoutDateTime] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
   const [exerciseCatalogue, setExerciseCatalogue] = useState<ExerciseDefinition[]>([]);
@@ -69,10 +71,27 @@ export function LogWorkoutPage() {
       ]);
       setExerciseCatalogue(exercises);
       setTemplateList(templates);
+
+      const templateId = searchParams.get('template');
+      if (templateId) {
+        try {
+          const template = await templateAPI.getById(templateId);
+          setSelectedMuscleGroups(template.target_muscle_groups);
+          const entries = template.exercises.map((exercise) => ({
+            localIdentifier: crypto.randomUUID(),
+            exerciseName: exercise.exercise_name,
+            exerciseDefinitionIdentifier: exercise.exercise_definition_identifier || '',
+            sets: exercise.sets || [createDefaultSet()],
+          }));
+          setExerciseEntries(entries);
+        } catch (err) {
+          console.error('Failed to load template:', err);
+        }
+      }
     };
 
     void loadInitialData();
-  }, []);
+  }, [searchParams]);
 
   const exercisesByMuscleGroup = useMemo(() => {
     const grouped: Record<string, ExerciseDefinition[]> = {};
