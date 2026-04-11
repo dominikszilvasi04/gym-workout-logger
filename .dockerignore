@@ -11,6 +11,8 @@ __pycache__/
 virtual_environment/
 .vscode/
 .idea/
+frontend/node_modules/
+frontend/dist/
 Dockerfile*
 docker-compose*.yml
 tests/

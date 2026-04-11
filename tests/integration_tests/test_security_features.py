@@ -66,11 +66,11 @@ def strict_rate_limit_client(strict_rate_limit_application: Flask) -> FlaskClien
 
 def extract_session_csrf_token(client: FlaskClient) -> str:
     """
-    Performs a page request and extracts the CSRF token from session storage.
+    Retrieves CSRF token using the dedicated API endpoint.
     """
-    client.get("/register")
-    with client.session_transaction() as browser_session:
-        return browser_session["csrf_token"]
+    csrf_response = client.get("/api/auth/csrf")
+    assert csrf_response.status_code == 200
+    return csrf_response.get_json()["csrf_token"]
 
 
 def test_security_headers_are_applied_to_responses(test_client: FlaskClient):

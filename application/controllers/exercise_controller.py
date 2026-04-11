@@ -2,7 +2,7 @@
 Controller layer for handling exercise definition API requests.
 """
 import logging
-from flask import Blueprint, current_app, jsonify, request, Response
+from flask import Blueprint, current_app, jsonify, request, Response, session
 from application.authentication import login_required
 from application.services import application_exercise_definition_service
 
@@ -30,10 +30,10 @@ def request_new_exercise_endpoint() -> tuple[Response, int]:
     Accepts user-submitted exercise requests and forwards them by email.
     """
     request_payload = request.get_json(silent=True) or {}
-    requester_email = str(request_payload.get("requester_email", "")).strip()
+    requester_email = str(request_payload.get("requester_email", "")).strip() or str(session.get("user_email", "")).strip()
     requested_exercise_name = str(request_payload.get("exercise_name", "")).strip()
     requested_primary_muscle_group = str(request_payload.get("primary_muscle_group", "")).strip()
-    request_notes = str(request_payload.get("notes", "")).strip()
+    request_notes = str(request_payload.get("notes", "")).strip() or str(request_payload.get("additional_notes", "")).strip()
     if not requester_email or "@" not in requester_email:
         return jsonify({"error": "A valid requester email is required."}), 400
     if not requested_exercise_name:

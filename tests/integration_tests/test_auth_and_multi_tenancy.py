@@ -101,7 +101,7 @@ def test_multi_tenant_user_cannot_access_other_users_workout(test_client):
     )
 
     # User two must not access user one's workout
-    forbidden_detail_response = test_client.get(f"/workouts/{user_one_workout_identifier}")
+    forbidden_detail_response = test_client.get(f"/api/workouts/{user_one_workout_identifier}")
     assert forbidden_detail_response.status_code == 404
 
 
@@ -176,14 +176,15 @@ def test_profile_page_shows_logged_in_user_statistics(test_client):
     )
     assert second_workout_response.status_code == 201
 
-    profile_response = test_client.get("/profile")
+    me_response = test_client.get("/api/auth/me")
+    analytics_response = test_client.get("/api/dashboard/analytics")
 
-    assert profile_response.status_code == 200
-    profile_page_content = profile_response.data.decode("utf-8")
-    assert "Your Profile" in profile_page_content
-    assert "Profile User" in profile_page_content
-    assert "Total Workouts" in profile_page_content
-    assert "2" in profile_page_content
-    assert "1450.00 kg" in profile_page_content
-    assert "Chest" in profile_page_content
-    assert "Recent Workouts" in profile_page_content
+    assert me_response.status_code == 200
+    me_payload = me_response.get_json()
+    assert me_payload["display_name"] == "Profile User"
+
+    assert analytics_response.status_code == 200
+    analytics_payload = analytics_response.get_json()
+    assert analytics_payload["summary"]["total_workouts"] == 2
+    assert analytics_payload["summary"]["total_volume"] == 1450.0
+    assert "Chest" in analytics_payload["charts"]["muscle_group_distribution"]["labels"]
