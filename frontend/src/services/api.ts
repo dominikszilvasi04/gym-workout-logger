@@ -107,16 +107,16 @@ export const exerciseAPI = {
   requestNew: async (
     exerciseName: string,
     muscleGroup: string,
-    equipment: string,
+    requesterEmail: string,
     notes?: string
   ): Promise<ApiResponse> => {
     const response = await apiClient.post<ApiResponse>(
       "/api/exercises/requests",
       {
+        requester_email: requesterEmail,
         exercise_name: exerciseName,
         primary_muscle_group: muscleGroup,
-        equipment_required: equipment,
-        additional_notes: notes,
+        notes,
       }
     );
     return response.data;
@@ -161,10 +161,10 @@ export const workoutAPI = {
   getLastUsedValues: async (): Promise<
     Record<string, Record<string, unknown>>
   > => {
-    const response = await apiClient.get<Record<string, Record<string, unknown>>>(
+    const response = await apiClient.get<{ last_used_values: Record<string, Record<string, unknown>> }>(
       "/api/workouts/last-used-values"
     );
-    return response.data || {};
+    return response.data?.last_used_values || {};
   },
 
   // Create workout
@@ -269,7 +269,7 @@ export const templateAPI = {
   // Update template
   update: async (
     id: string,
-    data: Partial<WorkoutTemplate>
+    data: Pick<WorkoutTemplate, "template_name" | "target_muscle_groups" | "exercises">
   ): Promise<void> => {
     await apiClient.put(`/api/workout-templates/${id}`, data);
   },

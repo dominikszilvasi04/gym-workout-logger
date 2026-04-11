@@ -1,9 +1,9 @@
 // User types
 export interface User {
-  id: string;
+  _id: string;
   email: string;
-  displayName?: string;
-  createdAt: string;
+  display_name?: string;
+  created_at: string;
 }
 
 // Exercise types

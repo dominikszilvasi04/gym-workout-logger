@@ -20,10 +20,10 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldPropertie
           ref={reference}
           id={inputIdentifier}
           className={clsx(
-            "h-11 w-full rounded-lg border px-3 text-base text-navy-900",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
-            "placeholder:text-navy-400",
-            errorMessage ? "border-red-500" : "border-navy-300",
+            "h-11 w-full rounded-xl border bg-navy-50/70 px-3 text-base text-navy-900",
+            "focus:outline-none focus:ring-2 focus:ring-primary-500/80 focus:border-primary-500",
+            "placeholder:text-navy-600",
+            errorMessage ? "border-red-500" : "border-navy-300/70",
             className
           )}
           {...properties}

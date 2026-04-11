@@ -47,9 +47,10 @@ export function RegisterPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
-      <Card className="w-full" padding="lg" shadow="lg">
-        <h1 className="font-display text-3xl font-semibold text-navy-900">Create account</h1>
-        <p className="mt-2 text-sm text-navy-600">Start tracking your progress in a cleaner mobile experience.</p>
+      <Card className="w-full border border-navy-300/70" padding="lg" shadow="lg">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Premium performance</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-navy-950">Create account</h1>
+        <p className="mt-2 text-sm text-navy-700">Start tracking your progress with focused, mobile-first training flows.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <InputField
@@ -92,7 +93,7 @@ export function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-4 text-sm text-navy-600">
+        <p className="mt-4 text-sm text-navy-700">
           Already have an account?{" "}
           <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
             Sign in

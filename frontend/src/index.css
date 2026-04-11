@@ -9,12 +9,15 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  background: #070b14;
 }
 
 body {
   margin: 0;
-  background: #ffffff;
-  color: #0f172a;
+  background: radial-gradient(circle at 18% -5%, rgba(91, 108, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(33, 209, 144, 0.12), transparent 24%),
+    #070b14;
+  color: #e7effb;
   font-family: "IBM Plex Sans", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -29,16 +32,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #0b1220;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #2a3d59;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #4a607f;
+}
+
+:focus-visible {
+  outline: 2px solid #7e8aff;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(126, 138, 255, 0.35);
+  color: #f4f8ff;
 }
 
 @supports (padding: max(0px)) {

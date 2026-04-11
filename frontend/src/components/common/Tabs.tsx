@@ -13,17 +13,17 @@ interface TabsProperties {
 
 export function Tabs({ items, selectedKey, onSelect }: TabsProperties) {
   return (
-    <div className="grid grid-flow-col auto-cols-fr gap-2 rounded-xl bg-navy-100 p-1">
+    <div className="grid grid-flow-col auto-cols-fr gap-2 rounded-2xl border border-navy-300/70 bg-navy-100/85 p-1">
       {items.map((item) => (
         <button
           key={item.key}
           type="button"
           onClick={() => onSelect(item.key)}
           className={clsx(
-            "h-10 rounded-lg text-sm font-semibold transition-colors",
+            "h-10 rounded-xl text-sm font-semibold transition-colors",
             selectedKey === item.key
-              ? "bg-white text-navy-900 shadow-sm"
-              : "text-navy-600 hover:text-navy-900"
+              ? "bg-primary-500 text-navy-950 shadow-[0_8px_20px_rgba(91,108,255,0.28)]"
+              : "text-navy-700 hover:bg-navy-200/60 hover:text-navy-900"
           )}
         >
           {item.label}

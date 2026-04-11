@@ -186,7 +186,7 @@ export function ProfilePage() {
             }
           }}
           disabled={loggingOut}
-          className="w-full gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900"
+          className="w-full gap-2 bg-navy-200 hover:bg-navy-300 text-navy-950"
         >
           <LogOut className="w-4 h-4" />
           {loggingOut ? 'Logging out...' : 'Log out'}

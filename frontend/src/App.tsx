@@ -15,8 +15,8 @@ const RegisterPage = lazy(() => import("./pages/RegisterPage").then((module) => 
 function RouteLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-navy-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-navy-200 bg-white p-5 shadow-sm">
-        <div className="h-24 animate-pulse rounded-xl bg-navy-100" />
+      <div className="w-full max-w-sm rounded-2xl border border-navy-300/70 bg-navy-100 p-5 shadow-xl shadow-black/35">
+        <div className="h-24 animate-pulse rounded-xl bg-navy-200" />
       </div>
     </div>
   );

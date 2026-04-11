@@ -84,10 +84,26 @@ export function AnalyticsPage() {
         <Line
           options={{
             responsive: true,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: "#0B1220",
+                borderColor: "#2A3D59",
+                borderWidth: 1,
+                titleColor: "#F4F8FF",
+                bodyColor: "#E7EFFB",
+              },
+            },
             scales: {
-              x: { ticks: { maxTicksLimit: 6 } },
-              y: { beginAtZero: true },
+              x: {
+                ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
+                grid: { color: "rgba(42,61,89,0.45)" },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: "#A8BCD8" },
+                grid: { color: "rgba(42,61,89,0.45)" },
+              },
             },
           }}
           data={{
@@ -96,8 +112,8 @@ export function AnalyticsPage() {
               {
                 label: "Estimated one repetition maximum",
                 data: analyticsData.charts.one_rep_max_progression.values,
-                borderColor: "#4F46E5",
-                backgroundColor: "rgba(79,70,229,0.2)",
+                borderColor: "#7E8AFF",
+                backgroundColor: "rgba(126,138,255,0.28)",
                 tension: 0.3,
               },
             ],
@@ -110,10 +126,26 @@ export function AnalyticsPage() {
         <Bar
           options={{
             responsive: true,
-            plugins: { legend: { display: false } },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: "#0B1220",
+                borderColor: "#2A3D59",
+                borderWidth: 1,
+                titleColor: "#F4F8FF",
+                bodyColor: "#E7EFFB",
+              },
+            },
             scales: {
-              x: { ticks: { maxTicksLimit: 6 } },
-              y: { beginAtZero: true },
+              x: {
+                ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
+                grid: { color: "rgba(42,61,89,0.45)" },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: "#A8BCD8" },
+                grid: { color: "rgba(42,61,89,0.45)" },
+              },
             },
           }}
           data={{
@@ -122,7 +154,7 @@ export function AnalyticsPage() {
               {
                 label: "Volume",
                 data: analyticsData.charts.workout_volume_progression.values,
-                backgroundColor: "rgba(16,185,129,0.7)",
+                backgroundColor: "rgba(33,209,144,0.78)",
                 borderRadius: 8,
               },
             ],
@@ -140,7 +172,15 @@ export function AnalyticsPage() {
                 position: "bottom",
                 labels: {
                   usePointStyle: true,
+                  color: "#C8D8EE",
                 },
+              },
+              tooltip: {
+                backgroundColor: "#0B1220",
+                borderColor: "#2A3D59",
+                borderWidth: 1,
+                titleColor: "#F4F8FF",
+                bodyColor: "#E7EFFB",
               },
             },
           }}

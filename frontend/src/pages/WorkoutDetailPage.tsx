@@ -4,6 +4,7 @@ import { ApplicationShell } from '../components/layout/ApplicationShell';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
+import { Dialog } from '../components/common/Dialog';
 import { workoutAPI } from '../services/api';
 import type { Workout } from '../types';
 import { format } from 'date-fns';
@@ -16,6 +17,7 @@ export const WorkoutDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -42,13 +44,14 @@ export const WorkoutDetailPage = () => {
   }, [workoutId]);
 
   const handleDelete = async () => {
-    if (!workout || !confirm('Are you sure you want to delete this workout?')) {
+    if (!workout) {
       return;
     }
 
     try {
       setDeleting(true);
       await workoutAPI.delete(workout._id);
+      setDeleteDialogOpen(false);
       navigate('/');
     } catch (err) {
       setError('Failed to delete workout');
@@ -62,7 +65,7 @@ export const WorkoutDetailPage = () => {
       <ApplicationShell title="Workout">
         <div className="p-4 space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-slate-200 rounded-lg animate-pulse" />
+            <div key={i} className="h-24 rounded-lg bg-navy-200 animate-pulse" />
           ))}
         </div>
       </ApplicationShell>
@@ -75,7 +78,7 @@ export const WorkoutDetailPage = () => {
         <div className="p-4">
           <Card>
             <div className="text-center py-8">
-              <p className="text-slate-600 mb-4">{error || 'Workout not found'}</p>
+              <p className="mb-4 text-navy-700">{error || 'Workout not found'}</p>
               <Button onClick={() => navigate('/')} className="bg-navy-600 hover:bg-navy-700 text-white">
                 Back to Dashboard
               </Button>
@@ -94,11 +97,11 @@ export const WorkoutDetailPage = () => {
         <div className="flex items-center gap-2 mb-2">
           <button
             onClick={() => navigate('/')}
-            className="p-2 hover:bg-slate-100 rounded-lg transition"
+            className="rounded-lg p-2 transition hover:bg-navy-200"
           >
-            <ChevronLeft className="w-5 h-5 text-slate-700" />
+            <ChevronLeft className="h-5 w-5 text-navy-700" />
           </button>
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="text-lg font-semibold text-navy-950">
             {format(workoutDate, 'MMMM d, yyyy')}
           </h2>
         </div>
@@ -107,7 +110,7 @@ export const WorkoutDetailPage = () => {
         <Card>
           <div className="space-y-3">
             <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Muscle Groups Trained</p>
+              <p className="text-xs font-medium text-navy-600 uppercase tracking-wide">Muscle Groups Trained</p>
               <div className="flex flex-wrap gap-2 mt-2">
                 {workout.target_muscle_groups && workout.target_muscle_groups.length > 0 ? (
                   workout.target_muscle_groups.map((muscle: string) => (
@@ -116,7 +119,7 @@ export const WorkoutDetailPage = () => {
                     </Badge>
                   ))
                 ) : (
-                  <p className="text-sm text-slate-600">No muscle groups recorded</p>
+                  <p className="text-sm text-navy-700">No muscle groups recorded</p>
                 )}
               </div>
             </div>
@@ -125,27 +128,27 @@ export const WorkoutDetailPage = () => {
 
         {/* Exercises */}
         <div>
-          <h3 className="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wide">Exercises Performed</h3>
+          <h3 className="text-sm font-semibold text-navy-900 mb-3 uppercase tracking-wide">Exercises Performed</h3>
           <div className="space-y-2">
             {workout.exercises && workout.exercises.length > 0 ? (
               workout.exercises.map((exercise, index: number) => (
                 <Card key={index}>
                   <div className="space-y-2">
-                    <p className="font-medium text-slate-900">{exercise.exercise_name}</p>
+                    <p className="font-medium text-navy-950">{exercise.exercise_name}</p>
                     <div className="space-y-1">
                       {exercise.sets.map((set, setIndex: number) => (
-                        <div key={setIndex} className="grid grid-cols-3 gap-2 text-sm bg-slate-50 p-2 rounded">
+                        <div key={setIndex} className="grid grid-cols-3 gap-2 rounded-xl bg-navy-200/70 p-2 text-sm">
                           <div>
-                            <p className="text-xs text-slate-500">Reps</p>
-                            <p className="font-semibold text-slate-900">{set.repetitions}</p>
+                            <p className="text-xs text-navy-600">Reps</p>
+                            <p className="font-semibold text-navy-950">{set.repetitions}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">Weight</p>
-                            <p className="font-semibold text-slate-900">{set.weight_in_kilograms} kg</p>
+                            <p className="text-xs text-navy-600">Weight</p>
+                            <p className="font-semibold text-navy-950">{set.weight_in_kilograms} kg</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">RPE</p>
-                            <p className="font-semibold text-slate-900">{set.rate_of_perceived_exertion}/10</p>
+                            <p className="text-xs text-navy-600">RPE</p>
+                            <p className="font-semibold text-navy-950">{set.rate_of_perceived_exertion}/10</p>
                           </div>
                         </div>
                       ))}
@@ -154,7 +157,7 @@ export const WorkoutDetailPage = () => {
                 </Card>
               ))
             ) : (
-              <p className="text-sm text-slate-600">No exercises recorded</p>
+              <p className="text-sm text-navy-700">No exercises recorded</p>
             )}
           </div>
         </div>
@@ -169,7 +172,7 @@ export const WorkoutDetailPage = () => {
             Edit
           </Button>
           <Button
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
             disabled={deleting}
             className="flex-1 gap-2 bg-red-600 hover:bg-red-700 text-white"
           >
@@ -177,6 +180,24 @@ export const WorkoutDetailPage = () => {
             Delete
           </Button>
         </div>
+
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          title="Delete workout"
+          footer={(
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" isLoading={deleting} onClick={handleDelete}>
+                Delete workout
+              </Button>
+            </div>
+          )}
+        >
+          <p className="text-sm text-navy-700">This will permanently remove this session and all sets.</p>
+        </Dialog>
       </div>
     </ApplicationShell>
   );

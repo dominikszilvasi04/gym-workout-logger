@@ -32,15 +32,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const variantStyles = {
       primary:
-        "bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 disabled:bg-primary-300",
+        "bg-primary-500 text-navy-950 hover:bg-primary-600 active:bg-primary-700 shadow-[0_8px_24px_rgba(91,108,255,0.35)] disabled:bg-primary-300",
       secondary:
         "bg-navy-200 text-navy-900 hover:bg-navy-300 active:bg-navy-400 disabled:bg-navy-100",
       outline:
-        "border-2 border-primary-500 text-primary-500 hover:bg-primary-50 active:bg-primary-100 disabled:border-primary-300 disabled:text-primary-300",
+        "border border-primary-400/60 bg-primary-100/30 text-primary-900 hover:bg-primary-200/30 active:bg-primary-300/35 disabled:border-primary-300/50 disabled:text-primary-400",
       ghost:
-        "text-primary-500 hover:bg-primary-50 active:bg-primary-100 disabled:text-primary-300",
+        "text-primary-800 hover:bg-primary-100/45 active:bg-primary-200/45 disabled:text-primary-500",
       danger:
-        "bg-accent-rose text-white hover:bg-red-600 active:bg-red-700 disabled:bg-red-300",
+        "bg-accent-rose text-navy-950 hover:brightness-105 active:brightness-95 disabled:opacity-40",
     };
 
     const sizeStyles = {
@@ -56,9 +56,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={clsx(
           "inline-flex items-center justify-center gap-2",
-          "rounded-lg font-medium transition-all duration-200",
+          "rounded-xl font-medium transition-all duration-150",
           "active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
-          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500",
+          "focus:outline-none focus:ring-2 focus:ring-primary-500/80",
           "touch-target", // min 44x44 for mobile
           variantStyles[variant],
           sizeStyles[size],

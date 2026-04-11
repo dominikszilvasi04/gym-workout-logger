@@ -34,9 +34,10 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
-      <Card className="w-full" padding="lg" shadow="lg">
-        <h1 className="font-display text-3xl font-semibold text-navy-900">Welcome back</h1>
-        <p className="mt-2 text-sm text-navy-600">Sign in to continue logging your training.</p>
+      <Card className="w-full border border-navy-300/70" padding="lg" shadow="lg">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Premium performance</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold text-navy-950">Welcome back</h1>
+        <p className="mt-2 text-sm text-navy-700">Sign in to continue logging your training.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <InputField
@@ -66,7 +67,7 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-4 text-sm text-navy-600">
+        <p className="mt-4 text-sm text-navy-700">
           Need an account?{" "}
           <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
             Register

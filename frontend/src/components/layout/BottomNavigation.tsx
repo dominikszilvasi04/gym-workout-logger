@@ -13,12 +13,19 @@ const navigationItems = [
 export function BottomNavigation() {
   const location = useLocation();
 
+  const isNavigationItemActive = (path: string) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-200 bg-white/95 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur" aria-label="Primary navigation">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/65 bg-navy-100/92 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
       <ul className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2">
         {navigationItems.map((item) => {
           const IconComponent = item.icon;
-          const active = location.pathname === item.path;
+          const active = isNavigationItemActive(item.path);
 
           return (
             <li key={item.path}>
@@ -27,8 +34,8 @@ export function BottomNavigation() {
                 className={clsx(
                   "flex h-14 flex-col items-center justify-center rounded-lg text-[11px] font-semibold",
                   active
-                    ? "bg-primary-50 text-primary-600"
-                    : "text-navy-500 hover:bg-navy-100 hover:text-navy-700"
+                    ? "bg-primary-500/95 text-navy-950 shadow-[0_8px_20px_rgba(91,108,255,0.34)]"
+                    : "text-navy-700 hover:bg-navy-200/70 hover:text-navy-900"
                 )}
               >
                 <IconComponent size={18} />
