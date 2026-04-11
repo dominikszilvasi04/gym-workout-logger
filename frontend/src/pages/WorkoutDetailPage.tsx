@@ -162,7 +162,7 @@ export const WorkoutDetailPage = () => {
         {/* Actions */}
         <div className="flex gap-2 pt-4">
           <Button
-            onClick={() => navigate(`/edit/${workout._id}`)}
+            onClick={() => navigate(`/workouts/${workout._id}/edit`)}
             className="flex-1 gap-2 bg-navy-600 hover:bg-navy-700 text-white"
           >
             <Edit className="w-4 h-4" />

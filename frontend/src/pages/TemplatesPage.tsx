@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { BookOpenText, Dumbbell, Layers3, Plus } from "lucide-react";
+import { BookOpenText, Dumbbell, Layers3, PencilLine, Plus, Trash2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
+import { Dialog } from "../components/common/Dialog";
+import { InputField } from "../components/common/InputField";
 import { templateAPI } from "../services/api";
 import type { WorkoutTemplate } from "../types";
 
@@ -13,6 +15,11 @@ export function TemplatesPage() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [templateBeingEdited, setTemplateBeingEdited] = useState<WorkoutTemplate | null>(null);
+  const [templateNameDraft, setTemplateNameDraft] = useState("");
+  const [templateBeingDeleted, setTemplateBeingDeleted] = useState<WorkoutTemplate | null>(null);
+  const [actionInProgress, setActionInProgress] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTemplates = async () => {
@@ -35,6 +42,63 @@ export function TemplatesPage() {
       totalExercises,
     };
   }, [templates]);
+
+  const openRenameDialog = (template: WorkoutTemplate) => {
+    setTemplateBeingEdited(template);
+    setTemplateNameDraft(template.template_name);
+  };
+
+  const renameTemplate = async () => {
+    if (!templateBeingEdited) {
+      return;
+    }
+    const trimmedName = templateNameDraft.trim();
+    if (!trimmedName) {
+      setFeedback("Template name cannot be empty.");
+      return;
+    }
+
+    try {
+      setActionInProgress(true);
+      await templateAPI.update(templateBeingEdited._id, {
+        template_name: trimmedName,
+        target_muscle_groups: templateBeingEdited.target_muscle_groups,
+        exercises: templateBeingEdited.exercises,
+        created_at: templateBeingEdited.created_at,
+      });
+      setTemplates((current) =>
+        current.map((template) =>
+          template._id === templateBeingEdited._id
+            ? { ...template, template_name: trimmedName }
+            : template
+        )
+      );
+      setTemplateBeingEdited(null);
+      setFeedback("Template updated.");
+    } catch {
+      setFeedback("Unable to rename template right now.");
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const deleteTemplate = async () => {
+    if (!templateBeingDeleted) {
+      return;
+    }
+
+    try {
+      setActionInProgress(true);
+      await templateAPI.delete(templateBeingDeleted._id);
+      setTemplates((current) => current.filter((template) => template._id !== templateBeingDeleted._id));
+      setTemplateBeingDeleted(null);
+      setFeedback("Template deleted.");
+    } catch {
+      setFeedback("Unable to delete template right now.");
+    } finally {
+      setActionInProgress(false);
+    }
+  };
 
   return (
     <ApplicationShell
@@ -69,6 +133,12 @@ export function TemplatesPage() {
           </div>
         </div>
       </Card>
+
+      {feedback ? (
+        <Card border>
+          <p className="text-sm text-navy-700">{feedback}</p>
+        </Card>
+      ) : null}
 
       {loading ? (
         <Card border>
@@ -119,15 +189,66 @@ export function TemplatesPage() {
                       {format(new Date(template.created_at), "d MMM yyyy")}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
-                    Load
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" icon={<PencilLine size={16} />} onClick={() => openRenameDialog(template)}>
+                      Rename
+                    </Button>
+                    <Button size="sm" variant="outline" icon={<Trash2 size={16} />} onClick={() => setTemplateBeingDeleted(template)}>
+                      Delete
+                    </Button>
+                    <Button size="sm" variant="outline" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
+                      Load
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );
           })}
         </div>
       )}
+
+      <Dialog
+        open={Boolean(templateBeingEdited)}
+        onClose={() => setTemplateBeingEdited(null)}
+        title="Rename template"
+        footer={(
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setTemplateBeingEdited(null)}>
+              Cancel
+            </Button>
+            <Button isLoading={actionInProgress} onClick={renameTemplate}>
+              Save name
+            </Button>
+          </div>
+        )}
+      >
+        <InputField
+          label="Template name"
+          value={templateNameDraft}
+          onChange={(event) => setTemplateNameDraft(event.target.value)}
+          placeholder="Template name"
+        />
+      </Dialog>
+
+      <Dialog
+        open={Boolean(templateBeingDeleted)}
+        onClose={() => setTemplateBeingDeleted(null)}
+        title="Delete template"
+        footer={(
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setTemplateBeingDeleted(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" isLoading={actionInProgress} onClick={deleteTemplate}>
+              Delete template
+            </Button>
+          </div>
+        )}
+      >
+        <p className="text-sm text-navy-700">
+          {templateBeingDeleted ? `Delete “${templateBeingDeleted.template_name}”? This cannot be undone.` : "Delete this template?"}
+        </p>
+      </Dialog>
     </ApplicationShell>
   );
 }

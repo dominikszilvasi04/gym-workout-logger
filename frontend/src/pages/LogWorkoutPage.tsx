@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { CheckCircle2, Plus, Trash2, WandSparkles } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -51,17 +51,24 @@ function createExerciseEntry(exercise: ExerciseDefinition): ExerciseEntry {
 }
 
 export function LogWorkoutPage() {
+  const navigate = useNavigate();
+  const { workoutId } = useParams<{ workoutId: string }>();
   const [searchParams] = useSearchParams();
   const [workoutDateTime, setWorkoutDateTime] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
   const [exerciseCatalogue, setExerciseCatalogue] = useState<ExerciseDefinition[]>([]);
   const [templateList, setTemplateList] = useState<WorkoutTemplate[]>([]);
+  const [activeTemplateIdentifier, setActiveTemplateIdentifier] = useState("");
   const [exerciseEntries, setExerciseEntries] = useState<ExerciseEntry[]>([]);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateSaving, setTemplateSaving] = useState(false);
   const [searchPhrase, setSearchPhrase] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
+  const isEditMode = Boolean(workoutId);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -72,10 +79,31 @@ export function LogWorkoutPage() {
       setExerciseCatalogue(exercises);
       setTemplateList(templates);
 
+      if (isEditMode && workoutId) {
+        try {
+          const workout = await workoutAPI.getById(workoutId);
+          setWorkoutDateTime(format(new Date(workout.date_of_workout), "yyyy-MM-dd'T'HH:mm"));
+          setSelectedMuscleGroups(workout.target_muscle_groups || []);
+          setExerciseEntries(
+            workout.exercises.map((exercise) => ({
+              localIdentifier: crypto.randomUUID(),
+              exerciseName: exercise.exercise_name,
+              exerciseDefinitionIdentifier: exercise.exercise_definition_identifier || "",
+              sets: exercise.sets,
+            }))
+          );
+        } catch (error) {
+          setFeedbackType("error");
+          setFeedbackMessage("Unable to load workout for editing.");
+        }
+        return;
+      }
+
       const templateId = searchParams.get('template');
       if (templateId) {
         try {
           const template = await templateAPI.getById(templateId);
+          setActiveTemplateIdentifier(template._id);
           setSelectedMuscleGroups(template.target_muscle_groups);
           const entries = template.exercises.map((exercise) => ({
             localIdentifier: crypto.randomUUID(),
@@ -91,7 +119,7 @@ export function LogWorkoutPage() {
     };
 
     void loadInitialData();
-  }, [searchParams]);
+  }, [isEditMode, searchParams, workoutId]);
 
   const exercisesByMuscleGroup = useMemo(() => {
     const grouped: Record<string, ExerciseDefinition[]> = {};
@@ -185,6 +213,7 @@ export function LogWorkoutPage() {
   };
 
   const loadTemplate = (templateIdentifier: string) => {
+    setActiveTemplateIdentifier(templateIdentifier);
     const selectedTemplate = templateList.find((template) => template._id === templateIdentifier);
     if (!selectedTemplate) {
       return;
@@ -201,6 +230,53 @@ export function LogWorkoutPage() {
     );
   };
 
+  const openTemplateSaveDialog = () => {
+    if (exerciseEntries.length === 0) {
+      setFeedbackType("error");
+      setFeedbackMessage("Add exercises before saving a template.");
+      return;
+    }
+
+    const suggestedName = selectedMuscleGroups.length > 0
+      ? `${selectedMuscleGroups.slice(0, 2).join(" and ")} session`
+      : "My training template";
+
+    setTemplateName(suggestedName);
+    setTemplateDialogOpen(true);
+  };
+
+  const saveTemplateFromCurrentWorkout = async () => {
+    const trimmedName = templateName.trim();
+    if (!trimmedName) {
+      setFeedbackType("error");
+      setFeedbackMessage("Template name is required.");
+      return;
+    }
+
+    try {
+      setTemplateSaving(true);
+      await templateAPI.create({
+        template_name: trimmedName,
+        target_muscle_groups: selectedMuscleGroups,
+        exercises: exerciseEntries.map((entry) => ({
+          exercise_name: entry.exerciseName,
+          exercise_definition_identifier: entry.exerciseDefinitionIdentifier,
+          sets: entry.sets,
+        })),
+      });
+      const refreshedTemplates = await templateAPI.getAll();
+      setTemplateList(refreshedTemplates);
+      setTemplateDialogOpen(false);
+      setFeedbackType("success");
+      setFeedbackMessage("Template saved.");
+    } catch {
+      setFeedbackType("error");
+      setFeedbackMessage("Unable to save template right now.");
+    } finally {
+      setTemplateSaving(false);
+    }
+  };
+
   const submitWorkout = async () => {
     if (exerciseEntries.length === 0) {
       setFeedbackType("error");
@@ -213,7 +289,7 @@ export function LogWorkoutPage() {
 
     try {
       const dateObject = new Date(workoutDateTime);
-      await workoutAPI.create({
+      const payload = {
         date_of_workout: dateObject.toISOString(),
         target_muscle_groups: selectedMuscleGroups,
         exercises: exerciseEntries.map((entry) => ({
@@ -221,12 +297,21 @@ export function LogWorkoutPage() {
           exercise_definition_identifier: entry.exerciseDefinitionIdentifier,
           sets: entry.sets,
         })),
-      });
+      };
 
-      setFeedbackType("success");
-      setFeedbackMessage("Workout saved successfully.");
-      setExerciseEntries([]);
-      setSelectedMuscleGroups([]);
+      if (isEditMode && workoutId) {
+        await workoutAPI.update(workoutId, payload);
+        setFeedbackType("success");
+        setFeedbackMessage("Workout updated successfully.");
+        navigate(`/workouts/${workoutId}`);
+      } else {
+        await workoutAPI.create(payload);
+        setFeedbackType("success");
+        setFeedbackMessage("Workout saved successfully.");
+        setExerciseEntries([]);
+        setSelectedMuscleGroups([]);
+        setActiveTemplateIdentifier("");
+      }
     } catch (error) {
       setFeedbackType("error");
       setFeedbackMessage(
@@ -239,7 +324,7 @@ export function LogWorkoutPage() {
 
   return (
     <ApplicationShell
-      title="Log workout"
+      title={isEditMode ? "Edit workout" : "Log workout"}
       action={
         <Button size="sm" onClick={() => setSelectorOpen(true)} icon={<Plus size={16} />}>
           Add exercise
@@ -251,8 +336,8 @@ export function LogWorkoutPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">Session builder</p>
-              <p className="mt-2 font-display text-2xl font-semibold">Build the session quickly.</p>
-              <p className="mt-1 text-sm text-white/75">Select target muscles, load a template and add exercises in a few taps.</p>
+              <p className="mt-2 font-display text-2xl font-semibold">{isEditMode ? "Update your session cleanly." : "Build the session quickly."}</p>
+              <p className="mt-1 text-sm text-white/75">{isEditMode ? "Adjust sets, timing and exercise details before saving changes." : "Select target muscles, load a template and add exercises in a few taps."}</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-3 text-white/90 backdrop-blur-sm">
               <WandSparkles size={18} />
@@ -315,7 +400,7 @@ export function LogWorkoutPage() {
           </div>
           <select
             className="h-11 rounded-lg border border-navy-300 bg-white px-3 text-sm"
-            defaultValue=""
+            value={activeTemplateIdentifier}
             onChange={(event) => loadTemplate(event.target.value)}
           >
             <option value="">Choose template</option>
@@ -422,9 +507,14 @@ export function LogWorkoutPage() {
       ) : null}
 
       <div className="sticky bottom-20 z-20 -mx-4 border-t border-white/70 bg-white/95 px-4 py-3 backdrop-blur-xl">
-        <Button fullWidth size="lg" isLoading={loading} onClick={submitWorkout}>
-          Save workout
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="lg" variant="outline" onClick={openTemplateSaveDialog} disabled={templateSaving || loading}>
+            Save template
+          </Button>
+          <Button size="lg" isLoading={loading} onClick={submitWorkout}>
+            {isEditMode ? "Update" : "Save"}
+          </Button>
+        </div>
       </div>
 
       <Dialog open={selectorOpen} onClose={() => setSelectorOpen(false)} title="Select exercise">
@@ -465,6 +555,32 @@ export function LogWorkoutPage() {
               );
             })}
         </div>
+      </Dialog>
+
+      <Dialog
+        open={templateDialogOpen}
+        onClose={() => setTemplateDialogOpen(false)}
+        title="Save as template"
+        footer={(
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" onClick={() => setTemplateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button isLoading={templateSaving} onClick={saveTemplateFromCurrentWorkout}>
+              Save template
+            </Button>
+          </div>
+        )}
+      >
+        <p className="mb-3 text-sm text-navy-600">
+          Save this structure so you can start similar workouts in one tap.
+        </p>
+        <InputField
+          label="Template name"
+          value={templateName}
+          onChange={(event) => setTemplateName(event.target.value)}
+          placeholder="Upper body strength"
+        />
       </Dialog>
     </ApplicationShell>
   );
