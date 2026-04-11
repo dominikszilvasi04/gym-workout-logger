@@ -13,7 +13,7 @@ import type {
   CreateWorkoutFormData,
 } from "../types";
 
-// API base URL (adjust for your environment)
+// API base URL 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 let csrfTokenValue: string | null = null;

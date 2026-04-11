@@ -11,8 +11,8 @@ permissions:
   packages: write
 
 jobs:
-  test:
-    name: Run tests
+  backend-tests:
+    name: Backend tests with coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -32,10 +32,80 @@ jobs:
       - name: Run pytest
         run: pytest -q
 
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-xml
+          path: coverage.xml
+
+  frontend-quality:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run frontend lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Run frontend build
+        run: npm run build
+        working-directory: frontend
+
+  docker-smoke:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-quality]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build local Docker image
+        run: docker build -t gym-workout-logger:ci .
+
+      - name: Start container for smoke test
+        run: |
+          docker run -d --name gym-workout-logger-smoke \
+            -e APPLICATION_SECRET_KEY=smoke-test-secret \
+            -p 5001:5000 \
+            gym-workout-logger:ci
+
+      - name: Wait for health endpoint
+        run: |
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5001/health > /tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Container did not become healthy in time"
+          docker logs gym-workout-logger-smoke
+          exit 1
+
+      - name: Stop smoke container
+        if: always()
+        run: |
+          docker rm -f gym-workout-logger-smoke || true
+
   build:
     name: Build and publish image
     runs-on: ubuntu-latest
-    needs: test
+    needs: docker-smoke
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
@@ -58,4 +128,6 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/gym-workout-logger:latest
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/gym-workout-logger:latest
+            ghcr.io/${{ github.repository_owner }}/gym-workout-logger:${{ github.sha }}

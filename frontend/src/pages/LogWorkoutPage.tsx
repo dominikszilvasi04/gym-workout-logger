@@ -107,7 +107,7 @@ export function LogWorkoutPage() {
               sets: exercise.sets,
             }))
           );
-        } catch (error) {
+        } catch {
           setFeedbackType("error");
           setFeedbackMessage("Unable to load workout for editing.");
         }
