@@ -59,6 +59,10 @@ apiClient.interceptors.response.use(
 
 // Auth API calls
 export const authAPI = {
+  getGoogleLoginUrl: (): string => {
+    return `${API_BASE_URL}/login/google`;
+  },
+
   getCurrentUser: async (): Promise<User> => {
     const response = await apiClient.get<User>("/api/auth/me");
     return response.data;

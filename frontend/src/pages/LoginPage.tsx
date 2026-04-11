@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { InputField } from "../components/common/InputField";
+import { authAPI } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 
 export function LoginPage() {
@@ -14,6 +15,10 @@ export function LoginPage() {
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+
+  const handleGoogleSignIn = () => {
+    window.location.href = authAPI.getGoogleLoginUrl();
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,6 +69,16 @@ export function LoginPage() {
 
           <Button type="submit" fullWidth isLoading={loading}>
             Sign in
+          </Button>
+
+          <div className="flex items-center gap-3 py-1">
+            <span className="h-px flex-1 bg-navy-300/70" />
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-navy-500">or</span>
+            <span className="h-px flex-1 bg-navy-300/70" />
+          </div>
+
+          <Button type="button" variant="outline" fullWidth onClick={handleGoogleSignIn}>
+            Continue with Google
           </Button>
         </form>
 

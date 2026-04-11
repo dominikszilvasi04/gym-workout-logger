@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { InputField } from "../components/common/InputField";
+import { authAPI } from "../services/api";
 import { useAuthStore } from "../store/authStore";
 
 function getPasswordStrength(password: string) {
@@ -25,6 +26,10 @@ export function RegisterPage() {
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+
+  const handleGoogleSignUp = () => {
+    window.location.href = authAPI.getGoogleLoginUrl();
+  };
 
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
 
@@ -90,6 +95,16 @@ export function RegisterPage() {
 
           <Button type="submit" fullWidth isLoading={loading}>
             Create account
+          </Button>
+
+          <div className="flex items-center gap-3 py-1">
+            <span className="h-px flex-1 bg-navy-300/70" />
+            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-navy-500">or</span>
+            <span className="h-px flex-1 bg-navy-300/70" />
+          </div>
+
+          <Button type="button" variant="outline" fullWidth onClick={handleGoogleSignUp}>
+            Continue with Google
           </Button>
         </form>
 
