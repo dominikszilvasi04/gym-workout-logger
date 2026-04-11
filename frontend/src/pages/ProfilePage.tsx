@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Award, CalendarDays, Flame, Scale, UserCircle2 } from "lucide-react";
+import { Award, CalendarDays, Flame, LogOut, Scale, UserCircle2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
+import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
 import { workoutAPI } from "../services/api";
+import { useAuthStore } from "../store/authStore";
 import type { AnalyticsData, Workout } from "../types";
 
 interface ProfileHighlight {
@@ -14,9 +17,12 @@ interface ProfileHighlight {
 }
 
 export function ProfilePage() {
+  const navigate = useNavigate();
+  const logout = useAuthStore((state) => state.logout);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -133,33 +139,59 @@ export function ProfilePage() {
               );
 
               return (
-                <Card key={workout._id} border className="bg-white/95 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-display text-lg font-semibold text-navy-950">
-                        {format(new Date(workout.date_of_workout), "EEE d MMM")}
-                      </p>
-                      <p className="mt-1 text-sm text-navy-600">
-                        {workout.exercises.length} exercises · {Math.round(totalVolume)} kg
-                      </p>
-                    </div>
-                    <Badge colour="primary" size="small">
-                      Logged
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {workout.target_muscle_groups.slice(0, 3).map((muscleGroup) => (
-                      <Badge key={muscleGroup} colour="neutral" size="small">
-                        {muscleGroup}
+                <button
+                  key={workout._id}
+                  onClick={() => navigate(`/workouts/${workout._id}`)}
+                  className="block w-full text-left"
+                >
+                  <Card border className="bg-white/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-display text-lg font-semibold text-navy-950">
+                          {format(new Date(workout.date_of_workout), "EEE d MMM")}
+                        </p>
+                        <p className="mt-1 text-sm text-navy-600">
+                          {workout.exercises.length} exercises · {Math.round(totalVolume)} kg
+                        </p>
+                      </div>
+                      <Badge colour="primary" size="small">
+                        Logged
                       </Badge>
-                    ))}
-                  </div>
-                </Card>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {workout.target_muscle_groups.slice(0, 3).map((muscleGroup) => (
+                        <Badge key={muscleGroup} colour="neutral" size="small">
+                          {muscleGroup}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Card>
+                </button>
               );
             })
           )}
         </div>
       </section>
+
+      <div className="pt-4">
+        <Button
+          onClick={async () => {
+            setLoggingOut(true);
+            try {
+              await logout();
+              navigate('/login');
+            } catch (err) {
+              console.error('Logout failed:', err);
+              setLoggingOut(false);
+            }
+          }}
+          disabled={loggingOut}
+          className="w-full gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900"
+        >
+          <LogOut className="w-4 h-4" />
+          {loggingOut ? 'Logging out...' : 'Log out'}
+        </Button>
+      </div>
     </ApplicationShell>
   );
 }
