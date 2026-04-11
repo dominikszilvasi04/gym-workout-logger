@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Activity, ArrowRight, CalendarDays, Flame, Scale, Sparkles } from "lucide-react";
+import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Scale } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
@@ -67,34 +67,45 @@ export function DashboardPage() {
     ];
   }, [analyticsData]);
 
+  const rangeLabel = selectedRange === "7" ? "This week" : selectedRange === "30" ? "This month" : "This quarter";
+
   return (
     <ApplicationShell title="Dashboard">
-      <Card border className="overflow-hidden p-0 shadow-lg">
-        <div className="bg-gradient-to-br from-navy-950 via-primary-700 to-primary-500 px-4 py-5 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div className="max-w-[16rem]">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                <Sparkles size={12} />
-                Training overview
-              </div>
-              <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight">Move faster, log cleaner, train better.</h2>
-              <p className="mt-2 text-sm text-white/80">
-                Your latest sessions, progress and volume trends in a layout tuned for one hand use.
+      <Card border className="relative overflow-hidden p-0 shadow-lg">
+        <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,rgba(126,138,255,0.18)_0%,transparent_45%),repeating-linear-gradient(90deg,transparent_0,transparent_26px,rgba(255,255,255,0.05)_26px,rgba(255,255,255,0.05)_27px)]" />
+        <div className="relative px-4 py-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Performance cockpit</p>
+          <h2 className="mt-2 max-w-[17rem] font-display text-2xl font-semibold leading-tight text-navy-950">
+            Train with intent. Review with clarity.
+          </h2>
+          <p className="mt-2 text-sm text-navy-700">
+            Fast access to sessions, volume, and momentum in a compact mobile-first view.
+          </p>
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-navy-300/70 bg-navy-200/70 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-navy-600">Window</p>
+              <p className="mt-1 text-sm font-semibold text-navy-900">{rangeLabel}</p>
+            </div>
+            <div className="rounded-xl border border-primary-300/45 bg-primary-100/35 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700">Streak</p>
+              <p className="mt-1 text-sm font-semibold text-primary-900">
+                {analyticsData ? analyticsData.summary.current_training_streak_weeks : 0} weeks
               </p>
             </div>
-            <div className="rounded-2xl bg-white/10 px-3 py-2 text-right backdrop-blur-sm">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-white/70">Current streak</p>
-              <p className="mt-1 font-display text-2xl font-semibold">
-                {analyticsData ? analyticsData.summary.current_training_streak_weeks : 0}
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Volume</p>
+              <p className="mt-1 text-sm font-semibold text-emerald-200">
+                {analyticsData ? Math.round(analyticsData.summary.total_volume) : 0} kg
               </p>
-              <p className="text-xs text-white/70">weeks</p>
             </div>
           </div>
+
           <div className="mt-4 flex gap-2">
-            <Button size="sm" className="bg-white text-navy-950 hover:bg-white/90" onClick={() => navigate('/log')}>
+            <Button size="sm" onClick={() => navigate('/log')}>
               Log workout
             </Button>
-            <Button size="sm" variant="ghost" className="border border-white/20 text-white hover:bg-white/10" onClick={() => navigate('/analytics')}>
+            <Button size="sm" variant="outline" onClick={() => navigate('/analytics')} icon={<ChevronRight size={14} />} iconPosition="right">
               View analytics
             </Button>
           </div>
@@ -122,9 +133,9 @@ export function DashboardPage() {
               const IconComponent = card.icon;
               return (
                 <Card key={card.key} className="overflow-hidden border border-navy-300/70 bg-navy-100/95 shadow-md">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-600">{card.title}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy-600">{card.title}</p>
                       <p className="mt-2 font-display text-xl font-semibold text-navy-950">{card.value}</p>
                     </div>
                     <div className="rounded-2xl border border-primary-300/35 bg-primary-100/30 p-3 text-primary-700 shadow-sm">
@@ -174,7 +185,7 @@ export function DashboardPage() {
                         <Badge colour="primary" size="small">
                           Session
                         </Badge>
-                        <ArrowRight size={16} className="text-navy-400" />
+                        <ArrowRight size={16} className="text-primary-700" />
                       </div>
                     </div>
                   </Card>
