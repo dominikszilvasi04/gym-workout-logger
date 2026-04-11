@@ -93,20 +93,20 @@ export function ProfilePage() {
       <section className="grid grid-cols-2 gap-3">
         {loading
           ? Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} border className="bg-white/95 shadow-sm">
-                <div className="h-16 animate-pulse rounded-lg bg-navy-100" />
+              <Card key={index} border className="bg-navy-100/95 shadow-sm">
+                <div className="h-16 animate-pulse rounded-lg bg-navy-200" />
               </Card>
             ))
           : profileHighlights.map((highlight) => {
               const IconComponent = highlight.icon;
               return (
-                <Card key={highlight.title} border className="bg-white/95 shadow-sm">
+                <Card key={highlight.title} border className="bg-navy-100/95 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">{highlight.title}</p>
                       <p className="mt-2 font-display text-xl font-semibold text-navy-950">{highlight.value}</p>
                     </div>
-                    <div className="rounded-2xl bg-primary-50 p-3 text-primary-600">
+                    <div className="rounded-2xl border border-primary-300/35 bg-primary-100/30 p-3 text-primary-700">
                       <IconComponent size={18} />
                     </div>
                   </div>
@@ -124,11 +124,11 @@ export function ProfilePage() {
         <div className="mt-3 space-y-3">
           {loading ? (
             <Card border>
-              <div className="h-28 animate-pulse rounded-2xl bg-navy-100" />
+              <div className="h-28 animate-pulse rounded-2xl bg-navy-200" />
             </Card>
           ) : recentWorkouts.length === 0 ? (
-            <Card border className="border-dashed border-navy-300 bg-white/80">
-              <p className="text-sm text-navy-600">No recent sessions to show.</p>
+            <Card border className="border-dashed border-navy-300 bg-navy-100/80">
+              <p className="text-sm text-navy-700">No recent sessions to show.</p>
             </Card>
           ) : (
             recentWorkouts.map((workout) => {
@@ -144,7 +144,7 @@ export function ProfilePage() {
                   onClick={() => navigate(`/workouts/${workout._id}`)}
                   className="block w-full text-left"
                 >
-                  <Card border className="bg-white/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-display text-lg font-semibold text-navy-950">

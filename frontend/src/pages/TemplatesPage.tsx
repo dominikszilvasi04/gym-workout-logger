@@ -64,7 +64,6 @@ export function TemplatesPage() {
         template_name: trimmedName,
         target_muscle_groups: templateBeingEdited.target_muscle_groups,
         exercises: templateBeingEdited.exercises,
-        created_at: templateBeingEdited.created_at,
       });
       setTemplates((current) =>
         current.map((template) =>
@@ -123,11 +122,11 @@ export function TemplatesPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 p-4">
-          <div className="rounded-2xl bg-navy-50 p-3">
+          <div className="rounded-2xl border border-navy-300/50 bg-navy-100 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Templates</p>
             <p className="mt-1 font-display text-2xl font-semibold text-navy-950">{templateSummary.totalTemplates}</p>
           </div>
-          <div className="rounded-2xl bg-primary-50 p-3">
+          <div className="rounded-2xl border border-primary-300/40 bg-primary-100/30 p-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">Exercises</p>
             <p className="mt-1 font-display text-2xl font-semibold text-primary-900">{templateSummary.totalExercises}</p>
           </div>
@@ -142,10 +141,10 @@ export function TemplatesPage() {
 
       {loading ? (
         <Card border>
-          <div className="h-28 animate-pulse rounded-2xl bg-navy-100" />
+          <div className="h-28 animate-pulse rounded-2xl bg-navy-200" />
         </Card>
       ) : templates.length === 0 ? (
-        <Card border className="border-dashed border-navy-300 bg-white/80">
+        <Card border className="border-dashed border-navy-300 bg-navy-100/80">
           <div className="flex items-start gap-3">
             <div className="rounded-2xl bg-primary-50 p-3 text-primary-600">
               <Layers3 size={18} />
@@ -161,7 +160,7 @@ export function TemplatesPage() {
           {templates.map((template) => {
             const totalSets = template.exercises.reduce((accumulator, exercise) => accumulator + exercise.sets.length, 0);
             return (
-              <Card key={template._id} border className="bg-white/95 shadow-sm">
+              <Card key={template._id} border className="bg-navy-100/95 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-display text-lg font-semibold text-navy-950">{template.template_name}</p>

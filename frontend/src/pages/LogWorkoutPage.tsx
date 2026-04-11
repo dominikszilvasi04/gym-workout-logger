@@ -50,6 +50,21 @@ function createExerciseEntry(exercise: ExerciseDefinition): ExerciseEntry {
   };
 }
 
+function parseNumericInput(rawValue: string, fallbackValue: number, min?: number, max?: number) {
+  const parsedValue = Number(rawValue);
+  if (!Number.isFinite(parsedValue)) {
+    return fallbackValue;
+  }
+  let nextValue = parsedValue;
+  if (typeof min === "number") {
+    nextValue = Math.max(min, nextValue);
+  }
+  if (typeof max === "number") {
+    nextValue = Math.min(max, nextValue);
+  }
+  return nextValue;
+}
+
 export function LogWorkoutPage() {
   const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -351,7 +366,7 @@ export function LogWorkoutPage() {
             value={workoutDateTime}
             onChange={(event) => setWorkoutDateTime(event.target.value)}
           />
-          <div className="flex items-center justify-between rounded-xl bg-primary-50 px-3 py-2 text-sm text-primary-800">
+          <div className="flex items-center justify-between rounded-xl border border-primary-300/40 bg-primary-100/35 px-3 py-2 text-sm text-primary-900">
             <span>{selectedMuscleGroups.length} muscle groups selected</span>
             <span>{exerciseEntries.length} exercises added</span>
           </div>
@@ -380,8 +395,8 @@ export function LogWorkoutPage() {
                 onClick={() => toggleMuscleGroup(muscleGroup)}
                 className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                   selected
-                    ? "border-primary-600 bg-primary-600 text-white shadow-sm"
-                    : "border-navy-300 bg-white text-navy-600 hover:border-navy-400 hover:text-navy-900"
+                    ? "border-primary-500 bg-primary-500 text-navy-950 shadow-sm"
+                    : "border-navy-300 bg-navy-100/80 text-navy-700 hover:border-navy-400 hover:text-navy-900"
                 }`}
               >
                 {selected ? <CheckCircle2 size={14} className="mr-1 inline-block" /> : null}
@@ -399,7 +414,7 @@ export function LogWorkoutPage() {
             <p className="mt-1 font-display text-lg font-semibold text-navy-900">Start from a saved routine</p>
           </div>
           <select
-            className="h-11 rounded-lg border border-navy-300 bg-white px-3 text-sm"
+            className="h-11 rounded-lg border border-navy-300 bg-navy-100/80 px-3 text-sm text-navy-900"
             value={activeTemplateIdentifier}
             onChange={(event) => loadTemplate(event.target.value)}
           >
@@ -415,7 +430,7 @@ export function LogWorkoutPage() {
 
       <div className="space-y-3">
         {exerciseEntries.map((entry) => (
-          <Card key={entry.localIdentifier} border className="overflow-hidden bg-white/95 shadow-sm">
+          <Card key={entry.localIdentifier} border className="overflow-hidden bg-navy-100/95 shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-display text-lg font-semibold text-navy-900">{entry.exerciseName}</p>
@@ -424,7 +439,7 @@ export function LogWorkoutPage() {
               <button
                 type="button"
                 onClick={() => removeExercise(entry.localIdentifier)}
-                className="rounded-full p-2 text-red-600 hover:bg-red-50"
+                className="rounded-full p-2 text-red-400 hover:bg-red-500/15"
               >
                 <Trash2 size={16} />
               </button>
@@ -455,7 +470,7 @@ export function LogWorkoutPage() {
                           entry.localIdentifier,
                           setIndex,
                           "weight_in_kilograms",
-                          Number(event.target.value)
+                          parseNumericInput(event.target.value, set.weight_in_kilograms, 0)
                         )
                       }
                     />
@@ -469,7 +484,7 @@ export function LogWorkoutPage() {
                           entry.localIdentifier,
                           setIndex,
                           "repetitions",
-                          Number(event.target.value)
+                          parseNumericInput(event.target.value, set.repetitions, 1)
                         )
                       }
                     />
@@ -484,7 +499,7 @@ export function LogWorkoutPage() {
                           entry.localIdentifier,
                           setIndex,
                           "rate_of_perceived_exertion",
-                          Number(event.target.value)
+                          parseNumericInput(event.target.value, set.rate_of_perceived_exertion, 1, 10)
                         )
                       }
                     />
@@ -506,7 +521,7 @@ export function LogWorkoutPage() {
         </Card>
       ) : null}
 
-      <div className="sticky bottom-20 z-20 -mx-4 border-t border-white/70 bg-white/95 px-4 py-3 backdrop-blur-xl">
+      <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/90 px-4 py-3 backdrop-blur-xl">
         <div className="grid grid-cols-2 gap-2">
           <Button size="lg" variant="outline" onClick={openTemplateSaveDialog} disabled={templateSaving || loading}>
             Save template
@@ -543,7 +558,7 @@ export function LogWorkoutPage() {
                       <button
                         key={exercise._id}
                         type="button"
-                          className="w-full rounded-xl border border-navy-200 bg-white px-3 py-3 text-left shadow-sm hover:border-primary-500 hover:bg-primary-50"
+                          className="w-full rounded-xl border border-navy-300 bg-navy-100 px-3 py-3 text-left shadow-sm hover:border-primary-500 hover:bg-primary-100/30"
                         onClick={() => addExercise(exercise)}
                       >
                         <p className="font-medium text-navy-900">{exercise.exercise_name}</p>
@@ -572,7 +587,7 @@ export function LogWorkoutPage() {
           </div>
         )}
       >
-        <p className="mb-3 text-sm text-navy-600">
+        <p className="mb-3 text-sm text-navy-700">
           Save this structure so you can start similar workouts in one tap.
         </p>
         <InputField

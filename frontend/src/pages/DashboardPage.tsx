@@ -114,20 +114,20 @@ export function DashboardPage() {
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {loading
           ? Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="h-24 animate-pulse bg-white">
+            <Card key={index} className="h-24 animate-pulse bg-navy-100">
               <div />
             </Card>
             ))
           : summaryCards.map((card) => {
               const IconComponent = card.icon;
               return (
-                <Card key={card.key} className="overflow-hidden border border-white/70 bg-white/90 shadow-md">
+                <Card key={card.key} className="overflow-hidden border border-navy-300/70 bg-navy-100/95 shadow-md">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">{card.title}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-600">{card.title}</p>
                       <p className="mt-2 font-display text-xl font-semibold text-navy-950">{card.value}</p>
                     </div>
-                    <div className="rounded-2xl bg-primary-50 p-3 text-primary-600 shadow-sm">
+                    <div className="rounded-2xl border border-primary-300/35 bg-primary-100/30 p-3 text-primary-700 shadow-sm">
                       <IconComponent size={20} />
                     </div>
                   </div>
@@ -143,8 +143,8 @@ export function DashboardPage() {
         </div>
         <div className="mt-3 space-y-3">
           {recentWorkouts.length === 0 && !loading ? (
-            <Card border className="border-dashed border-navy-300 bg-white/80">
-              <p className="text-sm text-navy-600">No workouts yet. Use the Log tab to create your first session.</p>
+            <Card border className="border-dashed border-navy-300 bg-navy-100/80">
+              <p className="text-sm text-navy-700">No workouts yet. Use the Log tab to create your first session.</p>
             </Card>
           ) : (
             recentWorkouts.map((workout) => {
@@ -155,7 +155,7 @@ export function DashboardPage() {
                   onClick={() => navigate(`/workouts/${workout._id}`)}
                   className="block w-full text-left"
                 >
-                  <Card border className="bg-white/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-display text-lg font-semibold text-navy-950">{format(new Date(workout.date_of_workout), "EEE d MMM")}</p>
