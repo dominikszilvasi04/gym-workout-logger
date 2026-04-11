@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Activity, ArrowRight, CalendarDays, Flame, Scale, Sparkles } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -10,6 +11,7 @@ import { workoutAPI } from "../services/api";
 import type { AnalyticsData, Workout } from "../types";
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
   const [selectedRange, setSelectedRange] = useState("30");
@@ -89,10 +91,10 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="mt-4 flex gap-2">
-            <Button size="sm" className="bg-white text-navy-950 hover:bg-white/90">
+            <Button size="sm" className="bg-white text-navy-950 hover:bg-white/90" onClick={() => navigate('/log')}>
               Log workout
             </Button>
-            <Button size="sm" variant="ghost" className="border border-white/20 text-white hover:bg-white/10">
+            <Button size="sm" variant="ghost" className="border border-white/20 text-white hover:bg-white/10" onClick={() => navigate('/analytics')}>
               View analytics
             </Button>
           </div>
@@ -148,29 +150,35 @@ export function DashboardPage() {
             recentWorkouts.map((workout) => {
               const totalSets = workout.exercises.reduce((accumulator, exercise) => accumulator + exercise.sets.length, 0);
               return (
-                <Card key={workout._id} border className="bg-white/95 shadow-sm transition-transform active:scale-[0.99]">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-display text-lg font-semibold text-navy-950">{format(new Date(workout.date_of_workout), "EEE d MMM")}</p>
-                      <p className="mt-1 text-sm text-navy-600">
-                        {workout.exercises.length} exercises · {totalSets} sets
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {workout.target_muscle_groups.slice(0, 3).map((muscleGroup) => (
-                          <Badge key={muscleGroup} colour="neutral" size="small">
-                            {muscleGroup}
-                          </Badge>
-                        ))}
+                <button
+                  key={workout._id}
+                  onClick={() => navigate(`/workouts/${workout._id}`)}
+                  className="block w-full text-left"
+                >
+                  <Card border className="bg-white/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-display text-lg font-semibold text-navy-950">{format(new Date(workout.date_of_workout), "EEE d MMM")}</p>
+                        <p className="mt-1 text-sm text-navy-600">
+                          {workout.exercises.length} exercises · {totalSets} sets
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {workout.target_muscle_groups.slice(0, 3).map((muscleGroup) => (
+                            <Badge key={muscleGroup} colour="neutral" size="small">
+                              {muscleGroup}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <Badge colour="primary" size="small">
+                          Session
+                        </Badge>
+                        <ArrowRight size={16} className="text-navy-400" />
                       </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      <Badge colour="primary" size="small">
-                        Session
-                      </Badge>
-                      <ArrowRight size={16} className="text-navy-400" />
-                    </div>
-                  </div>
-                </Card>
+                  </Card>
+                </button>
               );
             })
           )}

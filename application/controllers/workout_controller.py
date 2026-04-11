@@ -249,6 +249,34 @@ def retrieve_last_used_values_endpoint() -> tuple[Response, int]:
     return jsonify({"last_used_values": last_used_values}), 200
 
 
+@workout_blueprint.route("/api/workouts/<identifier>", methods=["GET"])
+@login_required
+def retrieve_workout_detail_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    API endpoint to retrieve a single workout session with full details.
+    
+    Args:
+        identifier: The unique database identifier for the workout.
+        
+    Returns:
+        A tuple containing the JSON response with the workout data and the HTTP status code.
+    """
+    logger.info("Workout detail request received for identifier=%s", identifier)
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        workout = application_workout_service.retrieve_specific_workout(
+            identifier=identifier,
+            user_identifier=user_identifier
+        )
+    except RuntimeError:
+        logger.exception("Workout detail request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    if not workout:
+        logger.warning("Workout detail not found for identifier=%s", identifier)
+        return jsonify({"error": "Workout not found."}), 404
+    return jsonify(workout.model_dump(by_alias=True)), 200
+
+
 @workout_blueprint.route("/api/workout-templates", methods=["GET"])
 @login_required
 def retrieve_workout_templates_endpoint() -> tuple[Response, int]:
