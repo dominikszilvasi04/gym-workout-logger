@@ -9,13 +9,19 @@ import { Badge } from "../components/common/Badge";
 import { Dialog } from "../components/common/Dialog";
 import { InputField } from "../components/common/InputField";
 import { exerciseAPI, templateAPI, workoutAPI } from "../services/api";
-import type { ExerciseDefinition, WorkoutTemplate, WorkoutSet } from "../types";
+import type { ExerciseDefinition, Workout, WorkoutTemplate, WorkoutSet } from "../types";
 
 interface ExerciseEntry {
   localIdentifier: string;
   exerciseName: string;
   exerciseDefinitionIdentifier: string;
   sets: WorkoutSet[];
+}
+
+interface LastUsedSetValues {
+  repetitions?: number;
+  weight_in_kilograms?: number;
+  rate_of_perceived_exertion?: number;
 }
 
 const targetMuscleGroups = [
@@ -78,7 +84,8 @@ export function LogWorkoutPage() {
   const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
   const [searchParams] = useSearchParams();
-  const [workoutDateTime, setWorkoutDateTime] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+  const [workoutDate, setWorkoutDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [workoutTime, setWorkoutTime] = useState(() => format(new Date(), 'HH:mm'));
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
   const [exerciseCatalogue, setExerciseCatalogue] = useState<ExerciseDefinition[]>([]);
   const [templateList, setTemplateList] = useState<WorkoutTemplate[]>([]);
@@ -90,10 +97,91 @@ export function LogWorkoutPage() {
   const [templateSaving, setTemplateSaving] = useState(false);
   const [searchPhrase, setSearchPhrase] = useState("");
   const [setDraftValues, setSetDraftValues] = useState<Record<string, string>>({});
+  const [lastUsedValuesByExerciseKey, setLastUsedValuesByExerciseKey] = useState<Record<string, LastUsedSetValues>>({});
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
   const isEditMode = Boolean(workoutId);
+  const workoutDateTime = `${workoutDate}T${workoutTime}`;
+
+  const applyWorkoutToForm = (workout: Workout) => {
+    setSelectedMuscleGroups(workout.target_muscle_groups || []);
+    setExerciseEntries(
+      workout.exercises.map((exercise) => ({
+        localIdentifier: crypto.randomUUID(),
+        exerciseName: exercise.exercise_name,
+        exerciseDefinitionIdentifier: exercise.exercise_definition_identifier || "",
+        sets: exercise.sets,
+      }))
+    );
+  };
+
+  const resolveLastUsedSetValues = (entry: ExerciseEntry): LastUsedSetValues | null => {
+    const byIdentifier = entry.exerciseDefinitionIdentifier
+      ? lastUsedValuesByExerciseKey[entry.exerciseDefinitionIdentifier]
+      : undefined;
+    const byName = lastUsedValuesByExerciseKey[entry.exerciseName] || lastUsedValuesByExerciseKey[entry.exerciseName.toLowerCase()];
+    return byIdentifier || byName || null;
+  };
+
+  const applyLastUsedToExercise = (entry: ExerciseEntry) => {
+    const lastUsed = resolveLastUsedSetValues(entry);
+    if (!lastUsed) {
+      return;
+    }
+
+    setExerciseEntries((current) =>
+      current.map((currentEntry) => {
+        if (currentEntry.localIdentifier !== entry.localIdentifier) {
+          return currentEntry;
+        }
+
+        return {
+          ...currentEntry,
+          sets: currentEntry.sets.map((set) => ({
+            ...set,
+            repetitions: typeof lastUsed.repetitions === "number" ? lastUsed.repetitions : set.repetitions,
+            weight_in_kilograms:
+              typeof lastUsed.weight_in_kilograms === "number"
+                ? lastUsed.weight_in_kilograms
+                : set.weight_in_kilograms,
+            rate_of_perceived_exertion:
+              typeof lastUsed.rate_of_perceived_exertion === "number"
+                ? lastUsed.rate_of_perceived_exertion
+                : set.rate_of_perceived_exertion,
+          })),
+        };
+      })
+    );
+  };
+
+  const adjustAllSets = (
+    localIdentifier: string,
+    adjustments: Partial<Pick<WorkoutSet, "repetitions" | "weight_in_kilograms">>
+  ) => {
+    setExerciseEntries((current) =>
+      current.map((entry) => {
+        if (entry.localIdentifier !== localIdentifier) {
+          return entry;
+        }
+
+        return {
+          ...entry,
+          sets: entry.sets.map((set) => ({
+            ...set,
+            repetitions:
+              typeof adjustments.repetitions === "number"
+                ? Math.max(1, Math.round(set.repetitions + adjustments.repetitions))
+                : set.repetitions,
+            weight_in_kilograms:
+              typeof adjustments.weight_in_kilograms === "number"
+                ? Math.max(0, Math.round((set.weight_in_kilograms + adjustments.weight_in_kilograms) * 2) / 2)
+                : set.weight_in_kilograms,
+          })),
+        };
+      })
+    );
+  };
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -104,10 +192,38 @@ export function LogWorkoutPage() {
       setExerciseCatalogue(exercises);
       setTemplateList(templates);
 
+      try {
+        const rawLastUsedValues = await workoutAPI.getLastUsedValues();
+        const parsedValues = Object.entries(rawLastUsedValues || {}).reduce<Record<string, LastUsedSetValues>>((accumulator, [key, value]) => {
+          if (!value || typeof value !== "object") {
+            return accumulator;
+          }
+
+          const candidate = value as Record<string, unknown>;
+          const parsed: LastUsedSetValues = {
+            repetitions: typeof candidate.repetitions === "number" ? candidate.repetitions : undefined,
+            weight_in_kilograms: typeof candidate.weight_in_kilograms === "number" ? candidate.weight_in_kilograms : undefined,
+            rate_of_perceived_exertion:
+              typeof candidate.rate_of_perceived_exertion === "number"
+                ? candidate.rate_of_perceived_exertion
+                : undefined,
+          };
+
+          accumulator[key] = parsed;
+          accumulator[key.toLowerCase()] = parsed;
+          return accumulator;
+        }, {});
+        setLastUsedValuesByExerciseKey(parsedValues);
+      } catch {
+        setLastUsedValuesByExerciseKey({});
+      }
+
       if (isEditMode && workoutId) {
         try {
           const workout = await workoutAPI.getById(workoutId);
-          setWorkoutDateTime(format(new Date(workout.date_of_workout), "yyyy-MM-dd'T'HH:mm"));
+          const workoutMoment = format(new Date(workout.date_of_workout), "yyyy-MM-dd'T'HH:mm");
+          setWorkoutDate(workoutMoment.slice(0, 10));
+          setWorkoutTime(workoutMoment.slice(11));
           setSelectedMuscleGroups(workout.target_muscle_groups || []);
           setExerciseEntries(
             workout.exercises.map((exercise) => ({
@@ -120,6 +236,46 @@ export function LogWorkoutPage() {
         } catch {
           setFeedbackType("error");
           setFeedbackMessage("Unable to load workout for editing.");
+        }
+        return;
+      }
+
+      const repeatWorkoutIdentifier = searchParams.get('repeat');
+      if (repeatWorkoutIdentifier) {
+        try {
+          const repeatedWorkout = await workoutAPI.getById(repeatWorkoutIdentifier);
+          const repeatedMoment = format(new Date(repeatedWorkout.date_of_workout), "yyyy-MM-dd'T'HH:mm");
+          setWorkoutDate(repeatedMoment.slice(0, 10));
+          setWorkoutTime(repeatedMoment.slice(11));
+          applyWorkoutToForm(repeatedWorkout);
+          setFeedbackType("success");
+          setFeedbackMessage("Loaded a previous workout to repeat.");
+        } catch {
+          setFeedbackType("error");
+          setFeedbackMessage("Unable to load the selected workout right now.");
+        }
+        return;
+      }
+
+      const initialSource = searchParams.get('source');
+      if (initialSource === 'last') {
+        try {
+          const lastWorkout = await workoutAPI.getLast();
+          if (!lastWorkout) {
+            setFeedbackType("error");
+            setFeedbackMessage("No previous workout found to repeat.");
+            return;
+          }
+
+          const lastMoment = format(new Date(lastWorkout.date_of_workout), "yyyy-MM-dd'T'HH:mm");
+          setWorkoutDate(lastMoment.slice(0, 10));
+          setWorkoutTime(lastMoment.slice(11));
+          applyWorkoutToForm(lastWorkout);
+          setFeedbackType("success");
+          setFeedbackMessage("Loaded your last workout as a starting point.");
+        } catch {
+          setFeedbackType("error");
+          setFeedbackMessage("Unable to load your last workout right now.");
         }
         return;
       }
@@ -438,12 +594,23 @@ export function LogWorkoutPage() {
           </p>
         </div>
 
-        <InputField
-          label="Workout date and time"
-          type="datetime-local"
-          value={workoutDateTime}
-          onChange={(event) => setWorkoutDateTime(event.target.value)}
-        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <InputField
+            label="Workout date"
+            type="date"
+            value={workoutDate}
+            onChange={(event) => setWorkoutDate(event.target.value)}
+            className="text-left"
+          />
+          <InputField
+            label="Workout time"
+            type="time"
+            value={workoutTime}
+            onChange={(event) => setWorkoutTime(event.target.value)}
+            className="text-left"
+          />
+        </div>
+        <p className="text-xs text-navy-500">Date and time are separated on mobile so the picker stays readable and aligned.</p>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
@@ -546,6 +713,30 @@ export function LogWorkoutPage() {
               >
                 <Trash2 size={16} />
               </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {resolveLastUsedSetValues(entry) ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyLastUsedToExercise(entry)}
+                >
+                  Use last for {entry.exerciseName}
+                </Button>
+              ) : null}
+              <Button size="sm" variant="outline" onClick={() => adjustAllSets(entry.localIdentifier, { weight_in_kilograms: 2.5 })}>
+                +2.5 kg all
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => adjustAllSets(entry.localIdentifier, { weight_in_kilograms: -2.5 })}>
+                -2.5 kg all
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => adjustAllSets(entry.localIdentifier, { repetitions: 1 })}>
+                +1 rep all
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => adjustAllSets(entry.localIdentifier, { repetitions: -1 })}>
+                -1 rep all
+              </Button>
             </div>
 
             <div className="mt-3 space-y-3">

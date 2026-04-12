@@ -231,6 +231,35 @@ def get_current_user_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "User not found."}), 404
     return jsonify(user.model_dump(by_alias=True, exclude={"password_hash"})), 200
 
+
+@auth_blueprint.route("/api/auth/me", methods=["PUT"])
+@login_required
+def update_current_user_endpoint() -> tuple[Response, int]:
+    """
+    Updates editable profile details for the authenticated user.
+    """
+    request_data = request.get_json(silent=True)
+    if request_data is None or not isinstance(request_data, dict):
+        return jsonify({"error": "A valid JSON payload is required."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        updated_user = application_user_service.update_display_name(
+            identifier=user_identifier,
+            display_name=request_data.get("display_name"),
+        )
+    except ValueError as validation_error:
+        return jsonify({"error": str(validation_error)}), 400
+    except RuntimeError:
+        logger.exception("Profile update failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+
+    if not updated_user:
+        return jsonify({"error": "User not found."}), 404
+
+    session["user_display_name"] = updated_user.display_name or updated_user.email
+    return jsonify(updated_user.model_dump(by_alias=True, exclude={"password_hash"})), 200
+
 @auth_blueprint.route("/profile", methods=["GET"])
 @login_required
 def profile() -> str | Response:

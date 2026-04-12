@@ -99,7 +99,7 @@ class UserRepository:
         )
         return update_result.matched_count > 0
 
-    def update_user_display_name(self, identifier: str, display_name: str) -> bool:
+    def update_user_display_name(self, identifier: str, display_name: Optional[str]) -> bool:
         """
         Updates a user's display name.
         """

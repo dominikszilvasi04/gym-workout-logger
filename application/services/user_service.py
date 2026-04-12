@@ -103,6 +103,25 @@ class UserService:
         """
         return self.user_repository.retrieve_user_by_identifier(identifier)
 
+    def update_display_name(self, identifier: str, display_name: Optional[str]) -> Optional[UserDocument]:
+        """
+        Updates the display name for an authenticated user.
+        """
+        user = self.retrieve_user(identifier)
+        if not user:
+            return None
+
+        cleaned_display_name = display_name.strip() if display_name else None
+        if cleaned_display_name == "":
+            cleaned_display_name = None
+        if cleaned_display_name and len(cleaned_display_name) > 80:
+            raise ValueError("Display name must be 80 characters or fewer.")
+
+        updated = self.user_repository.update_user_display_name(identifier, cleaned_display_name)
+        if not updated:
+            return None
+        return self.retrieve_user(identifier)
+
     def authenticate_or_register_google_user(
         self,
         email: str,

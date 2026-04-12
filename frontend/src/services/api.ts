@@ -68,6 +68,13 @@ export const authAPI = {
     return response.data;
   },
 
+  updateProfile: async (displayName?: string): Promise<User> => {
+    const response = await apiClient.put<User>("/api/auth/me", {
+      display_name: displayName,
+    });
+    return response.data;
+  },
+
   login: async (email: string, password: string): Promise<User> => {
     const response = await apiClient.post<User>("/login", {
       email,

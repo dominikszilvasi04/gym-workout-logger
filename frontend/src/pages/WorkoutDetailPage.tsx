@@ -8,7 +8,7 @@ import { Dialog } from '../components/common/Dialog';
 import { workoutAPI } from '../services/api';
 import type { Workout } from '../types';
 import { format } from 'date-fns';
-import { ChevronLeft, Trash2, Edit } from 'lucide-react';
+import { ChevronLeft, Repeat2, Trash2, Edit } from 'lucide-react';
 
 export const WorkoutDetailPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -189,7 +189,11 @@ export const WorkoutDetailPage = () => {
         </section>
 
         <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/60 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <Button variant="outline" onClick={() => navigate(`/log?repeat=${workout._id}`)} className="gap-2">
+              <Repeat2 className="h-4 w-4" />
+              Repeat
+            </Button>
             <Button onClick={() => navigate(`/workouts/${workout._id}/edit`)} className="gap-2">
               <Edit className="h-4 w-4" />
               Edit

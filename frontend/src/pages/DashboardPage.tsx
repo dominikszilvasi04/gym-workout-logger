@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Scale } from "lucide-react";
+import { differenceInCalendarDays, format } from "date-fns";
+import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Repeat2, Scale, Sparkles, Wand2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
@@ -67,18 +67,66 @@ export function DashboardPage() {
     ];
   }, [analyticsData]);
 
+  const dashboardInsights = useMemo(() => {
+    if (!analyticsData) {
+      return [];
+    }
+
+    const strongestExercise = analyticsData.leaderboards.personal_records[0];
+    const latestWorkout = recentWorkouts[0];
+    const daysSinceLastWorkout = latestWorkout
+      ? differenceInCalendarDays(new Date(), new Date(latestWorkout.date_of_workout))
+      : null;
+    const leadingMuscleGroup = analyticsData.charts.muscle_group_distribution.labels[0];
+
+    const insights: Array<{ title: string; value: string; detail: string; icon: ComponentType<{ size?: number }> }> = [
+      {
+        title: "Current push",
+        value: `${analyticsData.summary.current_training_streak_weeks} week streak`,
+        detail: daysSinceLastWorkout !== null
+          ? daysSinceLastWorkout === 0
+            ? "You trained today. Keep momentum with a short accessory session."
+            : daysSinceLastWorkout === 1
+              ? "You trained yesterday. Great spot for a lighter upper-body follow-up."
+              : `It has been ${daysSinceLastWorkout} days since your last workout. Ready to log one?`
+          : "Log your first session to unlock recovery timing.",
+        icon: Flame,
+      },
+      {
+        title: "Strongest lift",
+        value: strongestExercise
+          ? `${strongestExercise.exercise_name} · ${Math.round(strongestExercise.estimated_one_rep_maximum)} kg`
+          : `${Math.round(analyticsData.summary.strongest_estimated_one_rep_maximum)} kg best 1RM`,
+        detail: strongestExercise
+          ? `Latest PR recorded on ${format(new Date(strongestExercise.date), "d MMM")}.`
+          : "Log more top sets to reveal exercise-specific peaks.",
+        icon: Wand2,
+      },
+      {
+        title: "Training focus",
+        value: leadingMuscleGroup || "Balanced",
+        detail: leadingMuscleGroup
+          ? `${leadingMuscleGroup} is your most trained category in this range.`
+          : "Your muscle distribution will appear after more logged sessions.",
+        icon: Sparkles,
+      },
+    ];
+
+    return insights;
+  }, [analyticsData, recentWorkouts]);
+
   const rangeLabel = selectedRange === "7" ? "This week" : selectedRange === "30" ? "This month" : "This quarter";
 
   return (
     <ApplicationShell title="Dashboard">
       <Card border className="relative overflow-hidden p-0 shadow-lg">
         <div className="relative px-4 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Performance ledger</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Today cockpit</p>
           <h2 className="mt-2 max-w-[17rem] font-display text-2xl font-semibold leading-tight text-navy-950">
-            Precision in training. Clarity in progress.
+            One-handed logging, clear momentum.
           </h2>
           <p className="mt-2 text-sm text-navy-700">
-            A compact command view for sessions, volume, and momentum.
+            Fast actions first, analysis second. Built for mobile rhythm.
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-2">
@@ -100,16 +148,69 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            <Button size="sm" onClick={() => navigate('/log')}>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Button size="sm" onClick={() => navigate('/log')} className="justify-center gap-2">
+              <ArrowRight size={14} />
               Log workout
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate('/analytics')} icon={<ChevronRight size={14} />} iconPosition="right">
-              View analytics
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/log?source=last')}
+              icon={<Repeat2 size={14} />}
+              className="justify-center"
+            >
+              Repeat last
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/templates')}
+              icon={<ChevronRight size={14} />}
+              iconPosition="right"
+              className="justify-center"
+            >
+              Templates
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/analytics')}
+              icon={<ChevronRight size={14} />}
+              iconPosition="right"
+              className="justify-center"
+            >
+              Deep analysis
             </Button>
           </div>
         </div>
       </Card>
+
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        {loading
+          ? Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index} className="h-28 animate-pulse bg-navy-100">
+                <div />
+              </Card>
+            ))
+          : dashboardInsights.map((insight) => {
+              const IconComponent = insight.icon;
+              return (
+                <Card key={insight.title} border className="bg-navy-100/95 shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy-600">{insight.title}</p>
+                      <p className="mt-2 font-display text-xl font-semibold text-navy-950">{insight.value}</p>
+                      <p className="mt-2 text-sm text-navy-600">{insight.detail}</p>
+                    </div>
+                    <div className="rounded-2xl border border-primary-300/35 bg-primary-100/30 p-3 text-primary-700 shadow-sm">
+                      <IconComponent size={18} />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+      </section>
 
       <Tabs
         items={[
@@ -124,9 +225,9 @@ export function DashboardPage() {
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {loading
           ? Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="h-24 animate-pulse bg-navy-100">
-              <div />
-            </Card>
+              <Card key={index} className="h-24 animate-pulse bg-navy-100">
+                <div />
+              </Card>
             ))
           : summaryCards.map((card) => {
               const IconComponent = card.icon;

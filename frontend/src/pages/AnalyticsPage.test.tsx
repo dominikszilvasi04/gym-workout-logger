@@ -64,6 +64,9 @@ describe("AnalyticsPage", () => {
     });
 
     expect(await screen.findByText(/training trends/i)).toBeInTheDocument();
+    expect(screen.getByText(/^momentum$/i)).toBeInTheDocument();
+    expect(screen.getByText(/intensity/i)).toBeInTheDocument();
+    expect(screen.getByText(/^focus$/i)).toBeInTheDocument();
     expect(screen.getByText(/estimated one repetition maximum/i)).toBeInTheDocument();
     expect(screen.getByText(/top exercise volume/i)).toBeInTheDocument();
     expect(screen.getAllByTestId("line-chart").length).toBeGreaterThan(0);
@@ -83,6 +86,24 @@ describe("AnalyticsPage", () => {
 
     await waitFor(() => {
       expect(getAnalyticsMock).toHaveBeenCalledWith(7);
+    });
+  });
+
+  it("requests filtered analytics when exercise is selected", async () => {
+    render(
+      <MemoryRouter>
+        <AnalyticsPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText(/training trends/i);
+
+    fireEvent.change(screen.getByLabelText(/exercise filter/i), {
+      target: { value: "Bench Press" },
+    });
+
+    await waitFor(() => {
+      expect(getAnalyticsMock).toHaveBeenCalledWith(30, "Bench Press");
     });
   });
 });
