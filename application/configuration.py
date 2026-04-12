@@ -36,6 +36,11 @@ class ApplicationConfiguration:
         "APPLICATION_GOOGLE_DISCOVERY_URL",
         "https://accounts.google.com/.well-known/openid-configuration",
     )
+    ADMIN_EMAIL_ALLOWLIST: tuple[str, ...] = tuple(
+        value.strip().lower()
+        for value in os.environ.get("APPLICATION_ADMIN_EMAIL_ALLOWLIST", "").split(",")
+        if value.strip()
+    )
     TESTING: bool = False
     DEBUG: bool = False
 

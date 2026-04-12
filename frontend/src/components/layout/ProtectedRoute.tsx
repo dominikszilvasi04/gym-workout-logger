@@ -4,11 +4,14 @@ import { useAuthStore } from "../../store/authStore";
 
 interface ProtectedRouteProperties {
   children: ReactNode;
+  requiredRole?: "admin";
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProperties) {
+export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProperties) {
   const authenticated = useAuthStore((state) => state.isAuthenticated);
   const loading = useAuthStore((state) => state.isLoading);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.is_admin || user?.role === "admin";
 
   if (loading) {
     return (
@@ -22,6 +25,10 @@ export function ProtectedRoute({ children }: ProtectedRouteProperties) {
 
   if (!authenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiredRole === "admin" && !isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

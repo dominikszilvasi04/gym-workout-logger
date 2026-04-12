@@ -86,6 +86,11 @@ body::before {
   touch-action: manipulation;
 }
 
+input[type="date"],
+input[type="time"] {
+  max-width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

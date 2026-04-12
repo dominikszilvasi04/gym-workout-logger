@@ -100,3 +100,12 @@ class WorkoutTemplateRepository:
         }
         update_result = self.collection.update_one(query_filter, update_payload)
         return update_result.matched_count > 0
+
+    def delete_templates_by_user_identifier(self, user_identifier: str) -> int:
+        """
+        Hard-deletes all templates that belong to a specific user.
+        """
+        if not user_identifier:
+            return 0
+        deletion_result = self.collection.delete_many({"user_identifier": user_identifier})
+        return int(deletion_result.deleted_count)

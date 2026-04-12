@@ -18,4 +18,5 @@ class UserDocument(BaseModel):
     auth_provider: Optional[str] = Field(default=None, description="Authentication provider (e.g., local, google).")
     auth_provider_subject: Optional[str] = Field(default=None, description="Stable subject identifier from external provider.")
     display_name: Optional[str] = Field(default=None, description="Optional name displayed in the UI.")
+    role: str = Field(default="user", description="Application role used for authorization checks (e.g., user, admin).")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC account creation timestamp.")

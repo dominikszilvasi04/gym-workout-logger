@@ -19,5 +19,9 @@ application_workout_template_repository = WorkoutTemplateRepository()
 # Inject the repositories into the services
 application_workout_service = WorkoutService(workout_repository=application_workout_repository)
 application_exercise_definition_service = ExerciseDefinitionService(exercise_definition_repository=application_exercise_definition_repository)
-application_user_service = UserService(user_repository=application_user_repository)
+application_user_service = UserService(
+    user_repository=application_user_repository,
+    workout_repository=application_workout_repository,
+    workout_template_repository=application_workout_template_repository,
+)
 application_workout_template_service = WorkoutTemplateService(workout_template_repository=application_workout_template_repository)

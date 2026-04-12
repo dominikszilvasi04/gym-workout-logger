@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, type ReactElement } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { AdminPage } from "./pages/AdminPage.tsx";
 import { useAuthStore } from "./store/authStore";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
@@ -118,6 +119,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <LogWorkoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminPage />
               </ProtectedRoute>
             }
           />

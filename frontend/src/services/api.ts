@@ -13,6 +13,24 @@ import type {
   CreateWorkoutFormData,
 } from "../types";
 
+export interface AdminUser {
+  _id: string;
+  email: string;
+  display_name?: string;
+  auth_provider?: string;
+  role: "user" | "admin";
+  created_at: string;
+}
+
+export interface AdminAuditLog {
+  _id: string;
+  timestamp: string;
+  action: string;
+  actor_user_identifier?: string;
+  actor_email?: string;
+  details?: Record<string, unknown>;
+}
+
 // API base URL 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
@@ -101,6 +119,75 @@ export const authAPI = {
   logout: async (): Promise<void> => {
     await apiClient.post("/logout");
     clearCachedCsrfToken();
+  },
+};
+
+export const adminAPI = {
+  listUsers: async (): Promise<AdminUser[]> => {
+    const response = await apiClient.get<AdminUser[]>("/api/admin/users");
+    return response.data;
+  },
+
+  deleteUser: async (userIdentifier: string): Promise<{
+    user_identifier: string;
+    deleted_workouts: number;
+    deleted_templates: number;
+  }> => {
+    const response = await apiClient.delete<{
+      user_identifier: string;
+      deleted_workouts: number;
+      deleted_templates: number;
+    }>(`/api/admin/users/${userIdentifier}`);
+    return response.data;
+  },
+
+  deleteAllUsers: async (): Promise<{
+    deleted_users: number;
+    deleted_workouts: number;
+    deleted_templates: number;
+  }> => {
+    const response = await apiClient.delete<{
+      deleted_users: number;
+      deleted_workouts: number;
+      deleted_templates: number;
+    }>("/api/admin/users", {
+      data: {
+        confirmation_text: "DELETE ALL USERS",
+      },
+    });
+    return response.data;
+  },
+
+  exportData: async (): Promise<{
+    generated_at: string;
+    counts: {
+      users: number;
+      workouts: number;
+      workout_templates: number;
+    };
+    users: Array<Record<string, unknown>>;
+    workouts: Array<Record<string, unknown>>;
+    workout_templates: Array<Record<string, unknown>>;
+  }> => {
+    const response = await apiClient.get<{
+      generated_at: string;
+      counts: {
+        users: number;
+        workouts: number;
+        workout_templates: number;
+      };
+      users: Array<Record<string, unknown>>;
+      workouts: Array<Record<string, unknown>>;
+      workout_templates: Array<Record<string, unknown>>;
+    }>("/api/admin/export");
+    return response.data;
+  },
+
+  listAuditLogs: async (limit: number = 50): Promise<AdminAuditLog[]> => {
+    const response = await apiClient.get<AdminAuditLog[]>("/api/admin/audit-logs", {
+      params: { limit },
+    });
+    return response.data;
   },
 };
 

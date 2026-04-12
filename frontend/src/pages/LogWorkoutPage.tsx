@@ -594,20 +594,20 @@ export function LogWorkoutPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-md grid-cols-1 gap-3 sm:max-w-none sm:grid-cols-2">
           <InputField
             label="Workout date"
             type="date"
             value={workoutDate}
             onChange={(event) => setWorkoutDate(event.target.value)}
-            className="text-left"
+            className="min-w-0 text-left"
           />
           <InputField
             label="Workout time"
             type="time"
             value={workoutTime}
             onChange={(event) => setWorkoutTime(event.target.value)}
-            className="text-left"
+            className="min-w-0 text-left"
           />
         </div>
         <p className="text-xs text-navy-500">Date and time are separated on mobile so the picker stays readable and aligned.</p>

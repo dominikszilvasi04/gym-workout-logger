@@ -17,6 +17,7 @@ from application.database import database_manager
 from application.controllers.workout_controller import workout_blueprint
 from application.controllers.exercise_controller import exercise_blueprint
 from application.controllers.auth_controller import auth_blueprint
+from application.controllers.admin_controller import admin_blueprint
 from application.controllers.health_controller import health_blueprint
 from application.logging_configuration import configure_application_logging
 from application.security import limiter, register_security_hooks
@@ -89,11 +90,13 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
             database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
             database_manager.database["workout_templates"].create_index([("user_identifier", ASCENDING), ("template_name", ASCENDING)])
+            database_manager.database["admin_audit_logs"].create_index([("timestamp", DESCENDING)])
             logger.info("Ensured users collection unique index on email.")
             logger.info("Ensured users collection unique index on auth_provider/auth_provider_subject.")
             logger.info("Ensured exercise_definitions collection unique index on exercise_name.")
             logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
             logger.info("Ensured workout_templates index for user/template lookups.")
+            logger.info("Ensured admin_audit_logs index for descending timestamp queries.")
         except Exception:
             database_manager.database = None
             logger.exception("Database initialisation failed during application startup.")
@@ -103,6 +106,7 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     flask_application.register_blueprint(workout_blueprint)
     flask_application.register_blueprint(exercise_blueprint)
     flask_application.register_blueprint(auth_blueprint)
+    flask_application.register_blueprint(admin_blueprint)
     flask_application.register_blueprint(health_blueprint)
 
     @flask_application.route("/assets/<path:asset_path>")

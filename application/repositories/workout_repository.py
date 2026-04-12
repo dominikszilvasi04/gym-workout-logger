@@ -155,3 +155,17 @@ class WorkoutRepository:
             update_result.modified_count
         )
         return update_result.matched_count > 0
+
+    def delete_workouts_by_user_identifier(self, user_identifier: str) -> int:
+        """
+        Hard-deletes all workouts that belong to a specific user.
+        """
+        if not user_identifier:
+            return 0
+        deletion_result = self.collection.delete_many({"user_identifier": user_identifier})
+        logger.info(
+            "Delete workouts by user_identifier=%s deleted_count=%d",
+            user_identifier,
+            deletion_result.deleted_count,
+        )
+        return int(deletion_result.deleted_count)

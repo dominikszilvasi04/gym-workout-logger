@@ -21,10 +21,10 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldPropertie
           ref={reference}
           id={inputIdentifier}
           className={clsx(
-            "touch-target h-11 w-full rounded-xl border bg-navy-50/80 px-3 text-base text-navy-900",
+            "touch-target h-11 min-w-0 w-full max-w-full rounded-xl border bg-navy-50/80 px-3 text-base text-navy-900",
             "focus:outline-none focus:ring-2 focus:ring-primary-600/80 focus:border-primary-500",
             "touch-manipulation placeholder:text-navy-600",
-            isDateLikeInput && "text-left [text-align-last:left] [&::-webkit-datetime-edit]:text-left [&::-webkit-datetime-edit-fields-wrapper]:justify-start",
+            isDateLikeInput && "overflow-hidden text-left [text-align-last:left] [&::-webkit-datetime-edit]:text-left [&::-webkit-datetime-edit-fields-wrapper]:justify-start",
             errorMessage ? "border-red-400" : "border-navy-300/70",
             className
           )}

@@ -3,6 +3,8 @@ export interface User {
   _id: string;
   email: string;
   display_name?: string;
+  role?: "user" | "admin";
+  is_admin?: boolean;
   created_at: string;
 }
 

@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
-import { BarChart3, CircleUserRound, Dumbbell, House, SquareStack } from "lucide-react";
+import { BarChart3, CircleUserRound, Dumbbell, House, Shield, SquareStack } from "lucide-react";
+import { useAuthStore } from "../../store/authStore";
 
 const navigationItems = [
   { path: "/", label: "Home", icon: House },
@@ -10,8 +11,13 @@ const navigationItems = [
   { path: "/profile", label: "Profile", icon: CircleUserRound },
 ];
 
+const adminNavigationItem = { path: "/admin", label: "Admin", icon: Shield };
+
 export function BottomNavigation() {
   const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.is_admin || user?.role === "admin";
+  const resolvedNavigationItems = isAdmin ? [...navigationItems, adminNavigationItem] : navigationItems;
 
   const isNavigationItemActive = (path: string) => {
     if (path === "/") {
@@ -22,8 +28,8 @@ export function BottomNavigation() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/55 bg-navy-100/94 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
-      <ul className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2">
-        {navigationItems.map((item) => {
+      <ul className="mx-auto grid max-w-3xl gap-1 px-2" style={{ gridTemplateColumns: `repeat(${resolvedNavigationItems.length}, minmax(0, 1fr))` }}>
+        {resolvedNavigationItems.map((item) => {
           const IconComponent = item.icon;
           const active = isNavigationItemActive(item.path);
 

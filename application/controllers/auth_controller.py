@@ -45,6 +45,16 @@ def get_authenticated_user_identifier() -> str | None:
     return session.get("user_identifier")
 
 
+def serialise_user_for_response(user) -> dict:
+    """
+    Produces a consistent JSON-safe auth payload including effective admin status.
+    """
+    return {
+        **user.model_dump(by_alias=True, exclude={"password_hash"}),
+        "is_admin": application_user_service.is_admin_user(user),
+    }
+
+
 def should_return_json_response() -> bool:
     if request.path.startswith("/api/"):
         return True
@@ -102,7 +112,7 @@ def register() -> str | tuple[str, int] | Response:
     get_or_create_csrf_token()
     logger.info("User registered and logged in: user_identifier=%s", user.identifier)
     if should_return_json_response():
-        return jsonify(user.model_dump(by_alias=True, exclude={"password_hash"})), 201
+        return jsonify(serialise_user_for_response(user)), 201
     flash("Registration successful. Welcome!", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
@@ -133,7 +143,7 @@ def login() -> str | tuple[str, int] | Response:
     get_or_create_csrf_token()
     logger.info("User logged in: user_identifier=%s", authenticated_user.identifier)
     if should_return_json_response():
-        return jsonify(authenticated_user.model_dump(by_alias=True, exclude={"password_hash"})), 200
+        return jsonify(serialise_user_for_response(authenticated_user)), 200
     flash("Logged in successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
@@ -229,7 +239,7 @@ def get_current_user_endpoint() -> tuple[Response, int]:
     user = application_user_service.retrieve_user(user_identifier)
     if not user:
         return jsonify({"error": "User not found."}), 404
-    return jsonify(user.model_dump(by_alias=True, exclude={"password_hash"})), 200
+    return jsonify(serialise_user_for_response(user)), 200
 
 
 @auth_blueprint.route("/api/auth/me", methods=["PUT"])
@@ -258,7 +268,7 @@ def update_current_user_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "User not found."}), 404
 
     session["user_display_name"] = updated_user.display_name or updated_user.email
-    return jsonify(updated_user.model_dump(by_alias=True, exclude={"password_hash"})), 200
+    return jsonify(serialise_user_for_response(updated_user)), 200
 
 @auth_blueprint.route("/profile", methods=["GET"])
 @login_required

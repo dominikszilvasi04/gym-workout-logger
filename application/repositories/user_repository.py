@@ -111,3 +111,36 @@ class UserRepository:
         )
         return update_result.matched_count > 0
 
+    def update_user_role(self, identifier: str, role: str) -> bool:
+        """
+        Updates a user's authorization role.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        cleaned_role = (role or "user").strip().lower() or "user"
+        update_result = self.collection.update_one(
+            {"_id": ObjectId(identifier)},
+            {"$set": {"role": cleaned_role}},
+        )
+        return update_result.matched_count > 0
+
+    def retrieve_all_users(self) -> list[UserDocument]:
+        """
+        Retrieves all users sorted by newest first.
+        """
+        cursor = self.collection.find({}).sort("created_at", -1)
+        users: list[UserDocument] = []
+        for document in cursor:
+            document["_id"] = str(document["_id"])
+            users.append(UserDocument(**document))
+        return users
+
+    def delete_user_by_identifier(self, identifier: str) -> bool:
+        """
+        Hard-deletes a user by MongoDB identifier.
+        """
+        if not ObjectId.is_valid(identifier):
+            return False
+        deletion_result = self.collection.delete_one({"_id": ObjectId(identifier)})
+        return deletion_result.deleted_count > 0
+
