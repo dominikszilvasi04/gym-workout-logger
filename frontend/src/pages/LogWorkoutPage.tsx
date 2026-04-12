@@ -90,6 +90,86 @@ function buildSetFieldKey(localIdentifier: string, setIndex: number, key: keyof 
   return `${localIdentifier}:${setIndex}:${key}`;
 }
 
+function isIOSDevice() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const maxTouchPoints = (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints || 0;
+
+  return /iPad|iPhone|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+}
+
+function normalizeIsoDateValue(rawValue: string) {
+  const trimmedValue = rawValue.trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const matchedValue = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matchedValue) {
+    return "";
+  }
+
+  const year = Number(matchedValue[1]);
+  const month = Number(matchedValue[2]);
+  const day = Number(matchedValue[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return `${matchedValue[1]}-${matchedValue[2]}-${matchedValue[3]}`;
+}
+
+function normalizeTimeValue(rawValue: string) {
+  const trimmedValue = rawValue.trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const matchedValue = trimmedValue.match(/^(\d{1,2})(?::(\d{1,2}))$/);
+  if (!matchedValue) {
+    return "";
+  }
+
+  const hours = Number(matchedValue[1]);
+  const minutes = Number(matchedValue[2]);
+
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return "";
+  }
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+function formatDateInputMask(rawValue: string) {
+  const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 8);
+  if (digitsOnly.length <= 4) {
+    return digitsOnly;
+  }
+  if (digitsOnly.length <= 6) {
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4)}`;
+  }
+  return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 6)}-${digitsOnly.slice(6, 8)}`;
+}
+
+function formatTimeInputMask(rawValue: string) {
+  const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 4);
+  if (digitsOnly.length <= 2) {
+    return digitsOnly;
+  }
+  return `${digitsOnly.slice(0, 2)}:${digitsOnly.slice(2, 4)}`;
+}
+
 export function LogWorkoutPage() {
   const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -111,9 +191,13 @@ export function LogWorkoutPage() {
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
+  const [isIOSFallback, setIsIOSFallback] = useState(false);
   const isEditMode = Boolean(workoutId);
-  const workoutDateTime = `${workoutDate}T${workoutTime}`;
   const shouldUseDraftPersistence = !isEditMode;
+
+  useEffect(() => {
+    setIsIOSFallback(isIOSDevice());
+  }, []);
 
   const readDraftFromStorage = (): WorkoutDraftPayload | null => {
     if (!shouldUseDraftPersistence) {
@@ -659,11 +743,30 @@ export function LogWorkoutPage() {
       return;
     }
 
+    const normalizedDate = normalizeIsoDateValue(workoutDate);
+    const normalizedTime = normalizeTimeValue(workoutTime);
+
+    if (!normalizedDate || !normalizedTime) {
+      setFeedbackType("error");
+      setFeedbackMessage("Use a valid date and time. Date: YYYY-MM-DD, time: HH:MM (24-hour).");
+      return;
+    }
+
+    if (normalizedDate !== workoutDate) {
+      setWorkoutDate(normalizedDate);
+    }
+    if (normalizedTime !== workoutTime) {
+      setWorkoutTime(normalizedTime);
+    }
+
     setLoading(true);
     setFeedbackMessage(null);
 
     try {
-      const dateObject = new Date(workoutDateTime);
+      const dateObject = new Date(`${normalizedDate}T${normalizedTime}`);
+      if (Number.isNaN(dateObject.getTime())) {
+        throw new Error("Invalid workout date or time.");
+      }
       const payload = {
         date_of_workout: dateObject.toISOString(),
         target_muscle_groups: selectedMuscleGroups,
@@ -698,6 +801,12 @@ export function LogWorkoutPage() {
     }
   };
 
+  const fillCurrentDateTime = () => {
+    const now = new Date();
+    setWorkoutDate(format(now, "yyyy-MM-dd"));
+    setWorkoutTime(format(now, "HH:mm"));
+  };
+
   return (
     <ApplicationShell
       title={isEditMode ? "Edit workout" : "Log workout"}
@@ -723,20 +832,79 @@ export function LogWorkoutPage() {
         <div className="mx-auto grid w-full max-w-md grid-cols-1 gap-3 overflow-hidden sm:max-w-none sm:grid-cols-2">
           <InputField
             label="Workout date"
-            type="date"
+            type={isIOSFallback ? "text" : "date"}
             value={workoutDate}
-            onChange={(event) => setWorkoutDate(event.target.value)}
-            className="min-w-0 ios-date-input"
+            onChange={(event) => {
+              if (isIOSFallback) {
+                setWorkoutDate(formatDateInputMask(event.target.value));
+                return;
+              }
+              setWorkoutDate(event.target.value);
+            }}
+            onBlur={() => {
+              if (!isIOSFallback) {
+                return;
+              }
+              const normalizedDate = normalizeIsoDateValue(workoutDate);
+              if (!normalizedDate && workoutDate.trim()) {
+                setFeedbackType("error");
+                setFeedbackMessage("Date format: YYYY-MM-DD.");
+                return;
+              }
+              if (normalizedDate) {
+                setWorkoutDate(normalizedDate);
+              }
+            }}
+            inputMode={isIOSFallback ? "numeric" : undefined}
+            placeholder={isIOSFallback ? "YYYY-MM-DD" : undefined}
+            className="min-w-0"
           />
           <InputField
             label="Workout time"
-            type="time"
+            type={isIOSFallback ? "text" : "time"}
             value={workoutTime}
-            onChange={(event) => setWorkoutTime(event.target.value)}
-            className="min-w-0 ios-date-input"
+            onChange={(event) => {
+              if (isIOSFallback) {
+                setWorkoutTime(formatTimeInputMask(event.target.value));
+                return;
+              }
+              setWorkoutTime(event.target.value);
+            }}
+            onBlur={() => {
+              if (!isIOSFallback) {
+                return;
+              }
+              const normalizedTime = normalizeTimeValue(workoutTime);
+              if (!normalizedTime && workoutTime.trim()) {
+                setFeedbackType("error");
+                setFeedbackMessage("Time format: HH:MM (24-hour).");
+                return;
+              }
+              if (normalizedTime) {
+                setWorkoutTime(normalizedTime);
+              }
+            }}
+            inputMode={isIOSFallback ? "numeric" : undefined}
+            placeholder={isIOSFallback ? "HH:MM" : undefined}
+            className="min-w-0"
           />
         </div>
-        <p className="text-xs text-navy-500">Date and time are separated on mobile so the picker stays readable and aligned.</p>
+        {isIOSFallback ? (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={fillCurrentDateTime}
+              className="touch-target rounded-lg border border-navy-300/70 px-2.5 py-1 text-xs font-semibold text-navy-700 transition-colors hover:bg-navy-100/70"
+            >
+              Use now
+            </button>
+          </div>
+        ) : null}
+        <p className="text-xs text-navy-500">
+          {isIOSFallback
+            ? "iPhone mode: type numbers only. Date auto-formats to YYYY-MM-DD and time to HH:MM."
+            : "Date and time are separated on mobile so the picker stays readable and aligned."}
+        </p>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">

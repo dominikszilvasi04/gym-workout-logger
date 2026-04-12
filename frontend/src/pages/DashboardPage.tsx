@@ -10,6 +10,57 @@ import { Tabs } from "../components/common/Tabs";
 import { exerciseAPI, goalAPI, workoutAPI } from "../services/api";
 import type { AnalyticsData, ExerciseDefinition, ExerciseGoalProgress, Workout } from "../types";
 
+function isIOSDevice() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const maxTouchPoints = (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints || 0;
+
+  return /iPad|iPhone|iPod/.test(userAgent) || (platform === "MacIntel" && maxTouchPoints > 1);
+}
+
+function normalizeIsoDateValue(rawValue: string) {
+  const trimmedValue = rawValue.trim();
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const matchedValue = trimmedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matchedValue) {
+    return "";
+  }
+
+  const year = Number(matchedValue[1]);
+  const month = Number(matchedValue[2]);
+  const day = Number(matchedValue[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return `${matchedValue[1]}-${matchedValue[2]}-${matchedValue[3]}`;
+}
+
+function formatDateInputMask(rawValue: string) {
+  const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 8);
+  if (digitsOnly.length <= 4) {
+    return digitsOnly;
+  }
+  if (digitsOnly.length <= 6) {
+    return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4)}`;
+  }
+  return `${digitsOnly.slice(0, 4)}-${digitsOnly.slice(4, 6)}-${digitsOnly.slice(6, 8)}`;
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -25,6 +76,7 @@ export function DashboardPage() {
   const [deletingGoalIdentifier, setDeletingGoalIdentifier] = useState<string | null>(null);
   const [editingGoalIdentifier, setEditingGoalIdentifier] = useState<string | null>(null);
   const [savingGoalIdentifier, setSavingGoalIdentifier] = useState<string | null>(null);
+  const [isIOSFallback, setIsIOSFallback] = useState(false);
   const [goalFilter, setGoalFilter] = useState<"all" | "in_progress" | "achieved">("all");
   const [goalForm, setGoalForm] = useState({
     exercise_definition_identifier: "",
@@ -38,6 +90,10 @@ export function DashboardPage() {
     target_repetitions: "",
     target_date: "",
   });
+
+  useEffect(() => {
+    setIsIOSFallback(isIOSDevice());
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -209,6 +265,14 @@ export function DashboardPage() {
 
     try {
       setCreatingGoal(true);
+      const normalizedTargetDate = goalForm.target_date.trim()
+        ? normalizeIsoDateValue(goalForm.target_date)
+        : "";
+      if (goalForm.target_date.trim() && !normalizedTargetDate) {
+        setGoalFeedback("Date format must be YYYY-MM-DD.");
+        return;
+      }
+
       const payload: {
         exercise_name: string;
         exercise_definition_identifier?: string;
@@ -221,8 +285,8 @@ export function DashboardPage() {
         target_weight_in_kilograms: targetWeight,
         target_repetitions: targetRepetitions,
       };
-      if (goalForm.target_date.trim()) {
-        payload.target_date = goalForm.target_date.trim();
+      if (normalizedTargetDate) {
+        payload.target_date = normalizedTargetDate;
       }
       await goalAPI.create(payload);
       const refreshedGoals = await goalAPI.getAll();
@@ -279,12 +343,20 @@ export function DashboardPage() {
 
     try {
       setSavingGoalIdentifier(goal._id);
+      const normalizedTargetDate = editGoalForm.target_date.trim()
+        ? normalizeIsoDateValue(editGoalForm.target_date)
+        : "";
+      if (editGoalForm.target_date.trim() && !normalizedTargetDate) {
+        setGoalFeedback("Date format must be YYYY-MM-DD.");
+        return;
+      }
+
       await goalAPI.update(goal._id, {
         exercise_name: goal.exercise_name,
         exercise_definition_identifier: goal.exercise_definition_identifier,
         target_weight_in_kilograms: targetWeight,
         target_repetitions: targetRepetitions,
-        ...(editGoalForm.target_date.trim() ? { target_date: editGoalForm.target_date.trim() } : {}),
+        ...(normalizedTargetDate ? { target_date: normalizedTargetDate } : {}),
       });
       const refreshedGoals = await goalAPI.getAll();
       setGoals(refreshedGoals);
@@ -295,6 +367,10 @@ export function DashboardPage() {
     } finally {
       setSavingGoalIdentifier(null);
     }
+  };
+
+  const fillTodayGoalDate = () => {
+    setGoalForm((current) => ({ ...current, target_date: format(new Date(), "yyyy-MM-dd") }));
   };
 
   return (
@@ -477,12 +553,43 @@ export function DashboardPage() {
                 }
               />
             </div>
-            <input
-              className="touch-target ios-date-input block h-11 w-full min-w-0 max-w-full rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 pr-10 text-base text-left text-navy-900 leading-normal focus:outline-none focus:ring-2 focus:ring-primary-600/80 [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-calendar-picker-indicator]:ml-1"
-              type="date"
-              value={goalForm.target_date}
-              onChange={(event) => setGoalForm((current) => ({ ...current, target_date: event.target.value }))}
-            />
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <input
+                className="touch-target block h-11 w-full min-w-0 max-w-full rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 pr-10 text-base text-left text-navy-900 leading-normal focus:outline-none focus:ring-2 focus:ring-primary-600/80 [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-calendar-picker-indicator]:ml-1"
+                type={isIOSFallback ? "text" : "date"}
+                value={goalForm.target_date}
+                onChange={(event) =>
+                  setGoalForm((current) => ({
+                    ...current,
+                    target_date: isIOSFallback ? formatDateInputMask(event.target.value) : event.target.value,
+                  }))
+                }
+                onBlur={() => {
+                  if (!isIOSFallback) {
+                    return;
+                  }
+                  const normalizedDate = normalizeIsoDateValue(goalForm.target_date);
+                  if (!normalizedDate && goalForm.target_date.trim()) {
+                    setGoalFeedback("Date format must be YYYY-MM-DD.");
+                    return;
+                  }
+                  if (normalizedDate) {
+                    setGoalForm((current) => ({ ...current, target_date: normalizedDate }));
+                  }
+                }}
+                inputMode={isIOSFallback ? "numeric" : undefined}
+                placeholder={isIOSFallback ? "YYYY-MM-DD" : undefined}
+              />
+              {isIOSFallback ? (
+                <button
+                  type="button"
+                  onClick={fillTodayGoalDate}
+                  className="touch-target rounded-lg border border-navy-300/70 px-2 text-xs font-semibold text-navy-700 transition-colors hover:bg-navy-100/70"
+                >
+                  Today
+                </button>
+              ) : null}
+            </div>
             <Button isLoading={creatingGoal} onClick={() => void createGoal()}>
               Save goal
             </Button>
@@ -559,9 +666,29 @@ export function DashboardPage() {
                             />
                             <input
                               className="touch-target col-span-2 h-10 rounded-lg border border-navy-300/70 bg-navy-50/90 px-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
-                              type="date"
+                              type={isIOSFallback ? "text" : "date"}
                               value={editGoalForm.target_date}
-                              onChange={(event) => setEditGoalForm((current) => ({ ...current, target_date: event.target.value }))}
+                              onChange={(event) =>
+                                setEditGoalForm((current) => ({
+                                  ...current,
+                                  target_date: isIOSFallback ? formatDateInputMask(event.target.value) : event.target.value,
+                                }))
+                              }
+                              onBlur={() => {
+                                if (!isIOSFallback) {
+                                  return;
+                                }
+                                const normalizedDate = normalizeIsoDateValue(editGoalForm.target_date);
+                                if (!normalizedDate && editGoalForm.target_date.trim()) {
+                                  setGoalFeedback("Date format must be YYYY-MM-DD.");
+                                  return;
+                                }
+                                if (normalizedDate) {
+                                  setEditGoalForm((current) => ({ ...current, target_date: normalizedDate }));
+                                }
+                              }}
+                              inputMode={isIOSFallback ? "numeric" : undefined}
+                              placeholder={isIOSFallback ? "YYYY-MM-DD" : undefined}
                             />
                           </div>
                         ) : (
