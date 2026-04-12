@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Award, CalendarDays, Flame, LogOut, PencilLine, Repeat2, Scale, UserCircle2 } from "lucide-react";
+import { Award, CalendarDays, Flame, LogOut, PencilLine, Repeat2, Scale, Trash2, UserCircle2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
@@ -30,6 +30,7 @@ export function ProfilePage() {
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
+  const [deletingWorkoutIdentifier, setDeletingWorkoutIdentifier] = useState<string | null>(null);
 
   useEffect(() => {
     setDisplayNameDraft(user?.display_name ?? "");
@@ -97,6 +98,23 @@ export function ProfilePage() {
       setProfileFeedback(error instanceof Error ? error.message : "Unable to update profile right now.");
     } finally {
       setSavingProfile(false);
+    }
+  };
+
+  const deleteWorkoutFromHistory = async (workout: Workout) => {
+    const confirmed = window.confirm("Delete this workout session permanently?");
+    if (!confirmed) {
+      return;
+    }
+    try {
+      setDeletingWorkoutIdentifier(workout._id);
+      await workoutAPI.delete(workout._id);
+      setRecentWorkouts((current) => current.filter((entry) => entry._id !== workout._id));
+      setProfileFeedback("Workout deleted.");
+    } catch {
+      setProfileFeedback("Unable to delete workout right now.");
+    } finally {
+      setDeletingWorkoutIdentifier(null);
     }
   };
 
@@ -243,24 +261,39 @@ export function ProfilePage() {
               );
 
               return (
-                <button
-                  key={workout._id}
-                  onClick={() => navigate(`/workouts/${workout._id}`)}
-                  className="touch-target block w-full rounded-2xl text-left"
-                >
-                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md cursor-pointer">
+                <div key={workout._id} className="touch-target block w-full rounded-2xl text-left">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/workouts/${workout._id}`)}
+                        className="text-left"
+                      >
                         <p className="font-display text-lg font-semibold text-navy-950">
                           {format(new Date(workout.date_of_workout), "EEE d MMM")}
                         </p>
                         <p className="mt-1 text-sm text-navy-600">
                           {workout.exercises.length} exercises · {Math.round(totalVolume)} kg
                         </p>
+                      </button>
+                      <div className="flex items-start gap-2">
+                        <Badge colour="primary" size="small">
+                          Logged
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<Trash2 size={14} />}
+                          isLoading={deletingWorkoutIdentifier === workout._id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteWorkoutFromHistory(workout);
+                          }}
+                          className="border border-red-300/50 text-red-200 hover:bg-red-300/20"
+                        >
+                          Delete
+                        </Button>
                       </div>
-                      <Badge colour="primary" size="small">
-                        Logged
-                      </Badge>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {workout.target_muscle_groups.slice(0, 3).map((muscleGroup) => (
@@ -270,7 +303,7 @@ export function ProfilePage() {
                       ))}
                     </div>
                   </Card>
-                </button>
+                </div>
               );
             })
           )}

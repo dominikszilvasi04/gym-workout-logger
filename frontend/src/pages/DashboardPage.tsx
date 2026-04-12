@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, format } from "date-fns";
-import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Repeat2, Scale, Sparkles, Wand2 } from "lucide-react";
+import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Repeat2, Scale, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
@@ -16,6 +16,8 @@ export function DashboardPage() {
   const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
   const [selectedRange, setSelectedRange] = useState("30");
   const [loading, setLoading] = useState(true);
+  const [deletingWorkoutIdentifier, setDeletingWorkoutIdentifier] = useState<string | null>(null);
+  const [sessionFeedback, setSessionFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -116,6 +118,25 @@ export function DashboardPage() {
   }, [analyticsData, recentWorkouts]);
 
   const rangeLabel = selectedRange === "7" ? "This week" : selectedRange === "30" ? "This month" : "This quarter";
+
+  const deleteRecentWorkout = async (workout: Workout) => {
+    const confirmed = window.confirm("Delete this workout session permanently?");
+    if (!confirmed) {
+      return;
+    }
+    try {
+      setDeletingWorkoutIdentifier(workout._id);
+      await workoutAPI.delete(workout._id);
+      setRecentWorkouts((current) => current.filter((entry) => entry._id !== workout._id));
+      const refreshedAnalytics = await workoutAPI.getAnalytics(Number(selectedRange));
+      setAnalyticsData(refreshedAnalytics);
+      setSessionFeedback("Workout deleted.");
+    } catch {
+      setSessionFeedback("Unable to delete workout right now.");
+    } finally {
+      setDeletingWorkoutIdentifier(null);
+    }
+  };
 
   return (
     <ApplicationShell title="Dashboard">
@@ -253,6 +274,9 @@ export function DashboardPage() {
           <p className="text-sm text-navy-500">Most recent ten</p>
         </div>
         <div className="mt-3 space-y-3">
+          {sessionFeedback ? (
+            <p className="text-sm text-navy-600" role="status" aria-live="polite">{sessionFeedback}</p>
+          ) : null}
           {recentWorkouts.length === 0 && !loading ? (
             <Card border className="border-dashed border-navy-300 bg-navy-100/80">
               <p className="text-sm text-navy-700">No workouts yet. Use the Log tab to create your first session.</p>
@@ -261,14 +285,14 @@ export function DashboardPage() {
             recentWorkouts.map((workout) => {
               const totalSets = workout.exercises.reduce((accumulator, exercise) => accumulator + exercise.sets.length, 0);
               return (
-                <button
-                  key={workout._id}
-                  onClick={() => navigate(`/workouts/${workout._id}`)}
-                  className="touch-target block w-full rounded-2xl text-left"
-                >
-                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md cursor-pointer">
+                <div key={workout._id} className="touch-target block w-full rounded-2xl text-left">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/workouts/${workout._id}`)}
+                        className="min-w-0 flex-1 text-left"
+                      >
                         <p className="font-display text-lg font-semibold text-navy-950">{format(new Date(workout.date_of_workout), "EEE d MMM")}</p>
                         <p className="mt-1 text-sm text-navy-600">
                           {workout.exercises.length} exercises · {totalSets} sets
@@ -280,16 +304,29 @@ export function DashboardPage() {
                             </Badge>
                           ))}
                         </div>
-                      </div>
+                      </button>
                       <div className="flex shrink-0 flex-col items-end gap-2">
                         <Badge colour="primary" size="small">
                           Session
                         </Badge>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<Trash2 size={14} />}
+                          isLoading={deletingWorkoutIdentifier === workout._id}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void deleteRecentWorkout(workout);
+                          }}
+                          className="border border-red-300/50 text-red-200 hover:bg-red-300/20"
+                        >
+                          Delete
+                        </Button>
                         <ArrowRight size={16} className="text-primary-700" />
                       </div>
                     </div>
                   </Card>
-                </button>
+                </div>
               );
             })
           )}
