@@ -24,6 +24,16 @@ interface LastUsedSetValues {
   rate_of_perceived_exertion?: number;
 }
 
+interface WorkoutDraftPayload {
+  workoutDate: string;
+  workoutTime: string;
+  selectedMuscleGroups: string[];
+  exerciseEntries: ExerciseEntry[];
+  savedAt: string;
+}
+
+const WORKOUT_DRAFT_STORAGE_KEY = "gym_workout_logger_active_workout_draft";
+
 const targetMuscleGroups = [
   "Push",
   "Pull",
@@ -103,6 +113,73 @@ export function LogWorkoutPage() {
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
   const isEditMode = Boolean(workoutId);
   const workoutDateTime = `${workoutDate}T${workoutTime}`;
+  const shouldUseDraftPersistence = !isEditMode;
+
+  const readDraftFromStorage = (): WorkoutDraftPayload | null => {
+    if (!shouldUseDraftPersistence) {
+      return null;
+    }
+    try {
+      const rawValue = window.localStorage.getItem(WORKOUT_DRAFT_STORAGE_KEY);
+      if (!rawValue) {
+        return null;
+      }
+      const parsedValue = JSON.parse(rawValue) as WorkoutDraftPayload;
+      if (
+        !parsedValue ||
+        typeof parsedValue.workoutDate !== "string" ||
+        typeof parsedValue.workoutTime !== "string" ||
+        !Array.isArray(parsedValue.selectedMuscleGroups) ||
+        !Array.isArray(parsedValue.exerciseEntries)
+      ) {
+        return null;
+      }
+      return parsedValue;
+    } catch {
+      return null;
+    }
+  };
+
+  const saveDraftToStorage = () => {
+    if (!shouldUseDraftPersistence) {
+      return;
+    }
+    const payload: WorkoutDraftPayload = {
+      workoutDate,
+      workoutTime,
+      selectedMuscleGroups,
+      exerciseEntries,
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      window.localStorage.setItem(WORKOUT_DRAFT_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignore storage write errors (quota/private mode/etc)
+    }
+  };
+
+  const clearDraftFromStorage = () => {
+    if (!shouldUseDraftPersistence) {
+      return;
+    }
+    try {
+      window.localStorage.removeItem(WORKOUT_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage remove errors
+    }
+  };
+
+  const discardDraftAndReset = () => {
+    clearDraftFromStorage();
+    setWorkoutDate(format(new Date(), 'yyyy-MM-dd'));
+    setWorkoutTime(format(new Date(), 'HH:mm'));
+    setSelectedMuscleGroups([]);
+    setExerciseEntries([]);
+    setActiveTemplateIdentifier("");
+    setSetDraftValues({});
+    setFeedbackType("success");
+    setFeedbackMessage("Draft discarded.");
+  };
 
   const applyWorkoutToForm = (workout: Workout) => {
     setSelectedMuscleGroups(workout.target_muscle_groups || []);
@@ -297,10 +374,58 @@ export function LogWorkoutPage() {
           console.error('Failed to load template:', err);
         }
       }
+
+      const hasExplicitSource = Boolean(
+        searchParams.get("template_id") ||
+        searchParams.get("template") ||
+        searchParams.get("repeat") ||
+        searchParams.get("source")
+      );
+      if (!isEditMode && !hasExplicitSource) {
+        const draft = readDraftFromStorage();
+        if (draft) {
+          setWorkoutDate(draft.workoutDate);
+          setWorkoutTime(draft.workoutTime);
+          setSelectedMuscleGroups(draft.selectedMuscleGroups);
+          setExerciseEntries(draft.exerciseEntries);
+          setFeedbackType("success");
+          setFeedbackMessage("Recovered your workout draft.");
+        }
+      }
     };
 
     void loadInitialData();
   }, [isEditMode, searchParams, workoutId]);
+
+  useEffect(() => {
+    if (!shouldUseDraftPersistence) {
+      return;
+    }
+    const autoSaveTimer = window.setTimeout(() => {
+      saveDraftToStorage();
+    }, 500);
+    return () => {
+      window.clearTimeout(autoSaveTimer);
+    };
+  }, [shouldUseDraftPersistence, workoutDate, workoutTime, selectedMuscleGroups, exerciseEntries]);
+
+  useEffect(() => {
+    if (!shouldUseDraftPersistence) {
+      return;
+    }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (exerciseEntries.length === 0) {
+        return;
+      }
+      saveDraftToStorage();
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [shouldUseDraftPersistence, exerciseEntries]);
 
   const exercisesByMuscleGroup = useMemo(() => {
     const grouped: Record<string, ExerciseDefinition[]> = {};
@@ -556,6 +681,7 @@ export function LogWorkoutPage() {
         navigate(`/workouts/${workoutId}`);
       } else {
         await workoutAPI.create(payload);
+        clearDraftFromStorage();
         setFeedbackType("success");
         setFeedbackMessage("Workout saved successfully.");
         setExerciseEntries([]);
@@ -690,6 +816,21 @@ export function LogWorkoutPage() {
           </div>
         </div>
       </Card>
+
+      {!isEditMode ? (
+        <Card border className="transition-shadow duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">Draft safety</p>
+              <p className="mt-1 text-sm text-navy-700">Changes auto-save while you log so refreshes do not lose progress.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={saveDraftToStorage}>Save draft now</Button>
+              <Button size="sm" variant="ghost" onClick={discardDraftAndReset}>Discard draft</Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
 
       <div className="space-y-3">
         {exerciseEntries.length === 0 ? (

@@ -29,6 +29,8 @@
             </div>
             <div class="card-body">
                 <p class="mb-3"><strong>Target Muscle Groups:</strong> {{ workout.target_muscle_groups | join(', ') }}</p>
+                <p class="mb-3"><strong>Session Tags:</strong> {{ workout.session_tags | join(', ') if workout.session_tags else 'None' }}</p>
+                <p class="mb-3"><strong>Workout Notes:</strong> {{ workout.workout_notes if workout.workout_notes else 'None' }}</p>
                 <p class="mb-2"><strong>Total Exercises:</strong> {{ workout.exercises | length }}</p>
                 <p class="mb-2"><strong>Total Session Volume:</strong> {{ '%.2f' | format(session_summary.total_volume) }} kg</p>
                 <p class="mb-2"><strong>Total Sets:</strong> {{ session_summary.total_sets }}</p>

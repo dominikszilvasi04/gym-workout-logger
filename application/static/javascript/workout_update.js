@@ -90,6 +90,12 @@ document.addEventListener("DOMContentLoaded", async function() {
     workout_update_form.addEventListener("submit", async function(event) {
         event.preventDefault();
         const muscles_array = document.getElementById("target_muscle_groups").value.split(",").map(s => s.trim()).filter(item => item.length > 0);
+        const session_tags_array = (document.getElementById("session_tags")?.value || "").split(",").map(function(tag) {
+            return tag.trim();
+        }).filter(function(tag) {
+            return tag.length > 0;
+        });
+        const workout_notes_value = (document.getElementById("workout_notes")?.value || "").trim();
         const exercise_blocks = document.querySelectorAll(".exercise-block");
         const exercises_payload = [];
         exercise_blocks.forEach(function(block) {
@@ -117,6 +123,8 @@ document.addEventListener("DOMContentLoaded", async function() {
                 },
                 body: JSON.stringify({
                     target_muscle_groups: muscles_array,
+                    session_tags: session_tags_array,
+                    workout_notes: workout_notes_value || null,
                     exercises: exercises_payload
                 })
             });

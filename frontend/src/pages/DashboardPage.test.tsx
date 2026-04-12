@@ -6,8 +6,16 @@ import type { AnalyticsData, Workout } from "../types";
 
 const getAnalyticsMock = vi.fn();
 const getAllMock = vi.fn();
+const getGoalsMock = vi.fn();
+const getExercisesMock = vi.fn();
 
 vi.mock("../services/api", () => ({
+  exerciseAPI: {
+    getAll: (...args: unknown[]) => getExercisesMock(...args),
+  },
+  goalAPI: {
+    getAll: (...args: unknown[]) => getGoalsMock(...args),
+  },
   workoutAPI: {
     getAnalytics: (...args: unknown[]) => getAnalyticsMock(...args),
     getAll: (...args: unknown[]) => getAllMock(...args),
@@ -60,8 +68,12 @@ describe("DashboardPage", () => {
   beforeEach(() => {
     getAnalyticsMock.mockReset();
     getAllMock.mockReset();
+    getGoalsMock.mockReset();
+    getExercisesMock.mockReset();
     getAnalyticsMock.mockResolvedValue(analyticsFixture);
     getAllMock.mockResolvedValue({ workouts: workoutsFixture, total: workoutsFixture.length });
+    getGoalsMock.mockResolvedValue([]);
+    getExercisesMock.mockResolvedValue([]);
   });
 
   it("loads analytics and recent sessions", async () => {
@@ -74,6 +86,8 @@ describe("DashboardPage", () => {
     await waitFor(() => {
       expect(getAnalyticsMock).toHaveBeenCalledWith(30);
       expect(getAllMock).toHaveBeenCalledWith(1, 10);
+      expect(getGoalsMock).toHaveBeenCalled();
+      expect(getExercisesMock).toHaveBeenCalled();
     });
 
     expect(await screen.findByText(/today cockpit/i)).toBeInTheDocument();

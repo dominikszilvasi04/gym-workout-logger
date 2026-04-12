@@ -87,6 +87,7 @@ function renderTemplateMode() {
 
 describe("LogWorkoutPage", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     exerciseGetAllMock.mockReset();
     templateGetAllMock.mockReset();
     templateGetByIdMock.mockReset();
@@ -104,6 +105,33 @@ describe("LogWorkoutPage", () => {
     workoutUpdateMock.mockResolvedValue(undefined);
     workoutGetByIdMock.mockResolvedValue(null);
     workoutGetLastUsedValuesMock.mockResolvedValue({});
+  });
+
+  it("recovers a saved draft from local storage", async () => {
+    window.localStorage.setItem(
+      "gym_workout_logger_active_workout_draft",
+      JSON.stringify({
+        workoutDate: "2026-04-11",
+        workoutTime: "09:15",
+        selectedMuscleGroups: ["Push"],
+        exerciseEntries: [
+          {
+            localIdentifier: "draft-entry-1",
+            exerciseName: "Bench Press",
+            exerciseDefinitionIdentifier: "exercise-1",
+            sets: [{ repetitions: 8, weight_in_kilograms: 75, rate_of_perceived_exertion: 8 }],
+          },
+        ],
+        savedAt: "2026-04-11T09:16:00.000Z",
+      })
+    );
+
+    renderCreateMode();
+
+    expect(await screen.findByText(/recovered your workout draft/i)).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2026-04-11")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("09:15")).toBeInTheDocument();
+    expect(screen.getByText(/bench press/i)).toBeInTheDocument();
   });
 
   it("loads catalogue and lets user add an exercise", async () => {

@@ -333,8 +333,16 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     function populate_form_from_previous_workout(previous_workout) {
         const target_muscle_groups_input = document.getElementById("target_muscle_groups");
+        const session_tags_input = document.getElementById("session_tags");
+        const workout_notes_input = document.getElementById("workout_notes");
         if (target_muscle_groups_input) {
             target_muscle_groups_input.value = (previous_workout.target_muscle_groups || []).join(", ");
+        }
+        if (session_tags_input) {
+            session_tags_input.value = (previous_workout.session_tags || []).join(", ");
+        }
+        if (workout_notes_input) {
+            workout_notes_input.value = String(previous_workout.workout_notes || "");
         }
         exercises_container.innerHTML = "";
         (previous_workout.exercises || []).forEach(function(previous_exercise) {
@@ -497,6 +505,13 @@ document.addEventListener("DOMContentLoaded", async function() {
         }).filter(function(muscle_group) {
             return muscle_group.length > 0;
         });
+        const session_tags_input = (document.getElementById("session_tags")?.value || "").trim();
+        const session_tags_array = session_tags_input.split(",").map(function(session_tag) {
+            return session_tag.trim();
+        }).filter(function(session_tag) {
+            return session_tag.length > 0;
+        });
+        const workout_notes = (document.getElementById("workout_notes")?.value || "").trim();
 
         const parsed_exercises_list = [];
         exercises_container.querySelectorAll(".exercise-block").forEach(function(exercise_block) {
@@ -520,6 +535,8 @@ document.addEventListener("DOMContentLoaded", async function() {
         return {
             date_of_workout: date_of_workout_value,
             target_muscle_groups: target_muscle_groups_array,
+            session_tags: session_tags_array,
+            workout_notes: workout_notes || null,
             exercises: parsed_exercises_list,
         };
     }

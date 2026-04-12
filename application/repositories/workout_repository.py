@@ -143,6 +143,8 @@ class WorkoutRepository:
         update_payload = {
             "$set": {
                 "target_muscle_groups": updated_workout.target_muscle_groups,
+                "workout_notes": updated_workout.workout_notes,
+                "session_tags": updated_workout.session_tags,
                 "exercises": [exercise.model_dump() for exercise in updated_workout.exercises]
             }
         }

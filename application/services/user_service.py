@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash
 from application.repositories.user_repository import UserRepository
 from application.repositories.workout_repository import WorkoutRepository
 from application.repositories.workout_template_repository import WorkoutTemplateRepository
+from application.repositories.exercise_goal_repository import ExerciseGoalRepository
 from application.models.user import UserDocument
 
 logger = logging.getLogger(__name__)
@@ -26,10 +27,12 @@ class UserService:
         user_repository: UserRepository,
         workout_repository: Optional[WorkoutRepository] = None,
         workout_template_repository: Optional[WorkoutTemplateRepository] = None,
+        exercise_goal_repository: Optional[ExerciseGoalRepository] = None,
     ) -> None:
         self.user_repository = user_repository
         self.workout_repository = workout_repository
         self.workout_template_repository = workout_template_repository
+        self.exercise_goal_repository = exercise_goal_repository
 
     def get_admin_email_allowlist(self) -> set[str]:
         """
@@ -255,11 +258,12 @@ class UserService:
         user = self.retrieve_user(identifier)
         if not user or not user.identifier:
             return None
-        if self.workout_repository is None or self.workout_template_repository is None:
+        if self.workout_repository is None or self.workout_template_repository is None or self.exercise_goal_repository is None:
             raise RuntimeError("Cascade deletion repositories are not configured.")
 
         deleted_workouts = self.workout_repository.delete_workouts_by_user_identifier(user.identifier)
         deleted_templates = self.workout_template_repository.delete_templates_by_user_identifier(user.identifier)
+        deleted_goals = self.exercise_goal_repository.delete_goals_by_user_identifier(user.identifier)
         deleted_user = self.user_repository.delete_user_by_identifier(user.identifier)
 
         if not deleted_user:
@@ -269,6 +273,7 @@ class UserService:
             "user_identifier": user.identifier,
             "deleted_workouts": deleted_workouts,
             "deleted_templates": deleted_templates,
+            "deleted_goals": deleted_goals,
         }
 
     def delete_all_users_and_related_data(self) -> dict[str, int]:
@@ -279,6 +284,7 @@ class UserService:
         deleted_user_count = 0
         deleted_workout_count = 0
         deleted_template_count = 0
+        deleted_goal_count = 0
 
         for user in users:
             if not user.identifier:
@@ -289,9 +295,11 @@ class UserService:
             deleted_user_count += 1
             deleted_workout_count += int(deletion_summary.get("deleted_workouts", 0))
             deleted_template_count += int(deletion_summary.get("deleted_templates", 0))
+            deleted_goal_count += int(deletion_summary.get("deleted_goals", 0))
 
         return {
             "deleted_users": deleted_user_count,
             "deleted_workouts": deleted_workout_count,
             "deleted_templates": deleted_template_count,
+            "deleted_goals": deleted_goal_count,
         }

@@ -219,9 +219,92 @@
     </div>
 </div>
 
+<div class="row mb-5 g-4">
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Set a Strength Goal</h5>
+            </div>
+            <div class="card-body">
+                <form id="create_goal_form" class="row g-3" novalidate>
+                    <div class="col-12">
+                        <label for="goal_exercise_name" class="form-label">Exercise</label>
+                        <input type="text" id="goal_exercise_name" class="form-control" placeholder="Bench Press" required>
+                    </div>
+                    <div class="col-6">
+                        <label for="goal_target_weight" class="form-label">Target Weight (kg)</label>
+                        <input type="number" id="goal_target_weight" class="form-control" min="0.5" step="0.5" required>
+                    </div>
+                    <div class="col-6">
+                        <label for="goal_target_repetitions" class="form-label">Target Reps</label>
+                        <input type="number" id="goal_target_repetitions" class="form-control" min="1" step="1" required>
+                    </div>
+                    <div class="col-12">
+                        <label for="goal_target_date" class="form-label">Target Date (Optional)</label>
+                        <input type="date" id="goal_target_date" class="form-control">
+                    </div>
+                    <div class="col-12 d-grid">
+                        <button type="submit" class="btn btn-primary">Save Goal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Goal Progress</h5>
+                <small class="text-muted" id="goal_summary_text">0 goals</small>
+            </div>
+            <div class="card-body">
+                <div id="goal_progress_list" class="d-grid gap-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <div class="col-12">
         <h4 class="mb-3">Recent Workout History</h4>
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_start_date" class="form-label">Start Date</label>
+                        <input type="date" id="history_start_date" class="form-control">
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_end_date" class="form-label">End Date</label>
+                        <input type="date" id="history_end_date" class="form-control">
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_exercise_filter" class="form-label">Exercise</label>
+                        <input type="text" id="history_exercise_filter" class="form-control" placeholder="Bench Press">
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_muscle_filter" class="form-label">Muscle Group</label>
+                        <input type="text" id="history_muscle_filter" class="form-control" placeholder="Chest">
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_session_tag_filter" class="form-label">Session Tag</label>
+                        <input type="text" id="history_session_tag_filter" class="form-control" placeholder="Deload">
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <label for="history_page_size" class="form-label">Rows Per Page</label>
+                        <select id="history_page_size" class="form-select">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <button type="button" class="btn btn-primary" id="apply_history_filters_button">Apply Filters</button>
+                    <button type="button" class="btn btn-outline-secondary" id="reset_history_filters_button">Clear Filters</button>
+                    <div class="ms-auto text-muted small align-self-center" id="history_results_summary">Showing 0 of 0 workouts</div>
+                </div>
+            </div>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover table-bordered bg-white shadow-sm">
                 <thead class="table-light">
@@ -232,7 +315,7 @@
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="dashboard_workout_history_body">
                     {% for workout in workouts %}
                     <tr>
                         <td>
@@ -253,13 +336,18 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted">
+                        <td colspan="4" class="text-center text-muted" id="dashboard_workout_history_empty_row">
                             No workout history found. Time to hit the gym!
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <button type="button" class="btn btn-outline-secondary" id="history_previous_page_button">Previous</button>
+            <span class="small text-muted" id="history_pagination_status">Page 1</span>
+            <button type="button" class="btn btn-outline-secondary" id="history_next_page_button">Next</button>
         </div>
     </div>
 </div>
@@ -268,4 +356,6 @@
 {% block javascript_scripts %}
 <script src="{{ url_for('static', filename='javascript/dashboard_visualisation.js') }}"></script>
 <script src="{{ url_for('static', filename='javascript/dashboard_actions.js') }}"></script>
+<script src="{{ url_for('static', filename='javascript/dashboard_goals.js') }}"></script>
+<script src="{{ url_for('static', filename='javascript/dashboard_history.js') }}"></script>
 {% endblock %}

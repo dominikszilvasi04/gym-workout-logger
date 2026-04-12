@@ -2,6 +2,7 @@
 Controller layer for handling workout-related HTTP requests and web views.
 """
 import logging
+from datetime import datetime
 from pathlib import Path
 from flask import Blueprint, render_template, request, jsonify, Response, session, current_app
 from flask import send_from_directory
@@ -9,8 +10,10 @@ from application.authentication import login_required
 from application.security import limiter
 from application.services import application_workout_service, application_workout_template_service
 from application.services import application_exercise_definition_service, application_user_service
+from application.services import application_exercise_goal_service
 from application.models.workout import WorkoutDocument
 from application.models.workout_template import WorkoutTemplateDocument
+from application.models.exercise_goal import ExerciseGoalDocument
 from pydantic import ValidationError
 
 workout_blueprint = Blueprint("workout_controller", __name__, template_folder="../templates")
@@ -93,6 +96,7 @@ def retrieve_dashboard_initial_data_endpoint() -> tuple[Response, int]:
         )
         templates = application_workout_template_service.retrieve_templates(user_identifier=user_identifier)
         exercises = application_exercise_definition_service.retrieve_available_exercises()
+        goals = application_exercise_goal_service.build_goal_progress_payload(user_identifier=user_identifier)
     except RuntimeError:
         logger.exception("Dashboard initial data request failed because the database client is not initialised.")
         return jsonify({"error": "Database unavailable."}), 503
@@ -102,6 +106,7 @@ def retrieve_dashboard_initial_data_endpoint() -> tuple[Response, int]:
         "recent_workouts": [workout.model_dump(by_alias=True) for workout in recent_workouts],
         "templates": [template.model_dump(by_alias=True) for template in templates],
         "exercises": [exercise.model_dump(by_alias=True) for exercise in exercises],
+        "goals": goals,
     }
     return jsonify(payload), 200
 
@@ -114,6 +119,28 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
     page_size = min(max(request.args.get("limit", default=20, type=int), 1), 100)
     sort_field = (request.args.get("sort", default="date_of_workout", type=str) or "date_of_workout").strip()
     sort_order = (request.args.get("order", default="desc", type=str) or "desc").strip().lower()
+    requested_exercise_name = (request.args.get("exercise_name", default="", type=str) or "").strip().lower()
+    requested_target_muscle_group = (request.args.get("target_muscle_group", default="", type=str) or "").strip().lower()
+    requested_session_tag = (request.args.get("session_tag", default="", type=str) or "").strip().lower()
+    start_date_text = (request.args.get("start_date", default="", type=str) or "").strip()
+    end_date_text = (request.args.get("end_date", default="", type=str) or "").strip()
+
+    start_date = None
+    if start_date_text:
+        try:
+            start_date = datetime.strptime(start_date_text, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "Invalid start_date format. Expected YYYY-MM-DD."}), 400
+
+    end_date = None
+    if end_date_text:
+        try:
+            end_date = datetime.strptime(end_date_text, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"error": "Invalid end_date format. Expected YYYY-MM-DD."}), 400
+
+    if start_date and end_date and start_date > end_date:
+        return jsonify({"error": "start_date cannot be greater than end_date."}), 400
 
     try:
         workouts = application_workout_service.retrieve_workout_history(user_identifier=user_identifier)
@@ -129,7 +156,49 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
             reverse=reverse_sort,
         )
 
+    if requested_exercise_name:
+        workouts = [
+            workout
+            for workout in workouts
+            if any(
+                requested_exercise_name in (exercise.exercise_name or "").strip().lower()
+                for exercise in workout.exercises
+            )
+        ]
+
+    if requested_target_muscle_group:
+        workouts = [
+            workout
+            for workout in workouts
+            if any(
+                requested_target_muscle_group in (muscle_group or "").strip().lower()
+                for muscle_group in workout.target_muscle_groups
+            )
+        ]
+
+    if requested_session_tag:
+        workouts = [
+            workout
+            for workout in workouts
+            if any(
+                requested_session_tag in (session_tag or "").strip().lower()
+                for session_tag in (workout.session_tags or [])
+            )
+        ]
+
+    if start_date or end_date:
+        filtered_workouts = []
+        for workout in workouts:
+            workout_date = application_workout_service.normalise_datetime_to_utc(workout.date_of_workout).date()
+            if start_date and workout_date < start_date:
+                continue
+            if end_date and workout_date > end_date:
+                continue
+            filtered_workouts.append(workout)
+        workouts = filtered_workouts
+
     total_items = len(workouts)
+    total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
     start_index = (page_number - 1) * page_size
     end_index = start_index + page_size
     page_items = workouts[start_index:end_index]
@@ -138,6 +207,7 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
         {
             "workouts": [workout.model_dump(by_alias=True) for workout in page_items],
             "total": total_items,
+            "total_pages": total_pages,
             "page": page_number,
             "limit": page_size,
         }
@@ -307,6 +377,103 @@ def retrieve_workout_template_by_identifier_endpoint(identifier: str) -> tuple[R
     if template is None:
         return jsonify({"error": "Template not found."}), 404
     return jsonify(template.model_dump(by_alias=True)), 200
+
+
+@workout_blueprint.route("/api/goals", methods=["GET"])
+@login_required
+def retrieve_exercise_goals_endpoint() -> tuple[Response, int]:
+    """
+    Returns all user exercise goals with computed progress values.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        goals_payload = application_exercise_goal_service.build_goal_progress_payload(user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Goal list request failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    return jsonify(goals_payload), 200
+
+
+@workout_blueprint.route("/api/goals", methods=["POST"])
+@login_required
+@limiter.limit("120 per minute")
+def create_exercise_goal_endpoint() -> tuple[Response, int]:
+    """
+    Creates a new exercise goal for the authenticated user.
+    """
+    request_data = request.get_json(silent=True)
+    if request_data is None or not isinstance(request_data, dict):
+        return jsonify({"error": "A valid JSON payload is required."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    if user_identifier is not None:
+        request_data["user_identifier"] = user_identifier
+
+    try:
+        goal_document = ExerciseGoalDocument(**request_data)
+    except ValidationError as validation_error:
+        return jsonify({"error": "Validation failed", "details": validation_error.errors()}), 422
+
+    try:
+        inserted_identifier = application_exercise_goal_service.create_goal(goal_document)
+    except RuntimeError:
+        logger.exception("Goal creation failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+    return jsonify({"message": "Goal created.", "identifier": inserted_identifier}), 201
+
+
+@workout_blueprint.route("/api/goals/<identifier>", methods=["PUT"])
+@login_required
+@limiter.limit("120 per minute")
+def update_exercise_goal_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    Updates one exercise goal for the authenticated user.
+    """
+    request_data = request.get_json(silent=True)
+    if request_data is None or not isinstance(request_data, dict):
+        return jsonify({"error": "A valid JSON payload is required."}), 400
+
+    user_identifier = get_authenticated_user_identifier()
+    if user_identifier is not None:
+        request_data["user_identifier"] = user_identifier
+
+    try:
+        goal_document = ExerciseGoalDocument(**request_data)
+    except ValidationError as validation_error:
+        return jsonify({"error": "Validation failed", "details": validation_error.errors()}), 422
+
+    try:
+        updated = application_exercise_goal_service.update_goal(
+            identifier=identifier,
+            goal_document=goal_document,
+            user_identifier=user_identifier,
+        )
+    except RuntimeError:
+        logger.exception("Goal update failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+
+    if not updated:
+        return jsonify({"error": "Goal not found."}), 404
+    return jsonify({"message": "Goal updated."}), 200
+
+
+@workout_blueprint.route("/api/goals/<identifier>", methods=["DELETE"])
+@login_required
+@limiter.limit("120 per minute")
+def delete_exercise_goal_endpoint(identifier: str) -> tuple[Response, int]:
+    """
+    Deletes one exercise goal for the authenticated user.
+    """
+    user_identifier = get_authenticated_user_identifier()
+    try:
+        deleted = application_exercise_goal_service.delete_goal(identifier=identifier, user_identifier=user_identifier)
+    except RuntimeError:
+        logger.exception("Goal deletion failed because the database client is not initialised.")
+        return jsonify({"error": "Database unavailable."}), 503
+
+    if not deleted:
+        return jsonify({"error": "Goal not found."}), 404
+    return jsonify({"message": "Goal deleted."}), 200
 
 
 @workout_blueprint.route("/api/workout-templates", methods=["POST"])

@@ -49,6 +49,19 @@ export interface WorkoutTemplate {
   created_at: string;
 }
 
+export interface ExerciseGoalProgress {
+  _id: string;
+  exercise_name: string;
+  exercise_definition_identifier?: string;
+  target_weight_in_kilograms: number;
+  target_repetitions: number;
+  target_date?: string | null;
+  target_estimated_one_rep_maximum: number;
+  current_best_estimated_one_rep_maximum: number;
+  progress_percentage: number;
+  is_achieved: boolean;
+}
+
 // Analytics data
 export interface AnalyticsData {
   filters: {

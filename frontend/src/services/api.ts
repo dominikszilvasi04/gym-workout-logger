@@ -8,6 +8,7 @@ import type {
   ExerciseDefinition,
   Workout,
   WorkoutTemplate,
+  ExerciseGoalProgress,
   AnalyticsData,
   ApiResponse,
   CreateWorkoutFormData,
@@ -132,11 +133,13 @@ export const adminAPI = {
     user_identifier: string;
     deleted_workouts: number;
     deleted_templates: number;
+    deleted_goals: number;
   }> => {
     const response = await apiClient.delete<{
       user_identifier: string;
       deleted_workouts: number;
       deleted_templates: number;
+      deleted_goals: number;
     }>(`/api/admin/users/${userIdentifier}`);
     return response.data;
   },
@@ -145,11 +148,13 @@ export const adminAPI = {
     deleted_users: number;
     deleted_workouts: number;
     deleted_templates: number;
+    deleted_goals: number;
   }> => {
     const response = await apiClient.delete<{
       deleted_users: number;
       deleted_workouts: number;
       deleted_templates: number;
+      deleted_goals: number;
     }>("/api/admin/users", {
       data: {
         confirmation_text: "DELETE ALL USERS",
@@ -163,10 +168,12 @@ export const adminAPI = {
     counts: {
       users: number;
       workouts: number;
+      exercise_goals: number;
       workout_templates: number;
     };
     users: Array<Record<string, unknown>>;
     workouts: Array<Record<string, unknown>>;
+    exercise_goals: Array<Record<string, unknown>>;
     workout_templates: Array<Record<string, unknown>>;
   }> => {
     const response = await apiClient.get<{
@@ -174,10 +181,12 @@ export const adminAPI = {
       counts: {
         users: number;
         workouts: number;
+        exercise_goals: number;
         workout_templates: number;
       };
       users: Array<Record<string, unknown>>;
       workouts: Array<Record<string, unknown>>;
+      exercise_goals: Array<Record<string, unknown>>;
       workout_templates: Array<Record<string, unknown>>;
     }>("/api/admin/export");
     return response.data;
@@ -375,6 +384,41 @@ export const templateAPI = {
   // Delete template
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/api/workout-templates/${id}`);
+  },
+};
+
+export const goalAPI = {
+  getAll: async (): Promise<ExerciseGoalProgress[]> => {
+    const response = await apiClient.get<ExerciseGoalProgress[]>("/api/goals");
+    return response.data;
+  },
+
+  create: async (data: {
+    exercise_name: string;
+    exercise_definition_identifier?: string;
+    target_weight_in_kilograms: number;
+    target_repetitions: number;
+    target_date?: string;
+  }): Promise<string> => {
+    const response = await apiClient.post<ApiResponse>("/api/goals", data);
+    return response.data.identifier || "";
+  },
+
+  update: async (
+    id: string,
+    data: {
+      exercise_name: string;
+      exercise_definition_identifier?: string;
+      target_weight_in_kilograms: number;
+      target_repetitions: number;
+      target_date?: string;
+    }
+  ): Promise<void> => {
+    await apiClient.put(`/api/goals/${id}`, data);
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/goals/${id}`);
   },
 };
 

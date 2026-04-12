@@ -7,8 +7,8 @@ import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
 import { Button } from "../components/common/Button";
 import { Tabs } from "../components/common/Tabs";
-import { workoutAPI } from "../services/api";
-import type { AnalyticsData, Workout } from "../types";
+import { exerciseAPI, goalAPI, workoutAPI } from "../services/api";
+import type { AnalyticsData, ExerciseDefinition, ExerciseGoalProgress, Workout } from "../types";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -18,6 +18,26 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [deletingWorkoutIdentifier, setDeletingWorkoutIdentifier] = useState<string | null>(null);
   const [sessionFeedback, setSessionFeedback] = useState<string | null>(null);
+  const [goals, setGoals] = useState<ExerciseGoalProgress[]>([]);
+  const [exerciseDefinitions, setExerciseDefinitions] = useState<ExerciseDefinition[]>([]);
+  const [goalFeedback, setGoalFeedback] = useState<string | null>(null);
+  const [creatingGoal, setCreatingGoal] = useState(false);
+  const [deletingGoalIdentifier, setDeletingGoalIdentifier] = useState<string | null>(null);
+  const [editingGoalIdentifier, setEditingGoalIdentifier] = useState<string | null>(null);
+  const [savingGoalIdentifier, setSavingGoalIdentifier] = useState<string | null>(null);
+  const [goalFilter, setGoalFilter] = useState<"all" | "in_progress" | "achieved">("all");
+  const [goalForm, setGoalForm] = useState({
+    exercise_definition_identifier: "",
+    exercise_name: "",
+    target_weight_in_kilograms: "",
+    target_repetitions: "",
+    target_date: "",
+  });
+  const [editGoalForm, setEditGoalForm] = useState({
+    target_weight_in_kilograms: "",
+    target_repetitions: "",
+    target_date: "",
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,6 +48,12 @@ export function DashboardPage() {
 
         const workoutsResponse = await workoutAPI.getAll(1, 10);
         setRecentWorkouts(workoutsResponse.workouts || []);
+
+        const goalsResponse = await goalAPI.getAll();
+        setGoals(goalsResponse);
+
+        const exercisesResponse = await exerciseAPI.getAll();
+        setExerciseDefinitions(exercisesResponse);
       } finally {
         setLoading(false);
       }
@@ -119,6 +145,36 @@ export function DashboardPage() {
 
   const rangeLabel = selectedRange === "7" ? "This week" : selectedRange === "30" ? "This month" : "This quarter";
 
+  const filteredGoals = useMemo(() => {
+    if (goalFilter === "achieved") {
+      return goals.filter((goal) => goal.is_achieved);
+    }
+    if (goalFilter === "in_progress") {
+      return goals.filter((goal) => !goal.is_achieved);
+    }
+    return goals;
+  }, [goalFilter, goals]);
+
+  const goalInsights = useMemo(() => {
+    const inProgressGoals = goals.filter((goal) => !goal.is_achieved);
+    const closestGoal = [...inProgressGoals].sort((firstGoal, secondGoal) => secondGoal.progress_percentage - firstGoal.progress_percentage)[0];
+    const easiestGoal = [...inProgressGoals].sort(
+      (firstGoal, secondGoal) =>
+        (firstGoal.target_estimated_one_rep_maximum - firstGoal.current_best_estimated_one_rep_maximum)
+        - (secondGoal.target_estimated_one_rep_maximum - secondGoal.current_best_estimated_one_rep_maximum)
+    )[0];
+    const dueSoonGoal = [...inProgressGoals]
+      .filter((goal) => Boolean(goal.target_date))
+      .sort((firstGoal, secondGoal) => new Date(firstGoal.target_date || "").getTime() - new Date(secondGoal.target_date || "").getTime())[0];
+
+    return {
+      closestGoal,
+      easiestGoal,
+      dueSoonGoal,
+      achievedCount: goals.filter((goal) => goal.is_achieved).length,
+    };
+  }, [goals]);
+
   const deleteRecentWorkout = async (workout: Workout) => {
     const confirmed = window.confirm("Delete this workout session permanently?");
     if (!confirmed) {
@@ -135,6 +191,109 @@ export function DashboardPage() {
       setSessionFeedback("Unable to delete workout right now.");
     } finally {
       setDeletingWorkoutIdentifier(null);
+    }
+  };
+
+  const createGoal = async () => {
+    const selectedExercise = exerciseDefinitions.find(
+      (exerciseDefinition) => exerciseDefinition._id === goalForm.exercise_definition_identifier
+    );
+    const exerciseName = selectedExercise?.exercise_name || goalForm.exercise_name.trim();
+    const targetWeight = Number(goalForm.target_weight_in_kilograms);
+    const targetRepetitions = Number(goalForm.target_repetitions);
+
+    if (!selectedExercise || !exerciseName || targetWeight <= 0 || targetRepetitions <= 0) {
+      setGoalFeedback("Select an exercise and complete all required target fields.");
+      return;
+    }
+
+    try {
+      setCreatingGoal(true);
+      const payload: {
+        exercise_name: string;
+        exercise_definition_identifier?: string;
+        target_weight_in_kilograms: number;
+        target_repetitions: number;
+        target_date?: string;
+      } = {
+        exercise_name: exerciseName,
+        exercise_definition_identifier: selectedExercise._id,
+        target_weight_in_kilograms: targetWeight,
+        target_repetitions: targetRepetitions,
+      };
+      if (goalForm.target_date.trim()) {
+        payload.target_date = goalForm.target_date.trim();
+      }
+      await goalAPI.create(payload);
+      const refreshedGoals = await goalAPI.getAll();
+      setGoals(refreshedGoals);
+      setGoalForm({
+        exercise_definition_identifier: "",
+        exercise_name: "",
+        target_weight_in_kilograms: "",
+        target_repetitions: "",
+        target_date: "",
+      });
+      setGoalFeedback("Goal saved.");
+    } catch {
+      setGoalFeedback("Unable to save goal right now.");
+    } finally {
+      setCreatingGoal(false);
+    }
+  };
+
+  const deleteGoal = async (goal: ExerciseGoalProgress) => {
+    const confirmed = window.confirm("Delete this goal permanently?");
+    if (!confirmed) {
+      return;
+    }
+    try {
+      setDeletingGoalIdentifier(goal._id);
+      await goalAPI.delete(goal._id);
+      const refreshedGoals = await goalAPI.getAll();
+      setGoals(refreshedGoals);
+      setGoalFeedback("Goal deleted.");
+    } catch {
+      setGoalFeedback("Unable to delete goal right now.");
+    } finally {
+      setDeletingGoalIdentifier(null);
+    }
+  };
+
+  const startEditingGoal = (goal: ExerciseGoalProgress) => {
+    setEditingGoalIdentifier(goal._id);
+    setEditGoalForm({
+      target_weight_in_kilograms: String(goal.target_weight_in_kilograms),
+      target_repetitions: String(goal.target_repetitions),
+      target_date: goal.target_date || "",
+    });
+  };
+
+  const saveGoalEdit = async (goal: ExerciseGoalProgress) => {
+    const targetWeight = Number(editGoalForm.target_weight_in_kilograms);
+    const targetRepetitions = Number(editGoalForm.target_repetitions);
+    if (targetWeight <= 0 || targetRepetitions <= 0) {
+      setGoalFeedback("Goal target values must be greater than zero.");
+      return;
+    }
+
+    try {
+      setSavingGoalIdentifier(goal._id);
+      await goalAPI.update(goal._id, {
+        exercise_name: goal.exercise_name,
+        exercise_definition_identifier: goal.exercise_definition_identifier,
+        target_weight_in_kilograms: targetWeight,
+        target_repetitions: targetRepetitions,
+        ...(editGoalForm.target_date.trim() ? { target_date: editGoalForm.target_date.trim() } : {}),
+      });
+      const refreshedGoals = await goalAPI.getAll();
+      setGoals(refreshedGoals);
+      setEditingGoalIdentifier(null);
+      setGoalFeedback("Goal updated.");
+    } catch {
+      setGoalFeedback("Unable to update goal right now.");
+    } finally {
+      setSavingGoalIdentifier(null);
     }
   };
 
@@ -266,6 +425,212 @@ export function DashboardPage() {
                 </Card>
               );
             })}
+      </section>
+
+      <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <Card border className="border-navy-300/70 bg-navy-100/95 shadow-md">
+          <h3 className="font-display text-lg font-semibold text-navy-900">Set strength goal</h3>
+          <p className="mt-1 text-sm text-navy-600">Pick an exercise from your catalogue. Progress is then tracked from matching workout sets.</p>
+          <div className="mt-4 grid grid-cols-1 gap-3">
+            <select
+              className="touch-target h-11 rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+              value={goalForm.exercise_definition_identifier}
+              onChange={(event) =>
+                setGoalForm((current) => {
+                  const selectedExercise = exerciseDefinitions.find((exerciseDefinition) => exerciseDefinition._id === event.target.value);
+                  return {
+                    ...current,
+                    exercise_definition_identifier: event.target.value,
+                    exercise_name: selectedExercise?.exercise_name || "",
+                  };
+                })
+              }
+            >
+              <option value="">Select exercise</option>
+              {exerciseDefinitions.map((exerciseDefinition) => (
+                <option key={exerciseDefinition._id} value={exerciseDefinition._id}>
+                  {exerciseDefinition.exercise_name}
+                </option>
+              ))}
+            </select>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                className="touch-target h-11 rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+                placeholder="Weight kg"
+                type="number"
+                min={0.5}
+                step={0.5}
+                value={goalForm.target_weight_in_kilograms}
+                onChange={(event) =>
+                  setGoalForm((current) => ({ ...current, target_weight_in_kilograms: event.target.value }))
+                }
+              />
+              <input
+                className="touch-target h-11 rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+                placeholder="Reps"
+                type="number"
+                min={1}
+                step={1}
+                value={goalForm.target_repetitions}
+                onChange={(event) =>
+                  setGoalForm((current) => ({ ...current, target_repetitions: event.target.value }))
+                }
+              />
+            </div>
+            <input
+              className="touch-target h-11 rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+              type="date"
+              value={goalForm.target_date}
+              onChange={(event) => setGoalForm((current) => ({ ...current, target_date: event.target.value }))}
+            />
+            <Button isLoading={creatingGoal} onClick={() => void createGoal()}>
+              Save goal
+            </Button>
+            {goalFeedback ? <p className="text-sm text-navy-600">{goalFeedback}</p> : null}
+          </div>
+        </Card>
+
+        <Card border className="border-navy-300/70 bg-navy-100/95 shadow-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="font-display text-lg font-semibold text-navy-900">Goal progress</h3>
+            <div className="flex items-center gap-2">
+              <Badge colour="neutral" size="small">{goals.length} goals</Badge>
+              <Badge colour="primary" size="small">{goalInsights.achievedCount} achieved</Badge>
+            </div>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-2 rounded-xl border border-navy-300/60 bg-navy-50/70 p-3 text-sm text-navy-700">
+            <p>
+              <span className="font-semibold text-navy-900">Closest goal:</span>{" "}
+              {goalInsights.closestGoal
+                ? `${goalInsights.closestGoal.exercise_name} (${goalInsights.closestGoal.progress_percentage.toFixed(0)}%)`
+                : "No in-progress goals"}
+            </p>
+            <p>
+              <span className="font-semibold text-navy-900">Next achievable:</span>{" "}
+              {goalInsights.easiestGoal
+                ? `${goalInsights.easiestGoal.exercise_name}`
+                : "Add a goal to estimate next target"}
+            </p>
+            <p>
+              <span className="font-semibold text-navy-900">Nearest deadline:</span>{" "}
+              {goalInsights.dueSoonGoal?.target_date || "No target date set"}
+            </p>
+          </div>
+          <div className="mt-3">
+            <Tabs
+              items={[
+                { key: "all", label: "All" },
+                { key: "in_progress", label: "In progress" },
+                { key: "achieved", label: "Achieved" },
+              ]}
+              selectedKey={goalFilter}
+              onSelect={(key) => setGoalFilter(key as "all" | "in_progress" | "achieved")}
+            />
+          </div>
+          <div className="mt-3 space-y-3">
+            {filteredGoals.length === 0 ? (
+              <p className="text-sm text-navy-600">No goals for this filter yet.</p>
+            ) : (
+              filteredGoals.map((goal) => {
+                const progress = Math.max(0, Math.min(goal.progress_percentage, 100));
+                const isEditing = editingGoalIdentifier === goal._id;
+                return (
+                  <div key={goal._id} className="rounded-2xl border border-navy-300/60 bg-navy-50/80 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-navy-900">{goal.exercise_name}</p>
+                        {isEditing ? (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <input
+                              className="touch-target h-10 rounded-lg border border-navy-300/70 bg-navy-50/90 px-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+                              type="number"
+                              min={0.5}
+                              step={0.5}
+                              value={editGoalForm.target_weight_in_kilograms}
+                              onChange={(event) => setEditGoalForm((current) => ({ ...current, target_weight_in_kilograms: event.target.value }))}
+                            />
+                            <input
+                              className="touch-target h-10 rounded-lg border border-navy-300/70 bg-navy-50/90 px-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+                              type="number"
+                              min={1}
+                              step={1}
+                              value={editGoalForm.target_repetitions}
+                              onChange={(event) => setEditGoalForm((current) => ({ ...current, target_repetitions: event.target.value }))}
+                            />
+                            <input
+                              className="touch-target col-span-2 h-10 rounded-lg border border-navy-300/70 bg-navy-50/90 px-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+                              type="date"
+                              value={editGoalForm.target_date}
+                              onChange={(event) => setEditGoalForm((current) => ({ ...current, target_date: event.target.value }))}
+                            />
+                          </div>
+                        ) : (
+                          <p className="text-sm text-navy-600">
+                            Target: {goal.target_weight_in_kilograms.toFixed(1)} kg × {goal.target_repetitions}
+                          </p>
+                        )}
+                        <p className="text-xs text-navy-500">
+                          Current best e1RM: {goal.current_best_estimated_one_rep_maximum.toFixed(2)} kg
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {isEditing ? (
+                          <>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              isLoading={savingGoalIdentifier === goal._id}
+                              onClick={() => void saveGoalEdit(goal)}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => setEditingGoalIdentifier(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => startEditingGoal(goal)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              icon={<Trash2 size={14} />}
+                              isLoading={deletingGoalIdentifier === goal._id}
+                              onClick={() => void deleteGoal(goal)}
+                              className="border border-red-300/50 text-red-200 hover:bg-red-300/20"
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-navy-300/70">
+                      <div
+                        className={`h-full rounded-full ${goal.is_achieved ? "bg-green-400" : "bg-primary-500"}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-navy-600">
+                      <span>{goal.is_achieved ? "Achieved" : "In progress"}</span>
+                      <span>{progress.toFixed(0)}%</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </Card>
       </section>
 
       <section>

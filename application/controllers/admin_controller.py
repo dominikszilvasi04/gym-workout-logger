@@ -134,6 +134,7 @@ def export_data_endpoint() -> tuple[Response, int]:
 
     users = [_serialise_bson_document(document) for document in database_manager.database["users"].find({})]
     workouts = [_serialise_bson_document(document) for document in database_manager.database["workouts"].find({})]
+    goals = [_serialise_bson_document(document) for document in database_manager.database["exercise_goals"].find({})]
     templates = [_serialise_bson_document(document) for document in database_manager.database["workout_templates"].find({})]
 
     _record_admin_audit_event(
@@ -141,6 +142,7 @@ def export_data_endpoint() -> tuple[Response, int]:
         details={
             "users": len(users),
             "workouts": len(workouts),
+            "exercise_goals": len(goals),
             "workout_templates": len(templates),
         },
     )
@@ -151,10 +153,12 @@ def export_data_endpoint() -> tuple[Response, int]:
             "counts": {
                 "users": len(users),
                 "workouts": len(workouts),
+                "exercise_goals": len(goals),
                 "workout_templates": len(templates),
             },
             "users": users,
             "workouts": workouts,
+            "exercise_goals": goals,
             "workout_templates": templates,
         }
     ), 200

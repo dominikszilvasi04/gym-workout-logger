@@ -22,6 +22,15 @@
                             <input type="text" class="form-control" id="target_muscle_groups" 
                                 value="{{ workout.target_muscle_groups | join(', ') }}" required>
                         </div>
+                        <div class="mb-3">
+                            <label for="session_tags" class="form-label">Session Tags (Optional)</label>
+                            <input type="text" class="form-control" id="session_tags"
+                                value="{{ workout.session_tags | join(', ') }}" placeholder="Strength, Deload, High-Energy">
+                        </div>
+                        <div class="mb-0">
+                            <label for="workout_notes" class="form-label">Workout Notes (Optional)</label>
+                            <textarea class="form-control" id="workout_notes" rows="3" placeholder="How the session felt, cues, sleep, pain, or anything relevant">{{ workout.workout_notes or '' }}</textarea>
+                        </div>
                     </div>
 
                     <div id="exercises_container">

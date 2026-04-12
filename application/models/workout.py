@@ -32,4 +32,6 @@ class WorkoutDocument(BaseModel):
     user_identifier: Optional[str] = Field(default=None, description="The owning user account identifier.")
     date_of_workout: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="The date and time the workout occurred.")
     target_muscle_groups: List[str] = Field(default_factory=list, description="The primary muscle groups targeted.")
+    workout_notes: Optional[str] = Field(default=None, description="Optional free-text notes captured for the session.")
+    session_tags: List[str] = Field(default_factory=list, description="Optional tags that classify the workout session.")
     exercises: List[ExerciseLog] = Field(default_factory=list, description="A list of all exercises performed during the workout.")
