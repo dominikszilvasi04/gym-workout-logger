@@ -76,11 +76,11 @@ export function ProfilePage() {
       <section className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Athlete profile</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-700">Athlete ledger</p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-navy-950">Progress snapshot</h2>
-            <p className="mt-1 text-sm text-navy-700">Your consistency and training output in one place.</p>
+            <p className="mt-1 max-w-[30ch] text-sm text-navy-700">Your consistency and output presented in one refined view.</p>
           </div>
-          <div className="rounded-2xl border border-navy-300/70 bg-navy-100/70 p-3 text-navy-700">
+          <div className="rounded-2xl border border-navy-300/60 bg-navy-100/75 p-3 text-primary-700">
             <UserCircle2 size={18} />
           </div>
         </div>
@@ -153,9 +153,9 @@ export function ProfilePage() {
                 <button
                   key={workout._id}
                   onClick={() => navigate(`/workouts/${workout._id}`)}
-                  className="block w-full text-left"
+                  className="touch-target block w-full rounded-2xl text-left"
                 >
-                  <Card border className="bg-navy-100/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md cursor-pointer">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-display text-lg font-semibold text-navy-950">
@@ -197,7 +197,8 @@ export function ProfilePage() {
             }
           }}
           disabled={loggingOut}
-          className="w-full gap-2 bg-navy-200 hover:bg-navy-300 text-navy-950"
+          variant="outline"
+          className="w-full gap-2"
         >
           <LogOut className="w-4 h-4" />
           {loggingOut ? 'Logging out...' : 'Log out'}

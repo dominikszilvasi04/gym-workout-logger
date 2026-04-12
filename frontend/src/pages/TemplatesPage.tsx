@@ -113,9 +113,9 @@ export function TemplatesPage() {
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Template library</p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-navy-950">Saved routines</h2>
-            <p className="mt-1 text-sm text-navy-700">Load proven session structures in one tap.</p>
+            <p className="mt-1 max-w-[30ch] text-sm text-navy-700">Load proven session structures in one touch.</p>
           </div>
-          <div className="rounded-2xl border border-navy-300/70 bg-navy-100/70 p-3 text-navy-700">
+          <div className="rounded-2xl border border-navy-300/60 bg-navy-100/75 p-3 text-primary-700">
             <BookOpenText size={18} />
           </div>
         </div>
@@ -134,7 +134,7 @@ export function TemplatesPage() {
 
       {feedback ? (
         <Card border>
-          <p className="text-sm text-navy-700">{feedback}</p>
+          <p className="text-sm text-navy-700" role="status" aria-live="polite">{feedback}</p>
         </Card>
       ) : null}
 
@@ -159,7 +159,7 @@ export function TemplatesPage() {
           {templates.map((template) => {
             const totalSets = template.exercises.reduce((accumulator, exercise) => accumulator + exercise.sets.length, 0);
             return (
-              <Card key={template._id} border className="bg-navy-100/95 shadow-sm">
+              <Card key={template._id} border className="bg-navy-100/95 shadow-sm transition-shadow duration-150 hover:shadow-md">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-display text-lg font-semibold text-navy-950">{template.template_name}</p>
@@ -182,7 +182,7 @@ export function TemplatesPage() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Button size="sm" variant="ghost" icon={<PencilLine size={14} />} onClick={() => openRenameDialog(template)}>
                       Rename
                     </Button>

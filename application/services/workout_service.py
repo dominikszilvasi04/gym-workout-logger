@@ -340,8 +340,15 @@ class WorkoutService:
         ]
         if not workout_sets:
             return 0.0
-        total_rpe = sum(workout_set.rate_of_perceived_exertion for workout_set in workout_sets)
-        return round(total_rpe / len(workout_sets), 2)
+        recorded_rpe_values = [
+            workout_set.rate_of_perceived_exertion
+            for workout_set in workout_sets
+            if workout_set.rate_of_perceived_exertion is not None
+        ]
+        if not recorded_rpe_values:
+            return 0.0
+        total_rpe = sum(recorded_rpe_values)
+        return round(total_rpe / len(recorded_rpe_values), 2)
 
     def calculate_best_estimated_one_repetition_maximum_for_exercise(
         self,
@@ -500,10 +507,15 @@ class WorkoutService:
         total_sets = sum(self.calculate_total_sets(workout) for workout in filtered_workouts)
         total_repetitions = sum(self.calculate_total_repetitions(workout) for workout in filtered_workouts)
         total_exercises = sum(len(workout.exercises) for workout in filtered_workouts)
+        workout_rpe_averages = [
+            self.calculate_average_workout_rpe(workout)
+            for workout in filtered_workouts
+        ]
+        recorded_workout_rpe_averages = [average for average in workout_rpe_averages if average > 0]
         average_session_rpe = round(
-            sum(self.calculate_average_workout_rpe(workout) for workout in filtered_workouts) / len(filtered_workouts),
+            sum(recorded_workout_rpe_averages) / len(recorded_workout_rpe_averages),
             2
-        ) if filtered_workouts else 0.0
+        ) if recorded_workout_rpe_averages else 0.0
         volume_labels = [workout.date_of_workout.strftime("%Y-%m-%d") for workout in filtered_workouts]
         volume_values = [self.calculate_total_workout_volume(workout) for workout in filtered_workouts]
         if selected_exercise_name:
@@ -533,8 +545,10 @@ class WorkoutService:
             weekly_frequency_counter[f"{iso_calendar.year}-W{iso_calendar.week:02d}"] += 1
             for muscle_group in workout.target_muscle_groups:
                 target_muscle_counter[muscle_group] += 1
-            average_rpe_labels.append(workout.date_of_workout.strftime("%Y-%m-%d"))
-            average_rpe_values.append(self.calculate_average_workout_rpe(workout))
+            average_workout_rpe = self.calculate_average_workout_rpe(workout)
+            if average_workout_rpe > 0:
+                average_rpe_labels.append(workout.date_of_workout.strftime("%Y-%m-%d"))
+                average_rpe_values.append(average_workout_rpe)
             for exercise in workout.exercises:
                 top_exercise_volume_counter[exercise.exercise_name] += self.calculate_exercise_volume(exercise)
         sorted_weekly_labels = sorted(weekly_frequency_counter.keys())

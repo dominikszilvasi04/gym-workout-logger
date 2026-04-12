@@ -72,14 +72,13 @@ export function DashboardPage() {
   return (
     <ApplicationShell title="Dashboard">
       <Card border className="relative overflow-hidden p-0 shadow-lg">
-        <div className="absolute inset-0 opacity-20 [background:linear-gradient(120deg,rgba(126,138,255,0.18)_0%,transparent_45%),repeating-linear-gradient(90deg,transparent_0,transparent_26px,rgba(255,255,255,0.05)_26px,rgba(255,255,255,0.05)_27px)]" />
         <div className="relative px-4 py-5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Performance cockpit</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Performance ledger</p>
           <h2 className="mt-2 max-w-[17rem] font-display text-2xl font-semibold leading-tight text-navy-950">
-            Train with intent. Review with clarity.
+            Precision in training. Clarity in progress.
           </h2>
           <p className="mt-2 text-sm text-navy-700">
-            Fast access to sessions, volume, and momentum in a compact mobile-first view.
+            A compact command view for sessions, volume, and momentum.
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-2">
@@ -93,9 +92,9 @@ export function DashboardPage() {
                 {analyticsData ? analyticsData.summary.current_training_streak_weeks : 0} weeks
               </p>
             </div>
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Volume</p>
-              <p className="mt-1 text-sm font-semibold text-emerald-200">
+            <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-navy-600">Volume</p>
+              <p className="mt-1 text-sm font-semibold text-navy-900">
                 {analyticsData ? Math.round(analyticsData.summary.total_volume) : 0} kg
               </p>
             </div>
@@ -164,9 +163,9 @@ export function DashboardPage() {
                 <button
                   key={workout._id}
                   onClick={() => navigate(`/workouts/${workout._id}`)}
-                  className="block w-full text-left"
+                  className="touch-target block w-full rounded-2xl text-left"
                 >
-                  <Card border className="bg-navy-100/95 shadow-sm transition-transform active:scale-[0.99] hover:shadow-md cursor-pointer">
+                  <Card border className="bg-navy-100/95 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:scale-[0.99] hover:shadow-md cursor-pointer">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="font-display text-lg font-semibold text-navy-950">{format(new Date(workout.date_of_workout), "EEE d MMM")}</p>

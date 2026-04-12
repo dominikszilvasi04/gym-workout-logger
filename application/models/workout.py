@@ -11,8 +11,7 @@ class WorkoutSet(BaseModel):
     """
     repetitions: int = Field(..., gt=0, description="The number of repetitions completed.")
     weight_in_kilograms: float = Field(..., ge=0.0, description="The weight lifted in kilograms.")
-    rate_of_perceived_exertion: int = Field(..., ge=1, le=10, description="Intensity scale from 1 to 10.")
-
+    rate_of_perceived_exertion: Optional[int] = Field(default=None, ge=1, le=10, description="Optional intensity scale from 1 to 10.")
 
 class ExerciseLog(BaseModel):
     """
@@ -21,7 +20,6 @@ class ExerciseLog(BaseModel):
     exercise_name: str = Field(..., min_length=1, description="The standard name of the exercise.")
     exercise_definition_identifier: Optional[str] = Field(default=None, description="The unique identifier mapping to the master ExerciseDefinition collection.")
     sets: List[WorkoutSet] = Field(default_factory=list, description="A list of sets performed for this exercise.")
-
 
 class WorkoutDocument(BaseModel):
     """

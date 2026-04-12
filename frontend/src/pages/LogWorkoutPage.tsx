@@ -19,6 +19,11 @@ interface ExerciseEntry {
 }
 
 const targetMuscleGroups = [
+  "Push",
+  "Pull",
+  "Legs",
+  "Upper body",
+  "Lower body",
   "Chest",
   "Back",
   "Shoulders",
@@ -37,7 +42,7 @@ function createDefaultSet(): WorkoutSet {
   return {
     repetitions: 8,
     weight_in_kilograms: 20,
-    rate_of_perceived_exertion: 7,
+    rate_of_perceived_exertion: undefined,
   };
 }
 
@@ -65,6 +70,10 @@ function parseNumericInput(rawValue: string, fallbackValue: number, min?: number
   return nextValue;
 }
 
+function buildSetFieldKey(localIdentifier: string, setIndex: number, key: keyof WorkoutSet) {
+  return `${localIdentifier}:${setIndex}:${key}`;
+}
+
 export function LogWorkoutPage() {
   const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -80,6 +89,7 @@ export function LogWorkoutPage() {
   const [templateName, setTemplateName] = useState("");
   const [templateSaving, setTemplateSaving] = useState(false);
   const [searchPhrase, setSearchPhrase] = useState("");
+  const [setDraftValues, setSetDraftValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
@@ -230,7 +240,7 @@ export function LogWorkoutPage() {
     localIdentifier: string,
     setIndex: number,
     key: keyof WorkoutSet,
-    value: number
+    value: number | undefined
   ) => {
     setExerciseEntries((current) =>
       current.map((entry) => {
@@ -245,6 +255,55 @@ export function LogWorkoutPage() {
         };
       })
     );
+  };
+
+  const updateSetDraft = (
+    localIdentifier: string,
+    setIndex: number,
+    key: keyof WorkoutSet,
+    rawValue: string
+  ) => {
+    const fieldKey = buildSetFieldKey(localIdentifier, setIndex, key);
+    setSetDraftValues((current) => ({
+      ...current,
+      [fieldKey]: rawValue,
+    }));
+  };
+
+  const clearSetDraft = (localIdentifier: string, setIndex: number, key: keyof WorkoutSet) => {
+    const fieldKey = buildSetFieldKey(localIdentifier, setIndex, key);
+    setSetDraftValues((current) => {
+      if (!(fieldKey in current)) {
+        return current;
+      }
+      const nextDraftValues = { ...current };
+      delete nextDraftValues[fieldKey];
+      return nextDraftValues;
+    });
+  };
+
+  const commitSetNumericValue = (
+    localIdentifier: string,
+    setIndex: number,
+    key: keyof WorkoutSet,
+    rawValue: string,
+    fallbackValue: number,
+    min?: number,
+    max?: number,
+    allowEmpty = false
+  ) => {
+    const trimmedValue = rawValue.trim();
+    if (!trimmedValue) {
+      if (allowEmpty) {
+        updateSetValue(localIdentifier, setIndex, key, undefined);
+      }
+      clearSetDraft(localIdentifier, setIndex, key);
+      return;
+    }
+
+    const nextValue = parseNumericInput(trimmedValue, fallbackValue, min, max);
+    updateSetValue(localIdentifier, setIndex, key, nextValue);
+    clearSetDraft(localIdentifier, setIndex, key);
   };
 
   const loadTemplate = (templateIdentifier: string) => {
@@ -368,7 +427,7 @@ export function LogWorkoutPage() {
     >
       <Card border className="space-y-4 transition-shadow duration-200">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">Session</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Session studio</p>
           <p className="mt-1 font-display text-xl font-semibold text-navy-900">
             {isEditMode ? "Edit workout" : "Log workout"}
           </p>
@@ -399,9 +458,9 @@ export function LogWorkoutPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary-700">Sets</p>
             <p className="mt-1 font-display text-lg font-semibold text-primary-900">{sessionSummary.totalSets}</p>
           </div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">Volume</p>
-            <p className="mt-1 font-display text-lg font-semibold text-emerald-200">{sessionSummary.totalVolume} kg</p>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Volume</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{sessionSummary.totalVolume} kg</p>
           </div>
         </div>
       </Card>
@@ -413,7 +472,7 @@ export function LogWorkoutPage() {
             <p className="mt-1 font-display text-lg font-semibold text-navy-900">Muscle groups</p>
           </div>
           {selectedMuscleGroups.length > 0 ? (
-            <button type="button" className="text-sm font-semibold text-primary-600" onClick={() => setSelectedMuscleGroups([])}>
+            <button type="button" className="touch-target rounded-lg px-2 text-sm font-semibold text-primary-700 hover:bg-primary-100/25" onClick={() => setSelectedMuscleGroups([])}>
               Clear
             </button>
           ) : null}
@@ -426,9 +485,9 @@ export function LogWorkoutPage() {
                 key={muscleGroup}
                 type="button"
                 onClick={() => toggleMuscleGroup(muscleGroup)}
-                className={`rounded-full border px-3 py-2 text-sm font-medium transition-[transform,background-color,color,border-color] duration-200 active:scale-[0.98] ${
+                className={`touch-target rounded-full border px-3 py-2 text-sm font-semibold transition-[transform,background-color,color,border-color,box-shadow] duration-150 active:scale-[0.98] ${
                   selected
-                    ? "border-primary-500 bg-primary-500 text-navy-950 shadow-sm"
+                    ? "border-primary-500 bg-primary-500 text-navy-100 shadow-[0_8px_18px_rgba(184,138,59,0.28)]"
                     : "border-navy-300 bg-navy-100/80 text-navy-700 hover:border-navy-400 hover:text-navy-900"
                 }`}
               >
@@ -482,7 +541,8 @@ export function LogWorkoutPage() {
               <button
                 type="button"
                 onClick={() => removeExercise(entry.localIdentifier)}
-                className="rounded-full p-2 text-red-400 hover:bg-red-500/15"
+                className="touch-target rounded-full p-2 text-red-300 hover:bg-red-500/10"
+                aria-label={`Remove ${entry.exerciseName}`}
               >
                 <Trash2 size={16} />
               </button>
@@ -497,7 +557,7 @@ export function LogWorkoutPage() {
                       <button
                         type="button"
                         onClick={() => removeSet(entry.localIdentifier, setIndex)}
-                        className="text-xs font-medium text-red-600"
+                        className="touch-target rounded-lg px-2 text-xs font-semibold text-red-300 hover:bg-red-500/10"
                       >
                         Remove
                       </button>
@@ -512,13 +572,22 @@ export function LogWorkoutPage() {
                       min={0}
                       step={0.5}
                       inputMode="decimal"
-                      value={set.weight_in_kilograms}
+                      value={
+                        setDraftValues[buildSetFieldKey(entry.localIdentifier, setIndex, "weight_in_kilograms")] ??
+                        String(set.weight_in_kilograms)
+                      }
+                      onFocus={(event) => event.currentTarget.select()}
                       onChange={(event) =>
-                        updateSetValue(
+                        updateSetDraft(entry.localIdentifier, setIndex, "weight_in_kilograms", event.target.value)
+                      }
+                      onBlur={(event) =>
+                        commitSetNumericValue(
                           entry.localIdentifier,
                           setIndex,
                           "weight_in_kilograms",
-                          parseNumericInput(event.target.value, set.weight_in_kilograms, 0)
+                          event.target.value,
+                          set.weight_in_kilograms,
+                          0
                         )
                       }
                     />
@@ -527,29 +596,52 @@ export function LogWorkoutPage() {
                       type="number"
                       min={1}
                       inputMode="numeric"
-                      value={set.repetitions}
+                      value={
+                        setDraftValues[buildSetFieldKey(entry.localIdentifier, setIndex, "repetitions")] ??
+                        String(set.repetitions)
+                      }
+                      onFocus={(event) => event.currentTarget.select()}
                       onChange={(event) =>
-                        updateSetValue(
+                        updateSetDraft(entry.localIdentifier, setIndex, "repetitions", event.target.value)
+                      }
+                      onBlur={(event) =>
+                        commitSetNumericValue(
                           entry.localIdentifier,
                           setIndex,
                           "repetitions",
-                          parseNumericInput(event.target.value, set.repetitions, 1)
+                          event.target.value,
+                          set.repetitions,
+                          1
                         )
                       }
                     />
                     <InputField
-                      label="RPE"
+                      label="RPE (optional)"
                       type="number"
                       min={1}
                       max={10}
                       inputMode="numeric"
-                      value={set.rate_of_perceived_exertion}
+                      placeholder="Leave blank"
+                      value={
+                        setDraftValues[buildSetFieldKey(entry.localIdentifier, setIndex, "rate_of_perceived_exertion")] ??
+                        (set.rate_of_perceived_exertion !== undefined
+                          ? String(set.rate_of_perceived_exertion)
+                          : "")
+                      }
+                      onFocus={(event) => event.currentTarget.select()}
                       onChange={(event) =>
-                        updateSetValue(
+                        updateSetDraft(entry.localIdentifier, setIndex, "rate_of_perceived_exertion", event.target.value)
+                      }
+                      onBlur={(event) =>
+                        commitSetNumericValue(
                           entry.localIdentifier,
                           setIndex,
                           "rate_of_perceived_exertion",
-                          parseNumericInput(event.target.value, set.rate_of_perceived_exertion, 1, 10)
+                          event.target.value,
+                          set.rate_of_perceived_exertion ?? 7,
+                          1,
+                          10,
+                          true
                         )
                       }
                     />
@@ -566,12 +658,12 @@ export function LogWorkoutPage() {
       </div>
 
       {feedbackMessage ? (
-        <Card border className={feedbackType === "success" ? "border-emerald-500/40 bg-emerald-500/12" : "border-red-500/40 bg-red-500/10"}>
+        <Card border className={feedbackType === "success" ? "border-primary-400/45 bg-primary-100/20" : "border-red-500/40 bg-red-500/10"}>
           <div className="flex items-start gap-2">
             {feedbackType === "success" ? (
-              <CheckCircle2 size={16} className="mt-0.5 text-emerald-300" />
+              <CheckCircle2 size={16} className="mt-0.5 text-primary-700" />
             ) : null}
-            <p className={feedbackType === "success" ? "text-emerald-200" : "text-red-300"}>{feedbackMessage}</p>
+            <p role="status" aria-live="polite" className={feedbackType === "success" ? "text-primary-900" : "text-red-300"}>{feedbackMessage}</p>
           </div>
         </Card>
       ) : null}

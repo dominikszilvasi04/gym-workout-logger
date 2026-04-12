@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
@@ -8,12 +8,12 @@ import { useAuthStore } from "../store/authStore";
 
 function getPasswordStrength(password: string) {
   if (password.length < 8) {
-    return { label: "Weak", colour: "text-red-600" };
+    return { label: "Basic", colour: "text-navy-500" };
   }
   if (password.length < 12 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-    return { label: "Moderate", colour: "text-orange-600" };
+    return { label: "Improving", colour: "text-primary-700" };
   }
-  return { label: "Strong", colour: "text-emerald-600" };
+  return { label: "Strong", colour: "text-primary-900" };
 }
 
 export function RegisterPage() {
@@ -21,11 +21,16 @@ export function RegisterPage() {
   const register = useAuthStore((state) => state.register);
   const loading = useAuthStore((state) => state.isLoading);
   const registrationError = useAuthStore((state) => state.error);
+  const clearError = useAuthStore((state) => state.clearError);
 
   const [displayName, setDisplayName] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleGoogleSignUp = () => {
     window.location.href = authAPI.getGoogleLoginUrl();
@@ -51,13 +56,15 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
-      <Card className="w-full border border-navy-300/70" padding="lg" shadow="lg">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Premium performance</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-navy-950">Create account</h1>
-        <p className="mt-2 text-sm text-navy-700">Start tracking your progress with focused, mobile-first training flows.</p>
+    <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-6">
+      <Card className="w-full border border-primary-400/35" padding="lg" shadow="lg">
+        <div className="mb-6 border-b border-primary-300/25 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-700">Private training ledger</p>
+          <h1 className="mt-2 font-display text-[clamp(2rem,5vw,2.4rem)] font-semibold text-navy-950">Create account</h1>
+          <p className="mt-2 max-w-[28ch] text-sm text-navy-700">Build a refined routine log designed for consistency and clarity.</p>
+        </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
           <InputField
             label="Display name"
             value={displayName}
@@ -88,9 +95,9 @@ export function RegisterPage() {
             </p>
           ) : null}
 
-          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {formError ? <p className="text-sm text-red-300" role="alert" aria-live="assertive">{formError}</p> : null}
           {!formError && registrationError ? (
-            <p className="text-sm text-red-600">{registrationError}</p>
+            <p className="text-sm text-red-300" role="alert" aria-live="assertive">{registrationError}</p>
           ) : null}
 
           <Button type="submit" fullWidth isLoading={loading}>
@@ -108,9 +115,9 @@ export function RegisterPage() {
           </Button>
         </form>
 
-        <p className="mt-4 text-sm text-navy-700">
+        <p className="mt-5 text-sm text-navy-700">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-primary-600 hover:text-primary-700">
+          <Link to="/login" className="font-semibold text-primary-700 hover:text-primary-800">
             Sign in
           </Link>
         </p>

@@ -33,7 +33,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: null,
         isAuthenticated: false,
         isLoading: false,
-        error: "Failed to verify session",
+        error: null,
       });
     }
   },

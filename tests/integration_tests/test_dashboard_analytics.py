@@ -237,3 +237,69 @@ def test_dashboard_analytics_supports_exercise_specific_strength_filter(test_cli
     assert analytics_payload["filters"]["selected_exercise"] == "Bench Press"
     assert analytics_payload["charts"]["one_rep_max_progression"]["labels"] == ["2026-03-01"]
     assert analytics_payload["charts"]["one_rep_max_progression"]["values"] == [116.67]
+
+
+def test_dashboard_analytics_ignores_missing_rpe_entries_in_rpe_summary_and_chart(test_client):
+    """
+    Verifies optional RPE sets do not distort average session RPE and RPE progression charts.
+    """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Optional RPE User",
+            "email": "optional.rpe@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
+    workout_without_rpe_response = test_client.post(
+        "/api/workouts",
+        json={
+            "date_of_workout": "2026-03-01T09:00",
+            "target_muscle_groups": ["Back"],
+            "exercises": [
+                {
+                    "exercise_name": "Barbell Row",
+                    "exercise_definition_identifier": "row-001",
+                    "sets": [
+                        {
+                            "repetitions": 8,
+                            "weight_in_kilograms": 70.0,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    assert workout_without_rpe_response.status_code == 201
+
+    workout_with_rpe_response = test_client.post(
+        "/api/workouts",
+        json={
+            "date_of_workout": "2026-03-08T09:00",
+            "target_muscle_groups": ["Chest"],
+            "exercises": [
+                {
+                    "exercise_name": "Bench Press",
+                    "exercise_definition_identifier": "bench-001",
+                    "sets": [
+                        {
+                            "repetitions": 5,
+                            "weight_in_kilograms": 100.0,
+                            "rate_of_perceived_exertion": 8,
+                        }
+                    ],
+                }
+            ],
+        },
+    )
+    assert workout_with_rpe_response.status_code == 201
+
+    analytics_response = test_client.get("/api/dashboard/analytics")
+    assert analytics_response.status_code == 200
+
+    analytics_payload = analytics_response.get_json()
+    assert analytics_payload["summary"]["average_session_rpe"] == 8.0
+    assert analytics_payload["charts"]["average_rpe_progression"]["labels"] == ["2026-03-08"]
+    assert analytics_payload["charts"]["average_rpe_progression"]["values"] == [8.0]

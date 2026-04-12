@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
@@ -11,10 +11,15 @@ export function LoginPage() {
   const signIn = useAuthStore((state) => state.login);
   const loading = useAuthStore((state) => state.isLoading);
   const authenticationError = useAuthStore((state) => state.error);
+  const clearError = useAuthStore((state) => state.clearError);
 
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const handleGoogleSignIn = () => {
     window.location.href = authAPI.getGoogleLoginUrl();
@@ -38,13 +43,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4">
-      <Card className="w-full border border-navy-300/70" padding="lg" shadow="lg">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Premium performance</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-navy-950">Welcome back</h1>
-        <p className="mt-2 text-sm text-navy-700">Sign in to continue logging your training.</p>
+    <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-6">
+      <Card className="w-full border border-primary-400/35" padding="lg" shadow="lg">
+        <div className="mb-6 border-b border-primary-300/25 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-700">Private training ledger</p>
+          <h1 className="mt-2 font-display text-[clamp(2rem,5vw,2.4rem)] font-semibold text-navy-950">Welcome back</h1>
+          <p className="mt-2 max-w-[26ch] text-sm text-navy-700">Sign in to continue your weekly strength narrative.</p>
+        </div>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+        <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
           <InputField
             label="Email address"
             type="email"
@@ -62,9 +69,9 @@ export function LoginPage() {
             required
           />
 
-          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
+          {formError ? <p className="text-sm text-red-300" role="alert" aria-live="assertive">{formError}</p> : null}
           {!formError && authenticationError ? (
-            <p className="text-sm text-red-600">{authenticationError}</p>
+            <p className="text-sm text-red-300" role="alert" aria-live="assertive">{authenticationError}</p>
           ) : null}
 
           <Button type="submit" fullWidth isLoading={loading}>
@@ -82,9 +89,9 @@ export function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-4 text-sm text-navy-700">
+        <p className="mt-5 text-sm text-navy-700">
           Need an account?{" "}
-          <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
+          <Link to="/register" className="font-semibold text-primary-700 hover:text-primary-800">
             Register
           </Link>
         </p>

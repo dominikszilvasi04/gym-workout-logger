@@ -100,7 +100,7 @@ export const WorkoutDetailPage = () => {
           <div className="min-w-0">
             <button
               onClick={() => navigate('/')}
-              className="mb-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-navy-700 transition hover:bg-navy-200"
+              className="touch-target mb-2 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-navy-700 transition hover:bg-navy-200"
             >
               <ChevronLeft className="h-4 w-4" />
               Back
@@ -124,13 +124,13 @@ export const WorkoutDetailPage = () => {
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary-700">Sets</p>
             <p className="mt-1 font-display text-lg font-semibold text-primary-900">{totalSets}</p>
           </div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300">Volume</p>
-            <p className="mt-1 font-display text-lg font-semibold text-emerald-200">{Math.round(totalVolume)} kg</p>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/80 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-navy-600">Volume</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-950">{Math.round(totalVolume)} kg</p>
           </div>
         </div>
 
-        <Card border className="bg-navy-100/90">
+        <Card border className="bg-navy-100/92">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-navy-600">Muscle groups</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {workout.target_muscle_groups.length > 0 ? (
@@ -154,7 +154,7 @@ export const WorkoutDetailPage = () => {
           <div className="space-y-3">
             {workout.exercises.length > 0 ? (
               workout.exercises.map((exercise, index) => (
-                <Card key={index} border className="bg-navy-100/95">
+                <Card key={index} border className="bg-navy-100/95 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-display text-lg font-semibold text-navy-950">{exercise.exercise_name}</p>
                     <Badge colour="neutral" size="small">{exercise.sets.length} sets</Badge>
@@ -173,7 +173,7 @@ export const WorkoutDetailPage = () => {
                           <span className="font-semibold">{setIndex + 1}</span>
                           <span>{set.repetitions}</span>
                           <span>{set.weight_in_kilograms} kg</span>
-                          <span>{set.rate_of_perceived_exertion}</span>
+                          <span>{set.rate_of_perceived_exertion ?? '—'}</span>
                         </div>
                       ))}
                     </div>
@@ -188,7 +188,7 @@ export const WorkoutDetailPage = () => {
           </div>
         </section>
 
-        <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/90 px-4 py-3 backdrop-blur-xl">
+        <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/60 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(0,0,0,0.45)] backdrop-blur-xl">
           <div className="grid grid-cols-2 gap-2">
             <Button onClick={() => navigate(`/workouts/${workout._id}/edit`)} className="gap-2">
               <Edit className="h-4 w-4" />

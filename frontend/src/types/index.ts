@@ -18,7 +18,7 @@ export interface ExerciseDefinition {
 export interface WorkoutSet {
   repetitions: number;
   weight_in_kilograms: number;
-  rate_of_perceived_exertion: number; // 1-10 scale
+  rate_of_perceived_exertion?: number; // optional 1-10 scale
 }
 
 // Exercise log (within workout)

@@ -34,27 +34,42 @@ export function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const chartPalette = {
+    linePrimary: "#D4AA62",
+    linePrimaryFill: "rgba(212,170,98,0.24)",
+    barPrimary: "rgba(184,138,59,0.72)",
+    barSecondary: "rgba(131,112,92,0.7)",
+    lineSecondary: "#B88A3B",
+    lineSecondaryFill: "rgba(184,138,59,0.18)",
+    text: "#B6A48A",
+    grid: "rgba(64,55,45,0.45)",
+    tooltipBackground: "#141210",
+    tooltipBorder: "#40372D",
+    tooltipTitle: "#FFF8ED",
+    tooltipBody: "#F0E8DB",
+  };
+
   const baseCartesianOptions = {
     responsive: true,
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: "#0B1220",
-        borderColor: "#2A3D59",
+        backgroundColor: chartPalette.tooltipBackground,
+        borderColor: chartPalette.tooltipBorder,
         borderWidth: 1,
-        titleColor: "#F4F8FF",
-        bodyColor: "#E7EFFB",
+        titleColor: chartPalette.tooltipTitle,
+        bodyColor: chartPalette.tooltipBody,
       },
     },
     scales: {
       x: {
-        ticks: { maxTicksLimit: 6, color: "#A8BCD8" },
-        grid: { color: "rgba(42,61,89,0.45)" },
+        ticks: { maxTicksLimit: 6, color: chartPalette.text },
+        grid: { color: chartPalette.grid },
       },
       y: {
         beginAtZero: true,
-        ticks: { color: "#A8BCD8" },
-        grid: { color: "rgba(42,61,89,0.45)" },
+        ticks: { color: chartPalette.text },
+        grid: { color: chartPalette.grid },
       },
     },
   };
@@ -121,9 +136,9 @@ export function AnalyticsPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Best 1RM</p>
             <p className="mt-1 font-display text-lg font-semibold text-navy-900">{formatNumber(analyticsData.summary.strongest_estimated_one_rep_maximum)} kg</p>
           </div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/15 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">Streak</p>
-            <p className="mt-1 font-display text-lg font-semibold text-emerald-200">{analyticsData.summary.current_training_streak_weeks} w</p>
+          <div className="rounded-xl border border-navy-300/70 bg-navy-100/70 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-navy-500">Streak</p>
+            <p className="mt-1 font-display text-lg font-semibold text-navy-900">{analyticsData.summary.current_training_streak_weeks} w</p>
           </div>
         </div>
       </Card>
@@ -149,8 +164,8 @@ export function AnalyticsPage() {
               {
                 label: "Estimated one repetition maximum",
                 data: analyticsData.charts.one_rep_max_progression.values,
-                borderColor: "#7E8AFF",
-                backgroundColor: "rgba(126,138,255,0.28)",
+                borderColor: chartPalette.linePrimary,
+                backgroundColor: chartPalette.linePrimaryFill,
                 tension: 0.3,
               },
             ],
@@ -169,7 +184,7 @@ export function AnalyticsPage() {
               {
                 label: "Volume",
                 data: analyticsData.charts.workout_volume_progression.values,
-                backgroundColor: "rgba(33,209,144,0.78)",
+                backgroundColor: chartPalette.barSecondary,
                 borderRadius: 8,
               },
             ],
@@ -188,15 +203,15 @@ export function AnalyticsPage() {
                 position: "bottom",
                 labels: {
                   usePointStyle: true,
-                  color: "#C8D8EE",
+                  color: chartPalette.text,
                 },
               },
               tooltip: {
-                backgroundColor: "#0B1220",
-                borderColor: "#2A3D59",
+                backgroundColor: chartPalette.tooltipBackground,
+                borderColor: chartPalette.tooltipBorder,
                 borderWidth: 1,
-                titleColor: "#F4F8FF",
-                bodyColor: "#E7EFFB",
+                titleColor: chartPalette.tooltipTitle,
+                bodyColor: chartPalette.tooltipBody,
               },
             },
           }}
@@ -206,12 +221,12 @@ export function AnalyticsPage() {
               {
                 data: analyticsData.charts.muscle_group_distribution.values,
                 backgroundColor: [
-                  "#4F46E5",
-                  "#0EA5E9",
-                  "#10B981",
-                  "#F97316",
-                  "#F43F5E",
-                  "#334155",
+                  "#B88A3B",
+                  "#D4AA62",
+                  "#E5C895",
+                  "#B6A48A",
+                  "#83705C",
+                  "#5A4D3F",
                 ],
               },
             ],
@@ -230,7 +245,7 @@ export function AnalyticsPage() {
               {
                 label: "Sessions",
                 data: analyticsData.charts.weekly_frequency.values,
-                backgroundColor: "rgba(126,138,255,0.78)",
+                backgroundColor: chartPalette.barPrimary,
                 borderRadius: 8,
               },
             ],
@@ -249,8 +264,8 @@ export function AnalyticsPage() {
               {
                 label: "Average RPE",
                 data: analyticsData.charts.average_rpe_progression.values,
-                borderColor: "#F97316",
-                backgroundColor: "rgba(249,115,22,0.24)",
+                borderColor: chartPalette.lineSecondary,
+                backgroundColor: chartPalette.lineSecondaryFill,
                 tension: 0.32,
               },
             ],
@@ -269,7 +284,7 @@ export function AnalyticsPage() {
               {
                 label: "Volume",
                 data: analyticsData.charts.top_exercise_volume.values,
-                backgroundColor: "rgba(14,165,233,0.78)",
+                backgroundColor: chartPalette.barSecondary,
                 borderRadius: 8,
               },
             ],

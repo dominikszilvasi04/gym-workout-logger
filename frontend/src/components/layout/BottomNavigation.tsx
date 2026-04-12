@@ -21,7 +21,7 @@ export function BottomNavigation() {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/65 bg-navy-100/92 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/55 bg-navy-100/94 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
       <ul className="mx-auto grid max-w-3xl grid-cols-5 gap-1 px-2">
         {navigationItems.map((item) => {
           const IconComponent = item.icon;
@@ -32,14 +32,14 @@ export function BottomNavigation() {
               <Link
                 to={item.path}
                 className={clsx(
-                  "flex h-14 flex-col items-center justify-center rounded-lg text-[11px] font-semibold",
+                  "touch-target flex h-14 flex-col items-center justify-center rounded-xl text-[11px] font-semibold tracking-[0.01em] transition-colors duration-150",
                   active
-                    ? "bg-primary-500/95 text-navy-950 shadow-[0_8px_20px_rgba(91,108,255,0.34)]"
-                    : "text-navy-700 hover:bg-navy-200/70 hover:text-navy-900"
+                    ? "bg-primary-500 text-navy-100 shadow-[0_12px_24px_rgba(184,138,59,0.24)]"
+                    : "text-navy-700 hover:bg-navy-200/80 hover:text-navy-900"
                 )}
               >
-                <IconComponent size={18} />
-                <span className="mt-1">{item.label}</span>
+                <IconComponent size={18} className={clsx("transition-transform duration-150", active && "-translate-y-0.5")} />
+                <span className={clsx("mt-1 transition-transform duration-150", active && "-translate-y-0.5")}>{item.label}</span>
               </Link>
             </li>
           );
