@@ -188,3 +188,32 @@ def test_profile_page_shows_logged_in_user_statistics(test_client):
     assert analytics_payload["summary"]["total_workouts"] == 2
     assert analytics_payload["summary"]["total_volume"] == 1450.0
     assert "Chest" in analytics_payload["charts"]["muscle_group_distribution"]["labels"]
+
+
+def test_authenticated_user_can_update_display_name(test_client):
+    """
+    Verifies the authenticated profile update endpoint saves display name changes.
+    """
+    test_client.post(
+        "/register",
+        data={
+            "display_name": "Original Name",
+            "email": "profile.update@example.com",
+            "password": "securepass123",
+        },
+        follow_redirects=True,
+    )
+
+    update_response = test_client.put(
+        "/api/auth/me",
+        json={
+            "display_name": "Updated Name",
+        },
+    )
+
+    assert update_response.status_code == 200
+    assert update_response.get_json()["display_name"] == "Updated Name"
+
+    current_user_response = test_client.get("/api/auth/me")
+    assert current_user_response.status_code == 200
+    assert current_user_response.get_json()["display_name"] == "Updated Name"

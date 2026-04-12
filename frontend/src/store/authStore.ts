@@ -14,6 +14,7 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (displayName?: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -89,6 +90,18 @@ export const useAuthStore = create<AuthStore>((set) => ({
         isLoading: false,
         error: errorMessage,
       });
+    }
+  },
+
+  updateProfile: async (displayName?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const user = await authAPI.updateProfile(displayName);
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Profile update failed";
+      set({ isLoading: false, error: errorMessage });
+      throw error;
     }
   },
 

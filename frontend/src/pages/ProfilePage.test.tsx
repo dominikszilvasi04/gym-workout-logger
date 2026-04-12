@@ -6,10 +6,19 @@ import type { AnalyticsData, Workout } from "../types";
 
 const getAnalyticsMock = vi.fn();
 const getAllMock = vi.fn();
+const getLastMock = vi.fn();
 const logoutMock = vi.fn();
+const updateProfileMock = vi.fn();
 
 let authState = {
   logout: logoutMock,
+  updateProfile: updateProfileMock,
+  user: {
+    _id: "user-1",
+    email: "profile.user@example.com",
+    display_name: "Profile User",
+    created_at: "2026-01-01T09:00:00.000Z",
+  },
 };
 
 vi.mock("../store/authStore", () => ({
@@ -20,6 +29,7 @@ vi.mock("../services/api", () => ({
   workoutAPI: {
     getAnalytics: (...args: unknown[]) => getAnalyticsMock(...args),
     getAll: (...args: unknown[]) => getAllMock(...args),
+    getLast: (...args: unknown[]) => getLastMock(...args),
   },
 }));
 
@@ -66,16 +76,29 @@ describe("ProfilePage", () => {
   beforeEach(() => {
     getAnalyticsMock.mockReset();
     getAllMock.mockReset();
+    getLastMock.mockReset();
     logoutMock.mockReset();
+    updateProfileMock.mockReset();
 
-    authState = { logout: logoutMock };
+    authState = {
+      logout: logoutMock,
+      updateProfile: updateProfileMock,
+      user: {
+        _id: "user-1",
+        email: "profile.user@example.com",
+        display_name: "Profile User",
+        created_at: "2026-01-01T09:00:00.000Z",
+      },
+    };
 
     getAnalyticsMock.mockResolvedValue(analyticsFixture);
     getAllMock.mockResolvedValue({ workouts: workoutsFixture, total: workoutsFixture.length });
+    getLastMock.mockResolvedValue(workoutsFixture[0]);
     logoutMock.mockResolvedValue(undefined);
+    updateProfileMock.mockResolvedValue(undefined);
   });
 
-  it("renders profile metrics and recent sessions", async () => {
+  it("renders profile metrics, repeat action, and editable display name", async () => {
     render(
       <MemoryRouter>
         <ProfilePage />
@@ -85,11 +108,21 @@ describe("ProfilePage", () => {
     await waitFor(() => {
       expect(getAnalyticsMock).toHaveBeenCalledWith(90);
       expect(getAllMock).toHaveBeenCalledWith(1, 6);
+      expect(getLastMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(await screen.findByText(/progress snapshot/i)).toBeInTheDocument();
+    expect(await screen.findByText(/athlete ledger/i)).toBeInTheDocument();
     expect(screen.getByText(/one repetition maximum/i)).toBeInTheDocument();
     expect(screen.getByText(/recent sessions/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/display name/i), { target: { value: "Coach Dom" } });
+    fireEvent.click(screen.getByRole("button", { name: /save profile/i }));
+
+    await waitFor(() => {
+      expect(updateProfileMock).toHaveBeenCalledWith("Coach Dom");
+    });
+
+    expect(screen.getByRole("button", { name: /repeat last/i })).toBeEnabled();
   });
 
   it("logs user out", async () => {
@@ -99,7 +132,7 @@ describe("ProfilePage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByText(/progress snapshot/i);
+    await screen.findByText(/athlete ledger/i);
 
     fireEvent.click(screen.getByRole("button", { name: /log out/i }));
 

@@ -11,6 +11,7 @@ const templateCreateMock = vi.fn();
 const workoutCreateMock = vi.fn();
 const workoutUpdateMock = vi.fn();
 const workoutGetByIdMock = vi.fn();
+const workoutGetLastUsedValuesMock = vi.fn();
 
 vi.mock("../services/api", () => ({
   exerciseAPI: {
@@ -25,6 +26,7 @@ vi.mock("../services/api", () => ({
     create: (...args: unknown[]) => workoutCreateMock(...args),
     update: (...args: unknown[]) => workoutUpdateMock(...args),
     getById: (...args: unknown[]) => workoutGetByIdMock(...args),
+    getLastUsedValues: (...args: unknown[]) => workoutGetLastUsedValuesMock(...args),
   },
 }));
 
@@ -63,6 +65,16 @@ function renderEditMode() {
   );
 }
 
+function renderRepeatMode() {
+  return render(
+    <MemoryRouter initialEntries={["/log?repeat=workout-1"]}>
+      <Routes>
+        <Route path="/log" element={<LogWorkoutPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe("LogWorkoutPage", () => {
   beforeEach(() => {
     exerciseGetAllMock.mockReset();
@@ -72,6 +84,7 @@ describe("LogWorkoutPage", () => {
     workoutCreateMock.mockReset();
     workoutUpdateMock.mockReset();
     workoutGetByIdMock.mockReset();
+    workoutGetLastUsedValuesMock.mockReset();
 
     exerciseGetAllMock.mockResolvedValue(exercisesFixture);
     templateGetAllMock.mockResolvedValue([]);
@@ -80,6 +93,7 @@ describe("LogWorkoutPage", () => {
     workoutCreateMock.mockResolvedValue("workout-1");
     workoutUpdateMock.mockResolvedValue(undefined);
     workoutGetByIdMock.mockResolvedValue(null);
+    workoutGetLastUsedValuesMock.mockResolvedValue({});
   });
 
   it("loads catalogue and lets user add an exercise", async () => {
@@ -105,6 +119,33 @@ describe("LogWorkoutPage", () => {
     renderEditMode();
 
     expect(await screen.findByText(/unable to load workout for editing/i)).toBeInTheDocument();
+  });
+
+  it("prefills a repeated workout from a previous session", async () => {
+    workoutGetByIdMock.mockResolvedValueOnce({
+      _id: "workout-1",
+      user_identifier: "user-1",
+      date_of_workout: "2026-04-10T08:00:00.000Z",
+      target_muscle_groups: ["Push"],
+      exercises: [
+        {
+          exercise_name: "Bench Press",
+          exercise_definition_identifier: "exercise-1",
+          sets: [
+            { repetitions: 8, weight_in_kilograms: 80, rate_of_perceived_exertion: 8 },
+          ],
+        },
+      ],
+    });
+
+    renderRepeatMode();
+
+    await waitFor(() => {
+      expect(workoutGetByIdMock).toHaveBeenCalledWith("workout-1");
+    });
+
+    expect(await screen.findByText(/bench press/i)).toBeInTheDocument();
+    expect(screen.getByText(/loaded a previous workout to repeat/i)).toBeInTheDocument();
   });
 
   it("shows validation message when saving without exercises", async () => {
@@ -138,5 +179,64 @@ describe("LogWorkoutPage", () => {
     });
 
     expect(await screen.findByText(/workout saved successfully/i)).toBeInTheDocument();
+  });
+
+  it("applies last-used set values with one tap", async () => {
+    workoutGetLastUsedValuesMock.mockResolvedValue({
+      "Bench Press": {
+        repetitions: 6,
+        weight_in_kilograms: 92.5,
+        rate_of_perceived_exertion: 9,
+      },
+    });
+
+    renderCreateMode();
+
+    await waitFor(() => {
+      expect(exerciseGetAllMock).toHaveBeenCalledTimes(1);
+      expect(workoutGetLastUsedValuesMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /bench press/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /use last for bench press/i }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("92.5")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("6")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("9")).toBeInTheDocument();
+    });
+  });
+
+  it("decreases weight and reps with floor limits", async () => {
+    renderCreateMode();
+
+    await waitFor(() => {
+      expect(exerciseGetAllMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /add exercise/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /bench press/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /-2.5 kg all/i }));
+    fireEvent.click(screen.getByRole("button", { name: /-1 rep all/i }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("17.5")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("7")).toBeInTheDocument();
+    });
+
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: /-2.5 kg all/i }));
+    }
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: /-1 rep all/i }));
+    }
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("0")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("1")).toBeInTheDocument();
+    });
   });
 });

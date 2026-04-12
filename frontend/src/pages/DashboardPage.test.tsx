@@ -76,10 +76,12 @@ describe("DashboardPage", () => {
       expect(getAllMock).toHaveBeenCalledWith(1, 10);
     });
 
-    expect(await screen.findByText(/precision in training/i)).toBeInTheDocument();
-    expect(screen.getByText(/average rpe/i)).toBeInTheDocument();
+    expect(await screen.findByText(/today cockpit/i)).toBeInTheDocument();
+    expect(screen.getByText(/one-handed logging, clear momentum/i)).toBeInTheDocument();
+    expect(screen.getByText(/repeat last/i)).toBeInTheDocument();
+    expect(screen.getByText(/deep analysis/i)).toBeInTheDocument();
     expect(screen.getByText("7.4")).toBeInTheDocument();
     expect(screen.getByText(/recent sessions/i)).toBeInTheDocument();
-    expect(screen.getByText(/push/i)).toBeInTheDocument();
+    expect(screen.getByText(/^push$/i)).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArcElement,
   BarElement,
@@ -13,6 +14,7 @@ import {
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
 import { Badge } from "../components/common/Badge";
+import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { Tabs } from "../components/common/Tabs";
 import { workoutAPI } from "../services/api";
@@ -30,7 +32,9 @@ ChartLibrary.register(
 );
 
 export function AnalyticsPage() {
+  const navigate = useNavigate();
   const [rangeDays, setRangeDays] = useState("30");
+  const [selectedExercise, setSelectedExercise] = useState("");
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -78,11 +82,98 @@ export function AnalyticsPage() {
     return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
   };
 
+  const analyticsInsights = useMemo(() => {
+    if (!analyticsData) {
+      return [];
+    }
+
+    const bestPR = analyticsData.leaderboards.personal_records[0];
+    const muscleDistribution = analyticsData.charts.muscle_group_distribution;
+    const dominantMuscleIndex = muscleDistribution.values.indexOf(Math.max(...muscleDistribution.values));
+    const dominantMuscleGroup = dominantMuscleIndex >= 0 ? muscleDistribution.labels[dominantMuscleIndex] : null;
+    const averageRpe = analyticsData.summary.average_session_rpe;
+    const streakWeeks = analyticsData.summary.current_training_streak_weeks;
+
+    return [
+      {
+        title: "Momentum",
+        value: `${analyticsData.summary.total_workouts} sessions`,
+        detail:
+          streakWeeks > 0
+            ? `You're holding a ${streakWeeks}-week streak. Keep the rhythm with your next planned session.`
+            : "Build a streak by logging your next workout as soon as you finish.",
+      },
+      {
+        title: "Intensity",
+        value: `${averageRpe.toFixed(1)} average RPE`,
+        detail:
+          averageRpe >= 8
+            ? "Training is running hot. Consider a lighter accessory or recovery day next."
+            : averageRpe >= 6
+              ? "Effort is balanced. Good zone for sustainable progress."
+              : "Sessions are light. Add a top set or another working set if recovery is good.",
+      },
+      {
+        title: "Focus",
+        value: dominantMuscleGroup || "Balanced split",
+        detail: dominantMuscleGroup
+          ? `This range leans toward ${dominantMuscleGroup.toLowerCase()} work. Round it out with complementary movement patterns.`
+          : "Your distribution will sharpen once more sessions are logged.",
+      },
+      {
+        title: "Best lift",
+        value: bestPR ? `${bestPR.exercise_name} · ${Math.round(bestPR.estimated_one_rep_maximum)} kg` : `${formatNumber(analyticsData.summary.strongest_estimated_one_rep_maximum)} kg`,
+        detail: bestPR
+          ? `Latest personal record set on ${new Date(bestPR.date).toLocaleDateString()}.`
+          : "Log a few top sets to reveal your strongest movement.",
+      },
+    ];
+  }, [analyticsData]);
+
+  const nextMove = useMemo(() => {
+    if (!analyticsData) {
+      return {
+        title: "Log your next session",
+        detail: "Start a workout now to build your next trend point.",
+        actionLabel: "Log workout",
+        onAction: () => navigate("/log"),
+      };
+    }
+
+    const averageRpe = analyticsData.summary.average_session_rpe;
+    if (averageRpe >= 8) {
+      return {
+        title: "Use a lighter day",
+        detail: "Average effort is high. Repeat your last session with slightly lower load.",
+        actionLabel: "Repeat last",
+        onAction: () => navigate("/log?source=last"),
+      };
+    }
+
+    if (analyticsData.summary.current_training_streak_weeks === 0) {
+      return {
+        title: "Start your streak",
+        detail: "One quick session now creates momentum for the week.",
+        actionLabel: "Log workout",
+        onAction: () => navigate("/log"),
+      };
+    }
+
+    return {
+      title: "Progressive next step",
+      detail: "Keep momentum by launching your next planned session from templates.",
+      actionLabel: "Open templates",
+      onAction: () => navigate("/templates"),
+    };
+  }, [analyticsData, navigate]);
+
   useEffect(() => {
     const loadAnalytics = async () => {
       setLoading(true);
       try {
-        const response = await workoutAPI.getAnalytics(Number(rangeDays));
+        const response = selectedExercise
+          ? await workoutAPI.getAnalytics(Number(rangeDays), selectedExercise)
+          : await workoutAPI.getAnalytics(Number(rangeDays));
         setAnalyticsData(response);
       } finally {
         setLoading(false);
@@ -90,7 +181,7 @@ export function AnalyticsPage() {
     };
 
     void loadAnalytics();
-  }, [rangeDays]);
+  }, [rangeDays, selectedExercise]);
 
   if (loading) {
     return (
@@ -152,6 +243,52 @@ export function AnalyticsPage() {
         selectedKey={rangeDays}
         onSelect={setRangeDays}
       />
+
+      <Card border className="transition-shadow duration-200">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy-500">Focus filter</p>
+            <p className="mt-1 text-sm text-navy-600">Zoom your analytics by exercise.</p>
+          </div>
+          <div className="w-full sm:max-w-xs">
+            <label htmlFor="analytics-exercise-filter" className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-navy-500">
+              Exercise filter
+            </label>
+            <select
+              id="analytics-exercise-filter"
+              className="h-11 w-full rounded-lg border border-navy-300 bg-navy-100/80 px-3 text-sm text-navy-900 shadow-sm"
+              value={selectedExercise}
+              onChange={(event) => setSelectedExercise(event.target.value)}
+            >
+              <option value="">All exercises</option>
+              {analyticsData.filters.available_exercises.map((exerciseName) => (
+                <option key={exerciseName} value={exerciseName}>
+                  {exerciseName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      <Card border className="transition-shadow duration-200">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-700">Next move</p>
+        <p className="mt-1 font-display text-lg font-semibold text-navy-900">{nextMove.title}</p>
+        <p className="mt-2 text-sm text-navy-600">{nextMove.detail}</p>
+        <div className="mt-3">
+          <Button size="sm" onClick={nextMove.onAction}>{nextMove.actionLabel}</Button>
+        </div>
+      </Card>
+
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {analyticsInsights.map((insight) => (
+          <Card key={insight.title} border className="border border-navy-300/70 bg-navy-100/95 shadow-md">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy-600">{insight.title}</p>
+            <p className="mt-2 font-display text-xl font-semibold text-navy-950">{insight.value}</p>
+            <p className="mt-2 text-sm leading-6 text-navy-600">{insight.detail}</p>
+          </Card>
+        ))}
+      </section>
 
       <Card border className="transition-shadow duration-200">
         <p className="mb-1 font-display text-lg font-semibold text-navy-900">Estimated one repetition maximum</p>

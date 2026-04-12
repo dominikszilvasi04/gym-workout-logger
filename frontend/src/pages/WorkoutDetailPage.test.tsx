@@ -59,6 +59,7 @@ describe("WorkoutDetailPage", () => {
     expect(await screen.findByText(/session details/i)).toBeInTheDocument();
     expect(screen.getByText(/bench press/i)).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /repeat/i })).toBeInTheDocument();
   });
 
   it("opens delete dialog and confirms delete", async () => {
