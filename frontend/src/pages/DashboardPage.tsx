@@ -478,7 +478,7 @@ export function DashboardPage() {
               />
             </div>
             <input
-              className="touch-target block h-10 w-full min-w-0 max-w-full rounded-xl border border-navy-300/70 bg-navy-50/80 px-2.5 pr-8 text-sm text-left text-navy-900 leading-tight focus:outline-none focus:ring-2 focus:ring-primary-600/80 [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-calendar-picker-indicator]:ml-1"
+              className="touch-target ios-date-input block h-11 w-full min-w-0 max-w-full rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 pr-10 text-base text-left text-navy-900 leading-normal focus:outline-none focus:ring-2 focus:ring-primary-600/80 [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-calendar-picker-indicator]:ml-1"
               type="date"
               value={goalForm.target_date}
               onChange={(event) => setGoalForm((current) => ({ ...current, target_date: event.target.value }))}

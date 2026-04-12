@@ -726,14 +726,14 @@ export function LogWorkoutPage() {
             type="date"
             value={workoutDate}
             onChange={(event) => setWorkoutDate(event.target.value)}
-            className="min-w-0 h-10 px-2.5 pr-8 text-sm text-left"
+            className="min-w-0 ios-date-input"
           />
           <InputField
             label="Workout time"
             type="time"
             value={workoutTime}
             onChange={(event) => setWorkoutTime(event.target.value)}
-            className="min-w-0 h-10 px-2.5 pr-8 text-sm text-left"
+            className="min-w-0 ios-date-input"
           />
         </div>
         <p className="text-xs text-navy-500">Date and time are separated on mobile so the picker stays readable and aligned.</p>
