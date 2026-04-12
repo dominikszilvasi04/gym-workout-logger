@@ -77,7 +77,7 @@ export function ProfilePage() {
         icon: Flame,
       },
       {
-        title: "One repetition maximum",
+        title: "1RM",
         value: `${Math.round(analyticsData.summary.strongest_estimated_one_rep_maximum)} kg`,
         icon: Award,
       },

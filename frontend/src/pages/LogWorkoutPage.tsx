@@ -594,7 +594,7 @@ export function LogWorkoutPage() {
           </p>
         </div>
 
-        <div className="mx-auto grid w-full max-w-md grid-cols-1 gap-3 sm:max-w-none sm:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-md grid-cols-1 gap-3 overflow-hidden sm:max-w-none sm:grid-cols-2">
           <InputField
             label="Workout date"
             type="date"

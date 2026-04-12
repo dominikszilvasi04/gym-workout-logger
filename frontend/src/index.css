@@ -88,7 +88,16 @@ body::before {
 
 input[type="date"],
 input[type="time"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
