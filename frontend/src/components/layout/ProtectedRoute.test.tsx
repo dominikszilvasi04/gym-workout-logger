@@ -6,6 +6,7 @@ import { ProtectedRoute } from "./ProtectedRoute";
 let authState = {
   isAuthenticated: false,
   isLoading: false,
+  user: null as null | { role?: "user" | "admin"; is_admin?: boolean },
 };
 
 vi.mock("../../store/authStore", () => ({
@@ -17,11 +18,12 @@ describe("ProtectedRoute", () => {
     authState = {
       isAuthenticated: false,
       isLoading: false,
+      user: null,
     };
   });
 
   it("renders loading shell while auth is resolving", () => {
-    authState = { isAuthenticated: false, isLoading: true };
+    authState = { isAuthenticated: false, isLoading: true, user: null };
 
     const { container } = render(
       <MemoryRouter>
@@ -55,7 +57,7 @@ describe("ProtectedRoute", () => {
   });
 
   it("renders children when authenticated", () => {
-    authState = { isAuthenticated: true, isLoading: false };
+    authState = { isAuthenticated: true, isLoading: false, user: { role: "user" } };
 
     render(
       <MemoryRouter>
@@ -66,5 +68,41 @@ describe("ProtectedRoute", () => {
     );
 
     expect(screen.getByText(/secret/i)).toBeInTheDocument();
+  });
+
+  it("redirects authenticated non-admin users away from admin routes", () => {
+    authState = { isAuthenticated: true, isLoading: false, user: { role: "user" } };
+
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <Routes>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <div>Admin Secret</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<div>Home Screen</div>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/home screen/i)).toBeInTheDocument();
+  });
+
+  it("renders admin route children for users with is_admin", () => {
+    authState = { isAuthenticated: true, isLoading: false, user: { is_admin: true } };
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute requiredRole="admin">
+          <div>Admin Secret</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/admin secret/i)).toBeInTheDocument();
   });
 });

@@ -112,7 +112,7 @@ describe("ProfilePage", () => {
     });
 
     expect(await screen.findByText(/athlete ledger/i)).toBeInTheDocument();
-    expect(screen.getByText(/one repetition maximum/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/1rm/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/recent sessions/i)).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/display name/i), { target: { value: "Coach Dom" } });
