@@ -77,7 +77,7 @@ describe("DashboardPage", () => {
     });
 
     expect(await screen.findByText(/today cockpit/i)).toBeInTheDocument();
-    expect(screen.getByText(/one-handed logging, clear momentum/i)).toBeInTheDocument();
+    expect(screen.getByText(/fast logging\. clear progress\./i)).toBeInTheDocument();
     expect(screen.getByText(/repeat last/i)).toBeInTheDocument();
     expect(screen.getByText(/deep analysis/i)).toBeInTheDocument();
     expect(screen.getByText("7.4")).toBeInTheDocument();

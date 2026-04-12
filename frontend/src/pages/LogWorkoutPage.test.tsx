@@ -75,6 +75,16 @@ function renderRepeatMode() {
   );
 }
 
+function renderTemplateMode() {
+  return render(
+    <MemoryRouter initialEntries={["/log?template_id=template-1"]}>
+      <Routes>
+        <Route path="/log" element={<LogWorkoutPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 describe("LogWorkoutPage", () => {
   beforeEach(() => {
     exerciseGetAllMock.mockReset();
@@ -146,6 +156,31 @@ describe("LogWorkoutPage", () => {
 
     expect(await screen.findByText(/bench press/i)).toBeInTheDocument();
     expect(screen.getByText(/loaded a previous workout to repeat/i)).toBeInTheDocument();
+  });
+
+  it("prefills from a template id query parameter", async () => {
+    templateGetByIdMock.mockResolvedValueOnce({
+      _id: "template-1",
+      user_identifier: "user-1",
+      template_name: "Push Day",
+      target_muscle_groups: ["Push"],
+      exercises: [
+        {
+          exercise_name: "Bench Press",
+          exercise_definition_identifier: "exercise-1",
+          sets: [{ repetitions: 8, weight_in_kilograms: 80, rate_of_perceived_exertion: 8 }],
+        },
+      ],
+      created_at: "2026-04-10T10:00:00.000Z",
+    });
+
+    renderTemplateMode();
+
+    await waitFor(() => {
+      expect(templateGetByIdMock).toHaveBeenCalledWith("template-1");
+    });
+
+    expect(await screen.findByText(/bench press/i)).toBeInTheDocument();
   });
 
   it("shows validation message when saving without exercises", async () => {

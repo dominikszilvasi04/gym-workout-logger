@@ -123,10 +123,10 @@ export function DashboardPage() {
         <div className="relative px-4 py-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Today cockpit</p>
           <h2 className="mt-2 max-w-[17rem] font-display text-2xl font-semibold leading-tight text-navy-950">
-            One-handed logging, clear momentum.
+            Fast logging. Clear progress.
           </h2>
           <p className="mt-2 text-sm text-navy-700">
-            Fast actions first, analysis second. Built for mobile rhythm.
+            Built for quick entries, clean repeat sessions, and useful training data.
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-2">

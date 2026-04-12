@@ -280,7 +280,7 @@ export function LogWorkoutPage() {
         return;
       }
 
-      const templateId = searchParams.get('template');
+      const templateId = searchParams.get("template_id") ?? searchParams.get("template");
       if (templateId) {
         try {
           const template = await templateAPI.getById(templateId);
@@ -590,7 +590,7 @@ export function LogWorkoutPage() {
           <p className="mt-1 text-sm text-navy-600">
             {isEditMode
               ? "Update time, sets, and exercises."
-              : "Choose muscles, load a template, then add exercises."}
+              : "Choose muscles, start from a template, then add exercises."}
           </p>
         </div>
 
@@ -878,7 +878,7 @@ export function LogWorkoutPage() {
           placeholder="Type exercise, muscle, or equipment"
         />
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 min-h-[18rem] space-y-4">
           {Object.entries(exercisesByMuscleGroup)
             .sort(([first], [second]) => first.localeCompare(second))
             .map(([muscleGroup, exercises]) => {
@@ -890,13 +890,13 @@ export function LogWorkoutPage() {
               }
               return (
                 <div key={muscleGroup}>
-                    <p className="mb-2 text-sm font-semibold text-navy-700">{muscleGroup}</p>
-                    <div className="space-y-2">
+                  <p className="mb-2 text-sm font-semibold text-navy-700">{muscleGroup}</p>
+                  <div className="space-y-2">
                     {availableExercises.map((exercise) => (
                       <button
                         key={exercise._id}
                         type="button"
-                          className="w-full rounded-xl border border-navy-300 bg-navy-100 px-3 py-3 text-left shadow-sm transition-[transform,background-color,border-color] duration-200 active:scale-[0.99] hover:border-primary-500 hover:bg-primary-100/30"
+                        className="w-full rounded-xl border border-navy-300 bg-navy-100 px-3 py-3 text-left shadow-sm transition-[transform,background-color,border-color] duration-200 active:scale-[0.99] hover:border-primary-500 hover:bg-primary-100/30"
                         onClick={() => addExercise(exercise)}
                       >
                         <p className="font-medium text-navy-900">{exercise.exercise_name}</p>

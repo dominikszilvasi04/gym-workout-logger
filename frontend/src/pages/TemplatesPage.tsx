@@ -104,7 +104,7 @@ export function TemplatesPage() {
       title="Templates"
       action={
         <Button size="sm" icon={<Plus size={16} />} onClick={() => navigate('/log')}>
-          New template
+          Log workout
         </Button>
       }
     >
@@ -113,7 +113,7 @@ export function TemplatesPage() {
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary-700">Template library</p>
             <h2 className="mt-1 font-display text-2xl font-semibold text-navy-950">Saved routines</h2>
-            <p className="mt-1 max-w-[30ch] text-sm text-navy-700">Load proven session structures in one touch.</p>
+            <p className="mt-1 max-w-[30ch] text-sm text-navy-700">Start a workout from a saved routine in one tap.</p>
           </div>
           <div className="rounded-2xl border border-navy-300/60 bg-navy-100/75 p-3 text-primary-700">
             <BookOpenText size={18} />
@@ -190,8 +190,8 @@ export function TemplatesPage() {
                       Delete
                     </Button>
                   </div>
-                  <Button size="sm" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template=${template._id}`)}>
-                    Load
+                    <Button size="sm" icon={<Dumbbell size={16} />} onClick={() => navigate(`/log?template_id=${template._id}`)}>
+                      Start
                   </Button>
                 </div>
               </Card>

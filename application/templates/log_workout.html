@@ -3,8 +3,8 @@
 {% block content %}
 <div class="row g-4 mb-3 align-items-center">
     <div class="col-lg-8">
-        <h2 class="mb-1">Log a New Workout</h2>
-        <p class="text-muted mb-0">Build sessions quickly with searchable exercise blocks and clean set tracking.</p>
+        <h2 class="mb-1">Log workout</h2>
+        <p class="text-muted mb-0">Build sessions quickly with searchable exercises and clean set tracking.</p>
     </div>
     <div class="col-lg-4 text-lg-end">
         <span class="badge text-bg-primary fs-6" id="exercise_catalogue_count_badge">Exercises: 0</span>
@@ -55,18 +55,18 @@
             <div class="card-body p-4">
                 <h5 class="mb-3">Workout Templates</h5>
                 <div class="d-grid gap-2 mb-3">
-                    <label for="workout_template_selector" class="form-label mb-0">Load Template</label>
+                    <label for="workout_template_selector" class="form-label mb-0">Start from template</label>
                     <select id="workout_template_selector" class="form-select">
                         <option value="">Select a template</option>
                     </select>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-primary flex-fill" id="load_template_button">Load</button>
+                        <button type="button" class="btn btn-outline-primary flex-fill" id="load_template_button">Start</button>
                         <button type="button" class="btn btn-outline-secondary" id="rename_template_button">Rename</button>
                         <button type="button" class="btn btn-outline-danger" id="delete_template_button">Delete</button>
                     </div>
                 </div>
                 <div class="d-grid gap-2">
-                    <label for="new_template_name" class="form-label mb-0">Save Current Workout as Template</label>
+                    <label for="new_template_name" class="form-label mb-0">Save as template</label>
                     <input type="text" class="form-control" id="new_template_name" placeholder="e.g. Push Day A">
                     <button type="button" class="btn btn-outline-success" id="save_template_button">Save Template</button>
                     <div id="workout_template_feedback" class="small text-muted"></div>
