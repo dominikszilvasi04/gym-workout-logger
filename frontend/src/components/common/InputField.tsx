@@ -24,7 +24,7 @@ export const InputField = React.forwardRef<HTMLInputElement, InputFieldPropertie
             "touch-target block h-11 min-w-0 w-full max-w-full rounded-xl border bg-navy-50/80 px-3 text-base text-navy-900",
             "focus:outline-none focus:ring-2 focus:ring-primary-600/80 focus:border-primary-500",
             "touch-manipulation placeholder:text-navy-600",
-            isDateLikeInput && "overflow-hidden text-left [text-align-last:left] [&::-webkit-datetime-edit]:text-left [&::-webkit-datetime-edit-fields-wrapper]:justify-start",
+            isDateLikeInput && "overflow-hidden px-2.5 pr-9 text-sm sm:text-base text-left leading-tight [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-datetime-edit-fields-wrapper]:justify-start [&::-webkit-calendar-picker-indicator]:ml-1",
             errorMessage ? "border-red-400" : "border-navy-300/70",
             className
           )}

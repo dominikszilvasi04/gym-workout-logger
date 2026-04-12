@@ -428,7 +428,7 @@ export function DashboardPage() {
       </section>
 
       <section className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <Card border className="border-navy-300/70 bg-navy-100/95 shadow-md">
+        <Card border className="min-w-0 border-navy-300/70 bg-navy-100/95 shadow-md">
           <h3 className="font-display text-lg font-semibold text-navy-900">Set strength goal</h3>
           <p className="mt-1 text-sm text-navy-600">Pick an exercise from your catalogue. Progress is then tracked from matching workout sets.</p>
           <div className="mt-4 grid grid-cols-1 gap-3">
@@ -478,7 +478,7 @@ export function DashboardPage() {
               />
             </div>
             <input
-              className="touch-target h-11 rounded-xl border border-navy-300/70 bg-navy-50/80 px-3 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-600/80"
+              className="touch-target block h-10 w-full min-w-0 max-w-full rounded-xl border border-navy-300/70 bg-navy-50/80 px-2.5 pr-8 text-sm text-left text-navy-900 leading-tight focus:outline-none focus:ring-2 focus:ring-primary-600/80 [text-align-last:left] [&::-webkit-date-and-time-value]:text-left [&::-webkit-datetime-edit]:text-left [&::-webkit-calendar-picker-indicator]:ml-1"
               type="date"
               value={goalForm.target_date}
               onChange={(event) => setGoalForm((current) => ({ ...current, target_date: event.target.value }))}
@@ -490,7 +490,7 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        <Card border className="border-navy-300/70 bg-navy-100/95 shadow-md">
+        <Card border className="min-w-0 border-navy-300/70 bg-navy-100/95 shadow-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-display text-lg font-semibold text-navy-900">Goal progress</h3>
             <div className="flex items-center gap-2">
