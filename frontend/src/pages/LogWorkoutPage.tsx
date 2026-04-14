@@ -1197,6 +1197,7 @@ export function LogWorkoutPage() {
           value={searchPhrase}
           onChange={(event) => setSearchPhrase(event.target.value)}
           placeholder="Type exercise, muscle, or equipment"
+          autoFocus
         />
 
         <div className="mt-4 min-h-[18rem] space-y-4">
