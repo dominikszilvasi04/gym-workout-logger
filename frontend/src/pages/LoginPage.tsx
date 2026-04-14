@@ -43,7 +43,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="app-min-h mx-auto flex w-full max-w-md items-center px-4 py-6">
+    <div className="app-min-h mx-auto flex w-full max-w-md items-start px-4 pb-8 pt-6 sm:items-center">
       <Card className="w-full border border-primary-400/35" padding="lg" shadow="lg">
         <div className="mb-6 border-b border-primary-300/25 pb-4">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary-700">Private training ledger</p>
