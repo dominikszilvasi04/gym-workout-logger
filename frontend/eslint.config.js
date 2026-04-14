@@ -19,5 +19,18 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../application/*', '../../application/*', '../../../application/*', 'application/*', '**/*.py'],
+              message: 'Do not import backend modules into frontend code.',
+            },
+          ],
+        },
+      ],
+    },
   },
 ])
