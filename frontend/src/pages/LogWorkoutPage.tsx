@@ -1177,7 +1177,7 @@ export function LogWorkoutPage() {
       ) : null}
 
       <div
-        className={`sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(8,14,26,0.45)] backdrop-blur-xl transition-all duration-200 ${
+        className={`sticky bottom-[calc(4.625rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(8,14,26,0.45)] backdrop-blur-xl transition-all duration-200 ${
           keyboardVisible ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"
         }`}
       >
