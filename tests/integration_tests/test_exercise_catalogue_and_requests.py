@@ -1,7 +1,9 @@
 """
 Integration tests for standard exercise catalogue seeding and exercise request workflow.
 """
+
 from application.services import application_exercise_definition_service
+
 
 def test_exercise_catalogue_endpoint_returns_large_seeded_list(test_client):
     """
@@ -15,6 +17,7 @@ def test_exercise_catalogue_endpoint_returns_large_seeded_list(test_client):
     assert "Barbell Back Squat" in exercise_names
     assert "Barbell Bench Press" in exercise_names
     assert "Pull Up" in exercise_names
+
 
 def test_exercise_request_endpoint_requires_authenticated_user(test_client):
     """
@@ -32,6 +35,7 @@ def test_exercise_request_endpoint_requires_authenticated_user(test_client):
     assert request_response.status_code == 401
     request_payload = request_response.get_json()
     assert request_payload["error"] == "Authentication required."
+
 
 def test_exercise_request_endpoint_validates_payload_for_authenticated_user(test_client):
     """
@@ -58,11 +62,13 @@ def test_exercise_request_endpoint_validates_payload_for_authenticated_user(test
     invalid_payload = invalid_response.get_json()
     assert "error" in invalid_payload
 
+
 def test_exercise_request_endpoint_sends_email_when_payload_is_valid(test_client, monkeypatch):
     """
     Verifies valid requests trigger the exercise request email service.
     """
     captured_request = {}
+
     def fake_send_exercise_request_notification_email(
         requester_email,
         requested_exercise_name,

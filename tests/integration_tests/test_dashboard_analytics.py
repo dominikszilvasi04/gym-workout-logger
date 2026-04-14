@@ -87,18 +87,28 @@ def test_dashboard_analytics_returns_real_chart_data_for_authenticated_user(test
     assert analytics_payload["summary"]["average_session_rpe"] == 9.5
     assert analytics_payload["summary"]["current_training_streak_weeks"] == 2
 
-    assert analytics_payload["charts"]["workout_volume_progression"]["labels"] == ["2026-03-01", "2026-03-08"]
+    assert analytics_payload["charts"]["workout_volume_progression"]["labels"] == [
+        "2026-03-01",
+        "2026-03-08",
+    ]
     assert analytics_payload["charts"]["workout_volume_progression"]["values"] == [500.0, 360.0]
     assert analytics_payload["charts"]["one_rep_max_progression"]["values"] == [116.67, 132.0]
-    assert analytics_payload["charts"]["muscle_group_distribution"]["labels"] == ["Chest", "Triceps"]
+    assert analytics_payload["charts"]["muscle_group_distribution"]["labels"] == [
+        "Chest",
+        "Triceps",
+    ]
     assert analytics_payload["charts"]["muscle_group_distribution"]["values"] == [2, 1]
     assert analytics_payload["charts"]["weekly_frequency"]["values"] == [1, 1]
     assert analytics_payload["charts"]["average_rpe_progression"]["values"] == [9.0, 10.0]
     assert analytics_payload["charts"]["top_exercise_volume"]["labels"] == ["Bench Press"]
     assert analytics_payload["charts"]["top_exercise_volume"]["values"] == [860.0]
-    assert analytics_payload["leaderboards"]["personal_records"][0]["exercise_name"] == "Bench Press"
-    assert analytics_payload["leaderboards"]["personal_records"][0]["estimated_one_rep_maximum"] == 132.0
-
+    assert (
+        analytics_payload["leaderboards"]["personal_records"][0]["exercise_name"] == "Bench Press"
+    )
+    assert (
+        analytics_payload["leaderboards"]["personal_records"][0]["estimated_one_rep_maximum"]
+        == 132.0
+    )
 
 
 def test_dashboard_analytics_is_scoped_to_logged_in_user(test_client):

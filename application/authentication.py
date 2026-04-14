@@ -1,6 +1,7 @@
 """
 Authentication helpers and route protection decorators.
 """
+
 from functools import wraps
 from typing import Callable, TypeVar, cast
 from flask import session, request, jsonify, redirect, url_for, flash
@@ -15,6 +16,7 @@ def login_required(view_function: ViewFunction) -> ViewFunction:
     For API requests, returns 401 JSON.
     For page requests, redirects to login with a flash message.
     """
+
     @wraps(view_function)
     def wrapped_view(*args: object, **kwargs: object) -> object:
         if session.get("user_identifier"):
@@ -36,6 +38,7 @@ def admin_required(view_function: ViewFunction) -> ViewFunction:
     For API requests, returns 401/403 JSON.
     For page requests, redirects with a flash message.
     """
+
     @wraps(view_function)
     def wrapped_view(*args: object, **kwargs: object) -> object:
         user_identifier = session.get("user_identifier")

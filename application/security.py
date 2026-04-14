@@ -1,12 +1,14 @@
 """
 Security utilities: CSRF protection, response hardening headers, and rate limiting.
 """
+
 import secrets
 from flask import Flask, request, session, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 limiter = Limiter(key_func=get_remote_address, storage_uri="memory://")
+
 
 def get_or_create_csrf_token() -> str:
     """
@@ -17,6 +19,7 @@ def get_or_create_csrf_token() -> str:
         csrf_token = secrets.token_urlsafe(32)
         session["csrf_token"] = csrf_token
     return csrf_token
+
 
 def is_csrf_request_valid() -> bool:
     """
@@ -31,6 +34,7 @@ def is_csrf_request_valid() -> bool:
         return False
 
     return secrets.compare_digest(session_csrf_token, supplied_csrf_token)
+
 
 def register_security_hooks(flask_application: Flask) -> None:
     """
@@ -65,9 +69,7 @@ def register_security_hooks(flask_application: Flask) -> None:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        response.headers[
-            "Content-Security-Policy"
-        ] = (
+        response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' https://cdn.jsdelivr.net; "
             "style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; "

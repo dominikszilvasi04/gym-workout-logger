@@ -1,9 +1,21 @@
 """
 Controller layer for user registration and authentication routes.
 """
+
 import logging
 from pathlib import Path
-from flask import Blueprint, Response, current_app, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import (
+    Blueprint,
+    Response,
+    current_app,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    session,
+    jsonify,
+)
 from flask import send_from_directory
 from authlib.integrations.flask_client import OAuth
 from application.authentication import login_required
@@ -14,6 +26,7 @@ from application.services import application_user_service, application_workout_s
 logger = logging.getLogger(__name__)
 auth_blueprint = Blueprint("auth_controller", __name__, template_folder="../templates")
 
+
 def is_google_login_enabled() -> bool:
     """
     Determines whether Google OAuth login is configured and enabled.
@@ -23,6 +36,7 @@ def is_google_login_enabled() -> bool:
         and current_app.config.get("GOOGLE_CLIENT_ID")
         and current_app.config.get("GOOGLE_CLIENT_SECRET")
     )
+
 
 def create_google_oauth_client():
     """
@@ -37,6 +51,7 @@ def create_google_oauth_client():
         client_kwargs={"scope": "openid email profile"},
     )
     return oauth_for_request.create_client("google")
+
 
 def get_authenticated_user_identifier() -> str | None:
     """
@@ -73,6 +88,7 @@ def render_react_application_if_available() -> Response | None:
         return None
     return send_from_directory(frontend_dist_directory, "index.html")
 
+
 @auth_blueprint.route("/register", methods=["GET", "POST"])
 @limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
 def register() -> str | tuple[str, int] | Response:
@@ -88,11 +104,11 @@ def register() -> str | tuple[str, int] | Response:
     payload = request.get_json(silent=True) if request.is_json else None
     email = (payload.get("email", "") if payload else request.form.get("email", "")).strip()
     password = payload.get("password", "") if payload else request.form.get("password", "")
-    display_name = (payload.get("display_name", "") if payload else request.form.get("display_name", "")).strip()
+    display_name = (
+        payload.get("display_name", "") if payload else request.form.get("display_name", "")
+    ).strip()
     success, result = application_user_service.register_user(
-        email=email,
-        password=password,
-        display_name=display_name
+        email=email, password=password, display_name=display_name
     )
     if not success:
         if should_return_json_response():
@@ -115,6 +131,7 @@ def register() -> str | tuple[str, int] | Response:
         return jsonify(serialise_user_for_response(user)), 201
     flash("Registration successful. Welcome!", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
+
 
 @auth_blueprint.route("/login", methods=["GET", "POST"])
 @limiter.limit(lambda: "120 per minute" if request.method == "GET" else "60 per minute")
@@ -147,6 +164,7 @@ def login() -> str | tuple[str, int] | Response:
     flash("Logged in successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
 
+
 @auth_blueprint.route("/login/google", methods=["GET"])
 @limiter.limit("60 per minute")
 def login_with_google() -> Response:
@@ -159,6 +177,7 @@ def login_with_google() -> Response:
     google_oauth_client = create_google_oauth_client()
     redirect_uri = url_for("auth_controller.google_oauth_callback", _external=True)
     return google_oauth_client.authorize_redirect(redirect_uri)
+
 
 @auth_blueprint.route("/auth/google/callback", methods=["GET"])
 @limiter.limit("60 per minute")
@@ -207,6 +226,7 @@ def google_oauth_callback() -> Response:
     logger.info("User logged in with Google: user_identifier=%s", authenticated_user.identifier)
     flash("Logged in with Google successfully.", "success")
     return redirect(url_for("workout_controller.view_dashboard"))
+
 
 @auth_blueprint.route("/logout", methods=["POST"])
 @limiter.limit("60 per minute")
@@ -270,6 +290,7 @@ def update_current_user_endpoint() -> tuple[Response, int]:
     session["user_display_name"] = updated_user.display_name or updated_user.email
     return jsonify(serialise_user_for_response(updated_user)), 200
 
+
 @auth_blueprint.route("/profile", methods=["GET"])
 @login_required
 def profile() -> str | Response:
@@ -289,6 +310,8 @@ def profile() -> str | Response:
         flash("Your account could not be loaded. Please log in again.", "danger")
         return redirect(url_for("auth_controller.login"))
 
-    profile_summary = application_workout_service.build_profile_summary(user_identifier=user_identifier)
+    profile_summary = application_workout_service.build_profile_summary(
+        user_identifier=user_identifier
+    )
     logger.info("Profile page requested for user_identifier=%s", user_identifier)
     return render_template("profile.html", user=user, profile_summary=profile_summary)

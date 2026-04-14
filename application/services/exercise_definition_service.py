@@ -1,6 +1,7 @@
 """
 Service layer for handling standardised exercise definitions.
 """
+
 import logging
 import smtplib
 from email.message import EmailMessage
@@ -20,7 +21,7 @@ class ExerciseDefinitionService:
     def __init__(self, exercise_definition_repository: ExerciseDefinitionRepository) -> None:
         """
         Initialises the service with a dedicated repository instance.
-        
+
         Args:
             exercise_definition_repository: The injected data access object.
         """
@@ -29,7 +30,7 @@ class ExerciseDefinitionService:
     def retrieve_all_standardised_exercises(self) -> List[ExerciseDefinition]:
         """
         Retrieves the complete master list of available exercises.
-        
+
         Returns:
             A strictly typed list of ExerciseDefinition models.
         """
@@ -47,8 +48,10 @@ class ExerciseDefinitionService:
         updated_count = 0
         for exercise_definition_data in STANDARDISED_EXERCISE_DEFINITIONS:
             standardised_exercise_definition = ExerciseDefinition(**exercise_definition_data)
-            inserted, updated = self.exercise_definition_repository.upsert_exercise_definition_by_name(
-                exercise_definition=standardised_exercise_definition
+            inserted, updated = (
+                self.exercise_definition_repository.upsert_exercise_definition_by_name(
+                    exercise_definition=standardised_exercise_definition
+                )
             )
             if inserted:
                 inserted_count += 1
@@ -66,7 +69,7 @@ class ExerciseDefinitionService:
         requested_exercise_name: str,
         requested_primary_muscle_group: str,
         request_notes: str,
-        application_configuration: dict
+        application_configuration: dict,
     ) -> None:
         """
         Sends an exercise request email to the configured recipient.
@@ -102,4 +105,3 @@ class ExerciseDefinitionService:
             if smtp_username and smtp_password:
                 smtp_client.login(smtp_username, smtp_password)
             smtp_client.send_message(email_message)
-            

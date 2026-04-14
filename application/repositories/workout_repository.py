@@ -1,6 +1,7 @@
 """
 Repository layer for interacting with the workouts MongoDB collection.
 """
+
 import logging
 from typing import List, Optional, Dict, Any
 from bson.objectid import ObjectId
@@ -31,7 +32,7 @@ class WorkoutRepository:
     def collection(self) -> Any:
         """
         Retrieves the MongoDB collection for workouts.
-        
+
         Raises:
             RuntimeError: If the database manager has not been initialised.
         """
@@ -42,32 +43,39 @@ class WorkoutRepository:
     def create_workout(self, workout_document: WorkoutDocument) -> str:
         """
         Inserts a new workout document into the database.
-        
+
         Args:
             workout_document: The Pydantic model representing the workout.
-            
+
         Returns:
             The newly created MongoDB ObjectId as a string.
         """
-        document_dictionary: Dict[str, Any] = workout_document.model_dump(by_alias=True, exclude={"identifier"})
+        document_dictionary: Dict[str, Any] = workout_document.model_dump(
+            by_alias=True, exclude={"identifier"}
+        )
         insertion_result = self.collection.insert_one(document_dictionary)
         logger.info("Workout inserted with identifier=%s", str(insertion_result.inserted_id))
         return str(insertion_result.inserted_id)
 
-    def retrieve_workout_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
+    def retrieve_workout_by_identifier(
+        self, identifier: str, user_identifier: Optional[str] = None
+    ) -> Optional[WorkoutDocument]:
         """
         Retrieves a single workout document by its unique identifier.
-        
+
         Args:
             identifier: The MongoDB ObjectId string.
-            
+
         Returns:
             A WorkoutDocument if found, otherwise None.
         """
         if not ObjectId.is_valid(identifier):
             logger.warning("Invalid workout identifier requested: %s", identifier)
             return None
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         document = self.collection.find_one(query_filter)
         if document:
             document["_id"] = str(document["_id"])
@@ -79,7 +87,7 @@ class WorkoutRepository:
     def retrieve_all_workouts(self, user_identifier: Optional[str] = None) -> List[WorkoutDocument]:
         """
         Retrieves all workout documents in the database.
-        
+
         Returns:
             A list of WorkoutDocument models.
         """
@@ -92,7 +100,9 @@ class WorkoutRepository:
         logger.debug("Retrieved %d workouts from database.", len(workouts))
         return workouts
 
-    def retrieve_most_recent_workout(self, user_identifier: Optional[str] = None) -> Optional[WorkoutDocument]:
+    def retrieve_most_recent_workout(
+        self, user_identifier: Optional[str] = None
+    ) -> Optional[WorkoutDocument]:
         """
         Retrieves the most recent workout document for the active user scope.
 
@@ -109,29 +119,38 @@ class WorkoutRepository:
         document["_id"] = str(document["_id"])
         return WorkoutDocument(**document)
 
-    def delete_workout_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
+    def delete_workout_by_identifier(
+        self, identifier: str, user_identifier: Optional[str] = None
+    ) -> bool:
         """
         Permanently removes a workout document from the database.
-        
+
         Args:
             identifier: The MongoDB ObjectId string.
-            
+
         Returns:
             True if a document was successfully deleted, False otherwise.
         """
         if not ObjectId.is_valid(identifier):
             logger.warning("Delete rejected due to invalid identifier: %s", identifier)
             return False
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         deletion_result = self.collection.delete_one(query_filter)
-        logger.info("Delete workout identifier=%s deleted_count=%d", identifier, deletion_result.deleted_count)
+        logger.info(
+            "Delete workout identifier=%s deleted_count=%d",
+            identifier,
+            deletion_result.deleted_count,
+        )
         return deletion_result.deleted_count > 0
 
     def update_workout_by_identifier(
         self,
         identifier: str,
         updated_workout: WorkoutDocument,
-        user_identifier: Optional[str] = None
+        user_identifier: Optional[str] = None,
     ) -> bool:
         """
         Updates specific fields of an existing workout document using $set.
@@ -145,16 +164,19 @@ class WorkoutRepository:
                 "target_muscle_groups": updated_workout.target_muscle_groups,
                 "workout_notes": updated_workout.workout_notes,
                 "session_tags": updated_workout.session_tags,
-                "exercises": [exercise.model_dump() for exercise in updated_workout.exercises]
+                "exercises": [exercise.model_dump() for exercise in updated_workout.exercises],
             }
         }
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         update_result = self.collection.update_one(query_filter, update_payload)
         logger.info(
             "Update workout identifier=%s matched=%d modified=%d",
             identifier,
             update_result.matched_count,
-            update_result.modified_count
+            update_result.modified_count,
         )
         return update_result.matched_count > 0
 

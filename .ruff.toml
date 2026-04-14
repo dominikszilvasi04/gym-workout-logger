@@ -1,0 +1,14 @@
+line-length = 100
+target-version = "py313"
+
+exclude = [
+  ".git",
+  ".github",
+  ".venv",
+  ".pytest_cache",
+  ".mypy_cache",
+  "coverage",
+  "dist",
+  "frontend",
+  "virtual_environment",
+]

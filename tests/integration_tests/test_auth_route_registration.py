@@ -1,6 +1,7 @@
 """
 Integration tests for authentication route registration integrity.
 """
+
 import pytest
 
 pytestmark = pytest.mark.integration

@@ -1,6 +1,7 @@
 """
 Integration tests for security middleware and protections.
 """
+
 from typing import Iterator
 import pytest
 from flask import Flask
@@ -14,6 +15,7 @@ class CsrfEnabledTestingConfiguration(TestingConfiguration):
     """
     Testing config variant with CSRF enabled for dedicated security tests.
     """
+
     CSRF_PROTECTION_ENABLED: bool = True
 
 
@@ -21,6 +23,7 @@ class StrictRateLimitTestingConfiguration(TestingConfiguration):
     """
     Testing config variant with strict global limit to verify throttling.
     """
+
     RATELIMIT_DEFAULT: str = "2 per minute"
 
 
@@ -46,7 +49,9 @@ def strict_rate_limit_application() -> Iterator[Flask]:
     """
     Provides an application instance with a strict default rate limit.
     """
-    application_instance = create_application(configuration_class=StrictRateLimitTestingConfiguration)
+    application_instance = create_application(
+        configuration_class=StrictRateLimitTestingConfiguration
+    )
 
     @application_instance.route("/security_rate_limit_probe", methods=["GET"])
     @limiter.limit("2 per minute")
@@ -87,7 +92,9 @@ def test_security_headers_are_applied_to_responses(test_client: FlaskClient):
     assert "Content-Security-Policy" in response.headers
 
 
-def test_register_rejects_missing_csrf_token_when_protection_enabled(csrf_enabled_client: FlaskClient):
+def test_register_rejects_missing_csrf_token_when_protection_enabled(
+    csrf_enabled_client: FlaskClient,
+):
     """
     Verifies form POST requests fail when CSRF token is missing.
     """
@@ -105,7 +112,9 @@ def test_register_rejects_missing_csrf_token_when_protection_enabled(csrf_enable
     assert b"CSRF validation failed." in registration_response.data
 
 
-def test_register_accepts_valid_csrf_token_when_protection_enabled(csrf_enabled_client: FlaskClient):
+def test_register_accepts_valid_csrf_token_when_protection_enabled(
+    csrf_enabled_client: FlaskClient,
+):
     """
     Verifies form POST requests succeed when a valid CSRF token is supplied.
     """
@@ -125,7 +134,9 @@ def test_register_accepts_valid_csrf_token_when_protection_enabled(csrf_enabled_
     assert registration_response.status_code == 302
 
 
-def test_api_write_rejects_missing_csrf_header_when_protection_enabled(csrf_enabled_client: FlaskClient):
+def test_api_write_rejects_missing_csrf_header_when_protection_enabled(
+    csrf_enabled_client: FlaskClient,
+):
     """
     Verifies state-changing API requests fail without the CSRF request header.
     """
@@ -165,8 +176,9 @@ def test_api_write_rejects_missing_csrf_header_when_protection_enabled(csrf_enab
     assert missing_header_response.get_json()["error"] == "CSRF validation failed."
 
 
-
-def test_api_write_accepts_valid_csrf_header_when_protection_enabled(csrf_enabled_client: FlaskClient):
+def test_api_write_accepts_valid_csrf_header_when_protection_enabled(
+    csrf_enabled_client: FlaskClient,
+):
     """
     Verifies state-changing API requests succeed with a valid CSRF request header.
     """

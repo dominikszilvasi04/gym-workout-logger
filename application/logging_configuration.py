@@ -1,7 +1,9 @@
 """
 Central logging configuration for the application.
 """
+
 import logging
+
 
 def configure_application_logging(log_level: str = "INFO") -> None:
     """
@@ -14,8 +16,7 @@ def configure_application_logging(log_level: str = "INFO") -> None:
     root_logger = logging.getLogger()
     if not root_logger.handlers:
         logging.basicConfig(
-            level=resolved_level,
-            format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+            level=resolved_level, format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
         )
     else:
         root_logger.setLevel(resolved_level)

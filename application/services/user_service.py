@@ -1,6 +1,7 @@
 """
 Service layer for user account registration and authentication.
 """
+
 import logging
 from flask import current_app
 from typing import Optional
@@ -39,11 +40,7 @@ class UserService:
         Returns a normalised set of allowlisted admin email addresses.
         """
         configured_allowlist = current_app.config.get("ADMIN_EMAIL_ALLOWLIST", ())
-        return {
-            str(value).strip().lower()
-            for value in configured_allowlist
-            if str(value).strip()
-        }
+        return {str(value).strip().lower() for value in configured_allowlist if str(value).strip()}
 
     def resolve_role_for_email(self, email: str, proposed_role: Optional[str] = None) -> str:
         """
@@ -104,7 +101,9 @@ class UserService:
             return password_hashing_context.needs_update(stored_password_hash)
         return True
 
-    def register_user(self, email: str, password: str, display_name: Optional[str] = None) -> tuple[bool, str]:
+    def register_user(
+        self, email: str, password: str, display_name: Optional[str] = None
+    ) -> tuple[bool, str]:
         """
         Registers a user if the email is not already taken.
 
@@ -143,7 +142,10 @@ class UserService:
             logger.info("Authentication failed: unknown email=%s", normalised_email)
             return None
         if not user.password_hash:
-            logger.info("Authentication failed: account requires external provider for email=%s", normalised_email)
+            logger.info(
+                "Authentication failed: account requires external provider for email=%s",
+                normalised_email,
+            )
             return None
         if not self.verify_password(password, user.password_hash):
             logger.info("Authentication failed: invalid password for email=%s", normalised_email)
@@ -162,7 +164,9 @@ class UserService:
         user = self.user_repository.retrieve_user_by_identifier(identifier)
         return self.ensure_user_role_alignment(user)
 
-    def update_display_name(self, identifier: str, display_name: Optional[str]) -> Optional[UserDocument]:
+    def update_display_name(
+        self, identifier: str, display_name: Optional[str]
+    ) -> Optional[UserDocument]:
         """
         Updates the display name for an authenticated user.
         """
@@ -199,15 +203,26 @@ class UserService:
             auth_provider_subject=google_subject,
         )
         if existing_provider_user:
-            if existing_provider_user.identifier and display_name and not existing_provider_user.display_name:
-                self.user_repository.update_user_display_name(existing_provider_user.identifier, display_name.strip())
-                refreshed_user = self.user_repository.retrieve_user_by_identifier(existing_provider_user.identifier)
+            if (
+                existing_provider_user.identifier
+                and display_name
+                and not existing_provider_user.display_name
+            ):
+                self.user_repository.update_user_display_name(
+                    existing_provider_user.identifier, display_name.strip()
+                )
+                refreshed_user = self.user_repository.retrieve_user_by_identifier(
+                    existing_provider_user.identifier
+                )
                 return self.ensure_user_role_alignment(refreshed_user)
             return self.ensure_user_role_alignment(existing_provider_user)
 
         existing_email_user = self.user_repository.retrieve_user_by_email(normalised_email)
         if existing_email_user:
-            if existing_email_user.auth_provider == "google" and existing_email_user.auth_provider_subject != google_subject:
+            if (
+                existing_email_user.auth_provider == "google"
+                and existing_email_user.auth_provider_subject != google_subject
+            ):
                 logger.warning("Google subject mismatch for existing email=%s", normalised_email)
                 return None
             if existing_email_user.identifier:
@@ -217,8 +232,12 @@ class UserService:
                     auth_provider_subject=google_subject,
                 )
                 if display_name and not existing_email_user.display_name:
-                    self.user_repository.update_user_display_name(existing_email_user.identifier, display_name.strip())
-                refreshed_user = self.user_repository.retrieve_user_by_identifier(existing_email_user.identifier)
+                    self.user_repository.update_user_display_name(
+                        existing_email_user.identifier, display_name.strip()
+                    )
+                refreshed_user = self.user_repository.retrieve_user_by_identifier(
+                    existing_email_user.identifier
+                )
                 return self.ensure_user_role_alignment(refreshed_user)
             return self.ensure_user_role_alignment(existing_email_user)
 
@@ -235,7 +254,9 @@ class UserService:
             created_user = self.user_repository.retrieve_user_by_identifier(created_identifier)
             return self.ensure_user_role_alignment(created_user)
         except DuplicateKeyError:
-            logger.warning("Duplicate Google OAuth creation attempted for email=%s", normalised_email)
+            logger.warning(
+                "Duplicate Google OAuth creation attempted for email=%s", normalised_email
+            )
             existing_user = self.user_repository.retrieve_user_by_email(normalised_email)
             return self.ensure_user_role_alignment(existing_user)
 
@@ -258,12 +279,22 @@ class UserService:
         user = self.retrieve_user(identifier)
         if not user or not user.identifier:
             return None
-        if self.workout_repository is None or self.workout_template_repository is None or self.exercise_goal_repository is None:
+        if (
+            self.workout_repository is None
+            or self.workout_template_repository is None
+            or self.exercise_goal_repository is None
+        ):
             raise RuntimeError("Cascade deletion repositories are not configured.")
 
-        deleted_workouts = self.workout_repository.delete_workouts_by_user_identifier(user.identifier)
-        deleted_templates = self.workout_template_repository.delete_templates_by_user_identifier(user.identifier)
-        deleted_goals = self.exercise_goal_repository.delete_goals_by_user_identifier(user.identifier)
+        deleted_workouts = self.workout_repository.delete_workouts_by_user_identifier(
+            user.identifier
+        )
+        deleted_templates = self.workout_template_repository.delete_templates_by_user_identifier(
+            user.identifier
+        )
+        deleted_goals = self.exercise_goal_repository.delete_goals_by_user_identifier(
+            user.identifier
+        )
         deleted_user = self.user_repository.delete_user_by_identifier(user.identifier)
 
         if not deleted_user:

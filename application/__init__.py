@@ -1,6 +1,7 @@
 """
 Application factory and initialisation module.
 """
+
 import logging
 import os
 from pathlib import Path
@@ -21,17 +22,21 @@ from application.controllers.admin_controller import admin_blueprint
 from application.controllers.health_controller import health_blueprint
 from application.logging_configuration import configure_application_logging
 from application.security import limiter, register_security_hooks
+
 logger = logging.getLogger(__name__)
 session_extension = Session()
 
-def create_application(configuration_class: Type[ApplicationConfiguration] = DevelopmentConfiguration) -> Flask:
+
+def create_application(
+    configuration_class: Type[ApplicationConfiguration] = DevelopmentConfiguration,
+) -> Flask:
     """
     Creates and configures an instance of the Flask application.
-    
+
     Args:
         configuration_class: The configuration class to use for the application.
                              Defaults to DevelopmentConfiguration.
-                             
+
     Returns:
         A configured Flask application instance.
     """
@@ -44,9 +49,13 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
     configured_secret_key = flask_application.config.get("SECRET_KEY")
     if configured_secret_key == default_secret_key:
         if flask_application.config.get("DEBUG", False):
-            logger.warning("Using development fallback secret key. Set APPLICATION_SECRET_KEY for stronger security.")
+            logger.warning(
+                "Using development fallback secret key. Set APPLICATION_SECRET_KEY for stronger security."
+            )
         elif not flask_application.config.get("TESTING", False):
-            raise RuntimeError("APPLICATION_SECRET_KEY must be configured for non-debug environments.")
+            raise RuntimeError(
+                "APPLICATION_SECRET_KEY must be configured for non-debug environments."
+            )
 
     session_cache_directory = flask_application.config.get("SESSION_CACHE_DIR", ".flask_session")
     os.makedirs(session_cache_directory, exist_ok=True)
@@ -56,18 +65,24 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
         threshold=500,
         mode=0o600,
     )
-    flask_application.config["RATELIMIT_DEFAULT"] = flask_application.config.get("RATE_LIMIT_DEFAULT", "300 per hour")
+    flask_application.config["RATELIMIT_DEFAULT"] = flask_application.config.get(
+        "RATE_LIMIT_DEFAULT", "300 per hour"
+    )
 
     session_extension.init_app(flask_application)
     limiter.init_app(flask_application)
     register_security_hooks(flask_application)
     configure_application_logging(log_level=flask_application.config.get("LOG_LEVEL", "INFO"))
-    logger.info("Application startup initiated with configuration: %s", configuration_class.__name__)
+    logger.info(
+        "Application startup initiated with configuration: %s", configuration_class.__name__
+    )
     database_uri = flask_application.config.get("DATABASE_URI")
     database_name = flask_application.config.get("DATABASE_NAME")
     if database_uri and database_name:
         try:
-            database_manager.initialise_client(connection_uri=database_uri, database_name=database_name)
+            database_manager.initialise_client(
+                connection_uri=database_uri, database_name=database_name
+            )
             logger.info("Database client initialised for database: %s", database_name)
             database_manager.database["users"].create_index("email", unique=True)
             try:
@@ -86,16 +101,30 @@ def create_application(configuration_class: Type[ApplicationConfiguration] = Dev
                     )
                 else:
                     raise
-            database_manager.database["exercise_definitions"].create_index("exercise_name", unique=True)
-            database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)])
-            database_manager.database["workouts"].create_index([("user_identifier", ASCENDING), ("_id", ASCENDING)])
-            database_manager.database["exercise_goals"].create_index([("user_identifier", ASCENDING), ("exercise_name", ASCENDING)])
-            database_manager.database["workout_templates"].create_index([("user_identifier", ASCENDING), ("template_name", ASCENDING)])
+            database_manager.database["exercise_definitions"].create_index(
+                "exercise_name", unique=True
+            )
+            database_manager.database["workouts"].create_index(
+                [("user_identifier", ASCENDING), ("date_of_workout", DESCENDING)]
+            )
+            database_manager.database["workouts"].create_index(
+                [("user_identifier", ASCENDING), ("_id", ASCENDING)]
+            )
+            database_manager.database["exercise_goals"].create_index(
+                [("user_identifier", ASCENDING), ("exercise_name", ASCENDING)]
+            )
+            database_manager.database["workout_templates"].create_index(
+                [("user_identifier", ASCENDING), ("template_name", ASCENDING)]
+            )
             database_manager.database["admin_audit_logs"].create_index([("timestamp", DESCENDING)])
             logger.info("Ensured users collection unique index on email.")
-            logger.info("Ensured users collection unique index on auth_provider/auth_provider_subject.")
+            logger.info(
+                "Ensured users collection unique index on auth_provider/auth_provider_subject."
+            )
             logger.info("Ensured exercise_definitions collection unique index on exercise_name.")
-            logger.info("Ensured workouts indexes for user/date analytics and user/identifier ownership checks.")
+            logger.info(
+                "Ensured workouts indexes for user/date analytics and user/identifier ownership checks."
+            )
             logger.info("Ensured exercise_goals index for user/exercise lookups.")
             logger.info("Ensured workout_templates index for user/template lookups.")
             logger.info("Ensured admin_audit_logs index for descending timestamp queries.")

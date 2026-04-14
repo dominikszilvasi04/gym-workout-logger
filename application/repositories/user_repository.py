@@ -1,6 +1,7 @@
 """
 Repository layer for interacting with user accounts.
 """
+
 import logging
 from typing import Optional, Dict, Any
 from bson.objectid import ObjectId
@@ -28,7 +29,9 @@ class UserRepository:
         """
         Inserts a new user document into the database.
         """
-        document_dictionary: Dict[str, Any] = user_document.model_dump(by_alias=True, exclude={"identifier"})
+        document_dictionary: Dict[str, Any] = user_document.model_dump(
+            by_alias=True, exclude={"identifier"}
+        )
         insertion_result = self.collection.insert_one(document_dictionary)
         logger.info("User inserted with identifier=%s", str(insertion_result.inserted_id))
         return str(insertion_result.inserted_id)
@@ -62,12 +65,13 @@ class UserRepository:
         if not ObjectId.is_valid(identifier):
             return False
         update_result = self.collection.update_one(
-            {"_id": ObjectId(identifier)},
-            {"$set": {"password_hash": password_hash}}
+            {"_id": ObjectId(identifier)}, {"$set": {"password_hash": password_hash}}
         )
         return update_result.matched_count > 0
 
-    def retrieve_user_by_auth_provider_subject(self, auth_provider: str, auth_provider_subject: str) -> Optional[UserDocument]:
+    def retrieve_user_by_auth_provider_subject(
+        self, auth_provider: str, auth_provider_subject: str
+    ) -> Optional[UserDocument]:
         """
         Retrieves a user by external auth provider subject.
         """
@@ -82,7 +86,9 @@ class UserRepository:
         document["_id"] = str(document["_id"])
         return UserDocument(**document)
 
-    def update_user_auth_provider(self, identifier: str, auth_provider: str, auth_provider_subject: str) -> bool:
+    def update_user_auth_provider(
+        self, identifier: str, auth_provider: str, auth_provider_subject: str
+    ) -> bool:
         """
         Links an existing user account to an auth provider identity.
         """
@@ -143,4 +149,3 @@ class UserRepository:
             return False
         deletion_result = self.collection.delete_one({"_id": ObjectId(identifier)})
         return deletion_result.deleted_count > 0
-

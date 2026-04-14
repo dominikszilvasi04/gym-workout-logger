@@ -1,6 +1,7 @@
 """
 Controller layer for administrator-only management routes.
 """
+
 import logging
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, session, Response
@@ -24,7 +25,9 @@ def _record_admin_audit_event(action: str, details: dict) -> None:
     if database_manager.database is None:
         return
     actor_identifier = session.get("user_identifier")
-    actor_user = application_user_service.retrieve_user(actor_identifier) if actor_identifier else None
+    actor_user = (
+        application_user_service.retrieve_user(actor_identifier) if actor_identifier else None
+    )
     database_manager.database["admin_audit_logs"].insert_one(
         {
             "timestamp": datetime.now(timezone.utc),
@@ -132,10 +135,22 @@ def export_data_endpoint() -> tuple[Response, int]:
     if database_manager.database is None:
         return jsonify({"error": "Database unavailable."}), 503
 
-    users = [_serialise_bson_document(document) for document in database_manager.database["users"].find({})]
-    workouts = [_serialise_bson_document(document) for document in database_manager.database["workouts"].find({})]
-    goals = [_serialise_bson_document(document) for document in database_manager.database["exercise_goals"].find({})]
-    templates = [_serialise_bson_document(document) for document in database_manager.database["workout_templates"].find({})]
+    users = [
+        _serialise_bson_document(document)
+        for document in database_manager.database["users"].find({})
+    ]
+    workouts = [
+        _serialise_bson_document(document)
+        for document in database_manager.database["workouts"].find({})
+    ]
+    goals = [
+        _serialise_bson_document(document)
+        for document in database_manager.database["exercise_goals"].find({})
+    ]
+    templates = [
+        _serialise_bson_document(document)
+        for document in database_manager.database["workout_templates"].find({})
+    ]
 
     _record_admin_audit_event(
         action="export_data",
@@ -175,6 +190,8 @@ def list_admin_audit_logs_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "Database unavailable."}), 503
 
     limit = min(max(request.args.get("limit", default=50, type=int), 1), 200)
-    cursor = database_manager.database["admin_audit_logs"].find({}).sort("timestamp", -1).limit(limit)
+    cursor = (
+        database_manager.database["admin_audit_logs"].find({}).sort("timestamp", -1).limit(limit)
+    )
     logs = [_serialise_bson_document(document) for document in cursor]
     return jsonify(logs), 200

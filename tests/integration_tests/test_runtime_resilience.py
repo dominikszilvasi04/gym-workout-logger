@@ -1,6 +1,7 @@
 """
 Integration tests for runtime resilience when database connectivity is unavailable.
 """
+
 import pytest
 from application.database import database_manager
 
@@ -50,7 +51,9 @@ def test_workout_list_returns_503_when_database_is_not_initialised(test_client):
     assert workouts_response.get_json()["error"] == "Database unavailable."
 
 
-def test_dashboard_analytics_returns_503_when_database_is_not_initialised_for_authenticated_user(test_client):
+def test_dashboard_analytics_returns_503_when_database_is_not_initialised_for_authenticated_user(
+    test_client,
+):
     """
     Verifies analytics endpoint returns explicit 503 JSON payload when DB is unavailable.
     """

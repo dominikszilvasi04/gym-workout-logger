@@ -1,6 +1,7 @@
 """
 Repository layer for interacting with the strictly defined exercise definitions collection.
 """
+
 import logging
 from typing import List, Dict, Any
 from application.database import database_manager
@@ -18,7 +19,7 @@ class ExerciseDefinitionRepository:
     def collection(self) -> Any:
         """
         Retrieves the MongoDB collection for exercise definitions.
-        
+
         Raises:
             RuntimeError: If the database manager has not been initialised.
         """
@@ -29,7 +30,7 @@ class ExerciseDefinitionRepository:
     def retrieve_all_exercise_definitions(self) -> List[ExerciseDefinition]:
         """
         Retrieves all standardised exercises, sorted alphabetically by name.
-        
+
         Returns:
             A list of ExerciseDefinition models.
         """
@@ -50,19 +51,25 @@ class ExerciseDefinitionRepository:
     def create_exercise_definition(self, exercise_definition: ExerciseDefinition) -> str:
         """
         Inserts a new standardised exercise into the master list.
-        
+
         Args:
             exercise_definition: The strict Pydantic model representing the exercise.
-            
+
         Returns:
             The newly created MongoDB ObjectId as a string.
         """
-        document_dictionary: Dict[str, Any] = exercise_definition.model_dump(by_alias=True, exclude={"identifier"})
+        document_dictionary: Dict[str, Any] = exercise_definition.model_dump(
+            by_alias=True, exclude={"identifier"}
+        )
         insertion_result = self.collection.insert_one(document_dictionary)
-        logger.info("Exercise definition inserted with identifier=%s", str(insertion_result.inserted_id))
+        logger.info(
+            "Exercise definition inserted with identifier=%s", str(insertion_result.inserted_id)
+        )
         return str(insertion_result.inserted_id)
 
-    def upsert_exercise_definition_by_name(self, exercise_definition: ExerciseDefinition) -> tuple[bool, bool]:
+    def upsert_exercise_definition_by_name(
+        self, exercise_definition: ExerciseDefinition
+    ) -> tuple[bool, bool]:
         """
         Upserts an exercise definition by its standardised name.
 

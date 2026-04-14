@@ -1,6 +1,7 @@
 """
 Repository layer for user exercise goals.
 """
+
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -29,7 +30,9 @@ class ExerciseGoalRepository:
         return database_manager.database["exercise_goals"]
 
     def create_goal(self, goal_document: ExerciseGoalDocument) -> str:
-        document_dictionary: Dict[str, Any] = goal_document.model_dump(by_alias=True, exclude={"identifier"})
+        document_dictionary: Dict[str, Any] = goal_document.model_dump(
+            by_alias=True, exclude={"identifier"}
+        )
         if goal_document.target_date is not None:
             document_dictionary["target_date"] = datetime.combine(
                 goal_document.target_date,
@@ -39,7 +42,9 @@ class ExerciseGoalRepository:
         insertion_result = self.collection.insert_one(document_dictionary)
         return str(insertion_result.inserted_id)
 
-    def retrieve_all_goals(self, user_identifier: Optional[str] = None) -> List[ExerciseGoalDocument]:
+    def retrieve_all_goals(
+        self, user_identifier: Optional[str] = None
+    ) -> List[ExerciseGoalDocument]:
         query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
         cursor = self.collection.find(query_filter).sort("created_at", -1)
         goals: List[ExerciseGoalDocument] = []
@@ -48,10 +53,15 @@ class ExerciseGoalRepository:
             goals.append(ExerciseGoalDocument(**document))
         return goals
 
-    def retrieve_goal_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[ExerciseGoalDocument]:
+    def retrieve_goal_by_identifier(
+        self, identifier: str, user_identifier: Optional[str] = None
+    ) -> Optional[ExerciseGoalDocument]:
         if not ObjectId.is_valid(identifier):
             return None
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         document = self.collection.find_one(query_filter)
         if document is None:
             return None
@@ -66,7 +76,10 @@ class ExerciseGoalRepository:
     ) -> bool:
         if not ObjectId.is_valid(identifier):
             return False
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         update_payload: Dict[str, Any] = {
             "$set": {
                 "exercise_name": updated_goal_document.exercise_name,
@@ -77,16 +90,23 @@ class ExerciseGoalRepository:
                     updated_goal_document.target_date,
                     datetime.min.time(),
                     tzinfo=timezone.utc,
-                ) if updated_goal_document.target_date is not None else None,
+                )
+                if updated_goal_document.target_date is not None
+                else None,
             }
         }
         update_result = self.collection.update_one(query_filter, update_payload)
         return update_result.matched_count > 0
 
-    def delete_goal_by_identifier(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
+    def delete_goal_by_identifier(
+        self, identifier: str, user_identifier: Optional[str] = None
+    ) -> bool:
         if not ObjectId.is_valid(identifier):
             return False
-        query_filter: Dict[str, Any] = {"_id": ObjectId(identifier), **_build_user_scope_filter(user_identifier)}
+        query_filter: Dict[str, Any] = {
+            "_id": ObjectId(identifier),
+            **_build_user_scope_filter(user_identifier),
+        }
         deletion_result = self.collection.delete_one(query_filter)
         return deletion_result.deleted_count > 0
 

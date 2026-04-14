@@ -1,12 +1,14 @@
 """
 Service layer for workout templates.
 """
+
 import logging
 from typing import List, Optional
 from application.models.workout_template import WorkoutTemplateDocument
 from application.repositories.workout_template_repository import WorkoutTemplateRepository
 
 logger = logging.getLogger(__name__)
+
 
 class WorkoutTemplateService:
     """
@@ -23,7 +25,9 @@ class WorkoutTemplateService:
         logger.info("Creating workout template named=%s", workout_template_document.template_name)
         return self.workout_template_repository.create_workout_template(workout_template_document)
 
-    def retrieve_template(self, identifier: str, user_identifier: Optional[str] = None) -> Optional[WorkoutTemplateDocument]:
+    def retrieve_template(
+        self, identifier: str, user_identifier: Optional[str] = None
+    ) -> Optional[WorkoutTemplateDocument]:
         """
         Retrieves one template by identifier.
         """
@@ -32,11 +36,15 @@ class WorkoutTemplateService:
             user_identifier=user_identifier,
         )
 
-    def retrieve_templates(self, user_identifier: Optional[str] = None) -> List[WorkoutTemplateDocument]:
+    def retrieve_templates(
+        self, user_identifier: Optional[str] = None
+    ) -> List[WorkoutTemplateDocument]:
         """
         Retrieves all templates for active user scope.
         """
-        return self.workout_template_repository.retrieve_all_workout_templates(user_identifier=user_identifier)
+        return self.workout_template_repository.retrieve_all_workout_templates(
+            user_identifier=user_identifier
+        )
 
     def delete_template(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
         """

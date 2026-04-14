@@ -1,6 +1,7 @@
 """
 Integration tests for authentication and workout ownership scoping.
 """
+
 from bson.objectid import ObjectId
 from application.database import database_manager
 
@@ -43,7 +44,9 @@ def test_register_login_and_workout_owner_assignment(test_client):
     assert create_response.status_code == 201
     created_identifier = create_response.get_json()["identifier"]
 
-    saved_document = database_manager.database["workouts"].find_one({"_id": ObjectId(created_identifier)})
+    saved_document = database_manager.database["workouts"].find_one(
+        {"_id": ObjectId(created_identifier)}
+    )
     assert saved_document is not None
     assert "user_identifier" in saved_document
     assert saved_document["user_identifier"] is not None
