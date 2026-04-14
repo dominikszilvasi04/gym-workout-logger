@@ -11,6 +11,11 @@ interface DialogProperties {
 export function Dialog({ open, title, onClose, children, footer }: DialogProperties) {
   const dialogContainerReference = useRef<HTMLDivElement | null>(null);
   const closeButtonReference = useRef<HTMLButtonElement | null>(null);
+  const onCloseReference = useRef(onClose);
+
+  useEffect(() => {
+    onCloseReference.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open || typeof document === "undefined") {
@@ -26,13 +31,18 @@ export function Dialog({ open, title, onClose, children, footer }: DialogPropert
     body.style.touchAction = "none";
 
     const focusTimer = window.setTimeout(() => {
+      const autoFocusElement = dialogContainerReference.current?.querySelector<HTMLElement>("[autofocus]");
+      if (autoFocusElement) {
+        autoFocusElement.focus();
+        return;
+      }
       closeButtonReference.current?.focus();
     }, 0);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseReference.current();
         return;
       }
 
@@ -78,7 +88,7 @@ export function Dialog({ open, title, onClose, children, footer }: DialogPropert
       document.removeEventListener("keydown", handleKeyDown);
       previouslyFocusedElement?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) {
     return null;
@@ -92,7 +102,7 @@ export function Dialog({ open, title, onClose, children, footer }: DialogPropert
       aria-label={title}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
-          onClose();
+          onCloseReference.current();
         }
       }}
     >
@@ -105,7 +115,7 @@ export function Dialog({ open, title, onClose, children, footer }: DialogPropert
           <button
             ref={closeButtonReference}
             type="button"
-            onClick={onClose}
+            onClick={() => onCloseReference.current()}
             className="touch-target h-11 w-11 rounded-full text-navy-700 transition-colors duration-150 hover:bg-navy-200/65 focus-visible:ring-2 focus-visible:ring-primary-600/80"
             aria-label="Close dialog"
           >
