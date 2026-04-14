@@ -6,6 +6,7 @@ vi.mock('../services/api', () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
+    updateProfile: vi.fn(),
   },
 }));
 
@@ -102,5 +103,81 @@ describe('useAuthStore', () => {
     useAuthStore.getState().clearError();
 
     expect(useAuthStore.getState().error).toBeNull();
+  });
+
+  it('stores the registered user on successful register', async () => {
+    vi.mocked(authAPI.register).mockResolvedValue({
+      _id: 'user-4',
+      email: 'new@example.com',
+      display_name: 'New Athlete',
+      created_at: '2026-01-04T00:00:00Z',
+    });
+
+    await useAuthStore.getState().register('new@example.com', 'password123', 'New Athlete');
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.user?.display_name).toBe('New Athlete');
+    expect(state.error).toBeNull();
+  });
+
+  it('clears the user on successful logout', async () => {
+    useAuthStore.setState({
+      user: {
+        _id: 'user-5',
+        email: 'logout@example.com',
+        created_at: '2026-01-05T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+
+    vi.mocked(authAPI.logout).mockResolvedValue(undefined);
+
+    await useAuthStore.getState().logout();
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.user).toBeNull();
+    expect(state.error).toBeNull();
+  });
+
+  it('updates the profile on successful profile update', async () => {
+    useAuthStore.setState({
+      user: {
+        _id: 'user-6',
+        email: 'profile@example.com',
+        display_name: 'Profile One',
+        created_at: '2026-01-06T00:00:00Z',
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      error: null,
+    });
+
+    vi.mocked(authAPI.updateProfile).mockResolvedValue({
+      _id: 'user-6',
+      email: 'profile@example.com',
+      display_name: 'Profile Two',
+      created_at: '2026-01-06T00:00:00Z',
+    });
+
+    await useAuthStore.getState().updateProfile('Profile Two');
+
+    const state = useAuthStore.getState();
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.user?.display_name).toBe('Profile Two');
+    expect(state.error).toBeNull();
+  });
+
+  it('surfaces a profile update error message when updateProfile fails', async () => {
+    vi.mocked(authAPI.updateProfile).mockRejectedValue(new Error('Profile update failed upstream'));
+
+    await expect(useAuthStore.getState().updateProfile('Bad Name')).rejects.toThrow('Profile update failed upstream');
+
+    const state = useAuthStore.getState();
+    expect(state.isLoading).toBe(false);
+    expect(state.error).toBe('Profile update failed upstream');
   });
 });
