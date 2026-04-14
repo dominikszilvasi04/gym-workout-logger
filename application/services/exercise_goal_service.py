@@ -4,6 +4,11 @@ Service layer for user exercise goals.
 
 import logging
 from typing import Any, Optional
+from application.cache import (
+    GOAL_CACHE_NAMESPACE,
+    PROFILE_CACHE_NAMESPACE,
+    application_cache_manager,
+)
 from application.models.exercise_goal import ExerciseGoalDocument
 from application.models.workout import WorkoutDocument
 from application.repositories.exercise_goal_repository import ExerciseGoalRepository
@@ -23,8 +28,20 @@ class ExerciseGoalService:
         self.exercise_goal_repository = exercise_goal_repository
         self.workout_service = workout_service
 
+    def _cache_key(self, namespace: str, *segments: object) -> str:
+        return application_cache_manager.build_cache_key(namespace, *segments)
+
+    def _invalidate_goal_related_caches(self, user_identifier: Optional[str]) -> None:
+        application_cache_manager.invalidate_namespace(GOAL_CACHE_NAMESPACE)
+        application_cache_manager.invalidate_namespace(PROFILE_CACHE_NAMESPACE)
+        if user_identifier:
+            application_cache_manager.invalidate_namespace(f"{GOAL_CACHE_NAMESPACE}:{user_identifier}")
+            application_cache_manager.invalidate_namespace(f"{PROFILE_CACHE_NAMESPACE}:{user_identifier}")
+
     def create_goal(self, goal_document: ExerciseGoalDocument) -> str:
-        return self.exercise_goal_repository.create_goal(goal_document)
+        result_identifier = self.exercise_goal_repository.create_goal(goal_document)
+        self._invalidate_goal_related_caches(goal_document.user_identifier)
+        return result_identifier
 
     def retrieve_goals(self, user_identifier: Optional[str] = None) -> list[ExerciseGoalDocument]:
         return self.exercise_goal_repository.retrieve_all_goals(user_identifier=user_identifier)
@@ -42,21 +59,35 @@ class ExerciseGoalService:
         goal_document: ExerciseGoalDocument,
         user_identifier: Optional[str] = None,
     ) -> bool:
-        return self.exercise_goal_repository.update_goal_by_identifier(
+        update_result = self.exercise_goal_repository.update_goal_by_identifier(
             identifier=identifier,
             updated_goal_document=goal_document,
             user_identifier=user_identifier,
         )
+        if update_result:
+            self._invalidate_goal_related_caches(user_identifier)
+        return update_result
 
     def delete_goal(self, identifier: str, user_identifier: Optional[str] = None) -> bool:
-        return self.exercise_goal_repository.delete_goal_by_identifier(
+        deletion_result = self.exercise_goal_repository.delete_goal_by_identifier(
             identifier=identifier, user_identifier=user_identifier
         )
+        if deletion_result:
+            self._invalidate_goal_related_caches(user_identifier)
+        return deletion_result
 
     def build_goal_progress_payload(self, user_identifier: Optional[str]) -> list[dict[str, Any]]:
+        cache_key = self._cache_key(GOAL_CACHE_NAMESPACE, f"goal_progress:{user_identifier}")
+        cached_result = application_cache_manager.get(cache_key)
+        if cached_result is not None:
+            logger.debug("Cache hit for goal_progress user_identifier=%s", user_identifier)
+            return cached_result
+
         goals = self.retrieve_goals(user_identifier=user_identifier)
         workouts = self.workout_service.retrieve_workout_history(user_identifier=user_identifier)
-        return [self._build_goal_progress_item(goal, workouts) for goal in goals]
+        result = [self._build_goal_progress_item(goal, workouts) for goal in goals]
+        application_cache_manager.set(cache_key, result)
+        return result
 
     def _build_goal_progress_item(
         self, goal: ExerciseGoalDocument, workouts: list[WorkoutDocument]

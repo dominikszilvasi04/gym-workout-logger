@@ -38,11 +38,15 @@ class WorkoutService:
     def _invalidate_workout_related_caches(self, user_identifier: Optional[str]) -> None:
         application_cache_manager.invalidate_namespace(WORKOUT_CACHE_NAMESPACE)
         application_cache_manager.invalidate_namespace(WORKOUT_RELATED_CACHE_NAMESPACE)
+        # Also invalidate goal progress caches as workouts affect goal progress
+        from application.cache import GOAL_CACHE_NAMESPACE
+        application_cache_manager.invalidate_namespace(GOAL_CACHE_NAMESPACE)
         if user_identifier:
             application_cache_manager.invalidate_namespace(f"{WORKOUT_CACHE_NAMESPACE}:{user_identifier}")
             application_cache_manager.invalidate_namespace(
                 f"{WORKOUT_RELATED_CACHE_NAMESPACE}:{user_identifier}"
             )
+            application_cache_manager.invalidate_namespace(f"{GOAL_CACHE_NAMESPACE}:{user_identifier}")
 
     def normalise_datetime_to_utc(self, date_time_value: datetime) -> datetime:
         """
