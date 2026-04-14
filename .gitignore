@@ -3,6 +3,10 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Cache files
+.flask_cache/
+.cache/
+
 # C extensions
 *.so
 
