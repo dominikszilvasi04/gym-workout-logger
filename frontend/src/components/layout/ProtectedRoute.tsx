@@ -15,7 +15,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRoutePropert
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-navy-50 px-4">
+      <div className="app-min-h flex items-center justify-center bg-navy-50 px-4">
         <div className="w-full max-w-sm rounded-2xl border border-navy-300/60 bg-navy-100 p-5 shadow-xl shadow-black/45">
           <div className="h-24 animate-pulse rounded-xl bg-navy-200" />
         </div>

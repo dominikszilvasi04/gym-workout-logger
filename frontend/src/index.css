@@ -14,7 +14,6 @@
 
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
   background: #070b14;
 }
 
@@ -43,6 +42,17 @@ body::before {
 
 #root {
   min-height: 100vh;
+}
+
+.app-min-h {
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+@supports (height: 100dvh) {
+  .app-min-h {
+    min-height: 100dvh;
+  }
 }
 
 ::-webkit-scrollbar {

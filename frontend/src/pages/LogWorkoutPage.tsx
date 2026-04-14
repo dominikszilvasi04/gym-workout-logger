@@ -8,6 +8,7 @@ import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
 import { Dialog } from "../components/common/Dialog";
 import { InputField } from "../components/common/InputField";
+import { useKeyboardVisibility } from "../hooks/useKeyboardVisibility";
 import { exerciseAPI, templateAPI, workoutAPI } from "../services/api";
 import type { ExerciseDefinition, Workout, WorkoutTemplate, WorkoutSet } from "../types";
 
@@ -173,6 +174,7 @@ function formatTimeInputMask(rawValue: string) {
 export function LogWorkoutPage() {
   const navigate = useNavigate();
   const { workoutId } = useParams<{ workoutId: string }>();
+  const keyboardVisible = useKeyboardVisibility();
   const [searchParams] = useSearchParams();
   const [workoutDate, setWorkoutDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [workoutTime, setWorkoutTime] = useState(() => format(new Date(), 'HH:mm'));
@@ -194,6 +196,12 @@ export function LogWorkoutPage() {
   const [isIOSFallback, setIsIOSFallback] = useState(false);
   const isEditMode = Boolean(workoutId);
   const shouldUseDraftPersistence = !isEditMode;
+  const shouldAutoSelectNumericInput = useMemo(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return false;
+    }
+    return !window.matchMedia("(pointer: coarse)").matches;
+  }, []);
 
   useEffect(() => {
     setIsIOSFallback(isIOSDevice());
@@ -1076,7 +1084,7 @@ export function LogWorkoutPage() {
                         setDraftValues[buildSetFieldKey(entry.localIdentifier, setIndex, "weight_in_kilograms")] ??
                         String(set.weight_in_kilograms)
                       }
-                      onFocus={(event) => event.currentTarget.select()}
+                      onFocus={shouldAutoSelectNumericInput ? (event) => event.currentTarget.select() : undefined}
                       onChange={(event) =>
                         updateSetDraft(entry.localIdentifier, setIndex, "weight_in_kilograms", event.target.value)
                       }
@@ -1100,7 +1108,7 @@ export function LogWorkoutPage() {
                         setDraftValues[buildSetFieldKey(entry.localIdentifier, setIndex, "repetitions")] ??
                         String(set.repetitions)
                       }
-                      onFocus={(event) => event.currentTarget.select()}
+                      onFocus={shouldAutoSelectNumericInput ? (event) => event.currentTarget.select() : undefined}
                       onChange={(event) =>
                         updateSetDraft(entry.localIdentifier, setIndex, "repetitions", event.target.value)
                       }
@@ -1128,7 +1136,7 @@ export function LogWorkoutPage() {
                           ? String(set.rate_of_perceived_exertion)
                           : "")
                       }
-                      onFocus={(event) => event.currentTarget.select()}
+                      onFocus={shouldAutoSelectNumericInput ? (event) => event.currentTarget.select() : undefined}
                       onChange={(event) =>
                         updateSetDraft(entry.localIdentifier, setIndex, "rate_of_perceived_exertion", event.target.value)
                       }
@@ -1168,7 +1176,11 @@ export function LogWorkoutPage() {
         </Card>
       ) : null}
 
-      <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(8,14,26,0.45)] backdrop-blur-xl">
+      <div
+        className={`sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-navy-300/70 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(8,14,26,0.45)] backdrop-blur-xl transition-all duration-200 ${
+          keyboardVisible ? "pointer-events-none translate-y-4 opacity-0" : "translate-y-0 opacity-100"
+        }`}
+      >
         <div className="grid grid-cols-2 gap-2">
           <Button size="lg" variant="outline" onClick={openTemplateSaveDialog} disabled={templateSaving || loading}>
             Save template

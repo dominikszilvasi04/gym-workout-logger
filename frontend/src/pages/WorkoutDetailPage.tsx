@@ -5,6 +5,7 @@ import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { Dialog } from '../components/common/Dialog';
+import { useKeyboardVisibility } from '../hooks/useKeyboardVisibility';
 import { workoutAPI } from '../services/api';
 import type { Workout } from '../types';
 import { format } from 'date-fns';
@@ -13,6 +14,7 @@ import { ChevronLeft, Repeat2, Trash2, Edit } from 'lucide-react';
 export const WorkoutDetailPage = () => {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
+  const keyboardVisible = useKeyboardVisibility();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +190,11 @@ export const WorkoutDetailPage = () => {
           </div>
         </section>
 
-        <div className="sticky bottom-20 z-20 -mx-4 border-t border-navy-300/60 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <div
+          className={`sticky bottom-[calc(5.75rem+env(safe-area-inset-bottom))] z-20 -mx-4 border-t border-navy-300/60 bg-navy-100/92 px-4 py-3 shadow-[0_-10px_26px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all duration-200 ${
+            keyboardVisible ? 'pointer-events-none translate-y-4 opacity-0' : 'translate-y-0 opacity-100'
+          }`}
+        >
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <Button variant="outline" onClick={() => navigate(`/log?repeat=${workout._id}`)} className="gap-2">
               <Repeat2 className="h-4 w-4" />

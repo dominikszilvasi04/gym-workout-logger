@@ -9,7 +9,7 @@ interface ApplicationShellProperties {
 
 export function ApplicationShell({ title, action, children }: ApplicationShellProperties) {
   return (
-    <div className="mx-auto min-h-screen w-full max-w-3xl bg-[linear-gradient(180deg,#0d0c0b_0%,#141210_55%,#1b1916_100%)] pb-24">
+    <div className="app-min-h mx-auto w-full max-w-3xl bg-[linear-gradient(180deg,#0d0c0b_0%,#141210_55%,#1b1916_100%)] pb-[calc(6.25rem+env(safe-area-inset-bottom))]">
       <header className="sticky top-0 z-30 border-b border-navy-300/50 bg-navy-100/90 backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3 px-4 py-4">
           <div>

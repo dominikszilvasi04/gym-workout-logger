@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import { BarChart3, CircleUserRound, Dumbbell, House, Shield, SquareStack } from "lucide-react";
 import { useAuthStore } from "../../store/authStore";
+import { useKeyboardVisibility } from "../../hooks/useKeyboardVisibility";
 
 const navigationItems = [
   { path: "/", label: "Home", icon: House },
@@ -16,6 +17,7 @@ const adminNavigationItem = { path: "/admin", label: "Admin", icon: Shield };
 export function BottomNavigation() {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const keyboardVisible = useKeyboardVisibility();
   const isAdmin = user?.is_admin || user?.role === "admin";
   const resolvedNavigationItems = isAdmin ? [...navigationItems, adminNavigationItem] : navigationItems;
 
@@ -27,7 +29,14 @@ export function BottomNavigation() {
   };
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/55 bg-navy-100/94 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl" aria-label="Primary navigation">
+    <nav
+      className={clsx(
+        "fixed inset-x-0 bottom-0 z-40 border-t border-navy-300/55 bg-navy-100/94 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl transition-all duration-200",
+        keyboardVisible ? "pointer-events-none translate-y-full opacity-0" : "translate-y-0 opacity-100"
+      )}
+      aria-label="Primary navigation"
+      aria-hidden={keyboardVisible || undefined}
+    >
       <ul className="mx-auto grid max-w-3xl gap-1 px-2" style={{ gridTemplateColumns: `repeat(${resolvedNavigationItems.length}, minmax(0, 1fr))` }}>
         {resolvedNavigationItems.map((item) => {
           const IconComponent = item.icon;
