@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { AlertTriangle, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -6,40 +7,46 @@ import { Button } from "../components/common/Button";
 import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
 import { adminAPI, type AdminAuditLog, type AdminUser } from "../services/api";
+import { queryKeyRegistry } from "../services/queryKeys";
 import { useAuthStore } from "../store/authStore";
 
 export function AdminPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
+  const queryClient = useQueryClient();
+  const auditLogLimit = 20;
   const [deletingIdentifier, setDeletingIdentifier] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [feedbackType, setFeedbackType] = useState<"success" | "error" | null>(null);
   const logout = useAuthStore((state) => state.logout);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const [userResponse, auditResponse] = await Promise.all([
-        adminAPI.listUsers(),
-        adminAPI.listAuditLogs(20),
-      ]);
-      setUsers(userResponse);
-      setAuditLogs(auditResponse);
-      setFeedbackMessage(null);
-      setFeedbackType(null);
-    } catch (error) {
-      setFeedbackType("error");
-      setFeedbackMessage(error instanceof Error ? error.message : "Unable to load users.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const adminUsersQuery = useQuery<AdminUser[]>({
+    queryKey: queryKeyRegistry.adminUsers(),
+    queryFn: () => adminAPI.listUsers(),
+  });
+
+  const adminAuditLogsQuery = useQuery<AdminAuditLog[]>({
+    queryKey: queryKeyRegistry.adminAuditLogs(auditLogLimit),
+    queryFn: () => adminAPI.listAuditLogs(auditLogLimit),
+  });
+
+  const users = adminUsersQuery.data ?? [];
+  const auditLogs = adminAuditLogsQuery.data ?? [];
+  const loading = adminUsersQuery.isPending || adminAuditLogsQuery.isPending;
 
   useEffect(() => {
-    void loadUsers();
-  }, []);
+    if (adminUsersQuery.isError || adminAuditLogsQuery.isError) {
+      setFeedbackType("error");
+      setFeedbackMessage("Unable to load admin data.");
+      return;
+    }
+
+    setFeedbackMessage(null);
+    setFeedbackType(null);
+  }, [adminAuditLogsQuery.isError, adminUsersQuery.isError]);
+
+  const refreshAdminData = async () => {
+    await Promise.all([adminUsersQuery.refetch(), adminAuditLogsQuery.refetch()]);
+  };
 
   const metrics = useMemo(() => {
     const adminCount = users.filter((user) => user.role === "admin").length;
@@ -68,7 +75,10 @@ export function AdminPage() {
       setFeedbackMessage(
         `Deleted ${user.email}. Removed ${result.deleted_workouts} workouts and ${result.deleted_templates} templates.`
       );
-      await loadUsers();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.adminUsers() }),
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.adminAuditLogs(auditLogLimit) }),
+      ]);
     } catch (error) {
       setFeedbackType("error");
       setFeedbackMessage(error instanceof Error ? error.message : "Unable to delete user.");
@@ -124,7 +134,7 @@ export function AdminPage() {
       URL.revokeObjectURL(url);
       setFeedbackType("success");
       setFeedbackMessage(`Export complete: ${payload.counts.users} users, ${payload.counts.workouts} workouts, ${payload.counts.workout_templates} templates.`);
-      setAuditLogs(await adminAPI.listAuditLogs(20));
+      await queryClient.invalidateQueries({ queryKey: queryKeyRegistry.adminAuditLogs(auditLogLimit) });
     } catch (error) {
       setFeedbackType("error");
       setFeedbackMessage(error instanceof Error ? error.message : "Unable to export data.");
@@ -248,7 +258,7 @@ export function AdminPage() {
       <Card border className="bg-navy-100/95 shadow-sm">
         <div className="flex items-center justify-between gap-2">
           <p className="font-display text-lg font-semibold text-navy-950">Recent admin activity</p>
-          <Button size="sm" variant="outline" onClick={() => void loadUsers()}>
+          <Button size="sm" variant="outline" onClick={() => void refreshAdminData()}>
             Refresh
           </Button>
         </div>

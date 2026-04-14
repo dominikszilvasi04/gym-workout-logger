@@ -1,6 +1,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ProfilePage } from "./ProfilePage";
 import type { AnalyticsData, Workout } from "../types";
 
@@ -73,6 +74,13 @@ const workoutsFixture: Workout[] = [
 ];
 
 describe("ProfilePage", () => {
+  const createTestQueryClient = () =>
+    new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
   beforeEach(() => {
     getAnalyticsMock.mockReset();
     getAllMock.mockReset();
@@ -99,10 +107,14 @@ describe("ProfilePage", () => {
   });
 
   it("renders profile metrics, repeat action, and editable display name", async () => {
+    const queryClient = createTestQueryClient();
+
     render(
-      <MemoryRouter>
-        <ProfilePage />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ProfilePage />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {
@@ -126,10 +138,14 @@ describe("ProfilePage", () => {
   });
 
   it("logs user out", async () => {
+    const queryClient = createTestQueryClient();
+
     render(
-      <MemoryRouter>
-        <ProfilePage />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ProfilePage />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     await screen.findByText(/athlete ledger/i);

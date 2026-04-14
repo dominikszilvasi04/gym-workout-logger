@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Award, CalendarDays, Flame, LogOut, PencilLine, Repeat2, Scale, Trash2, UserCircle2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -8,8 +9,9 @@ import { Card } from "../components/common/Card";
 import { Badge } from "../components/common/Badge";
 import { InputField } from "../components/common/InputField";
 import { workoutAPI } from "../services/api";
+import { queryKeyRegistry } from "../services/queryKeys";
 import { useAuthStore } from "../store/authStore";
-import type { AnalyticsData, Workout } from "../types";
+import type { Workout } from "../types";
 
 interface ProfileHighlight {
   title: string;
@@ -19,42 +21,45 @@ interface ProfileHighlight {
 
 export function ProfilePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const logout = useAuthStore((state) => state.logout);
   const updateProfile = useAuthStore((state) => state.updateProfile);
   const user = useAuthStore((state) => state.user);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
-  const [lastWorkout, setLastWorkout] = useState<Workout | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
   const [deletingWorkoutIdentifier, setDeletingWorkoutIdentifier] = useState<string | null>(null);
 
+  const profileAnalyticsQuery = useQuery({
+    queryKey: queryKeyRegistry.profileAnalytics(),
+    queryFn: () => workoutAPI.getAnalytics(90),
+  });
+
+  const profileRecentWorkoutsQuery = useQuery({
+    queryKey: queryKeyRegistry.profileRecentWorkouts(),
+    queryFn: async () => {
+      const workoutResponse = await workoutAPI.getAll(1, 6);
+      return workoutResponse.workouts || [];
+    },
+  });
+
+  const profileLastWorkoutQuery = useQuery({
+    queryKey: queryKeyRegistry.profileLastWorkout(),
+    queryFn: () => workoutAPI.getLast(),
+  });
+
+  const analyticsData = profileAnalyticsQuery.data ?? null;
+  const recentWorkouts = profileRecentWorkoutsQuery.data ?? [];
+  const lastWorkout = profileLastWorkoutQuery.data ?? null;
+  const loading =
+    profileAnalyticsQuery.isPending ||
+    profileRecentWorkoutsQuery.isPending ||
+    profileLastWorkoutQuery.isPending;
+
   useEffect(() => {
     setDisplayNameDraft(user?.display_name ?? "");
   }, [user?.display_name]);
-
-  useEffect(() => {
-    const loadProfileData = async () => {
-      setLoading(true);
-      try {
-        const [analyticsResponse, workoutsResponse, lastWorkoutResponse] = await Promise.all([
-          workoutAPI.getAnalytics(90),
-          workoutAPI.getAll(1, 6),
-          workoutAPI.getLast(),
-        ]);
-        setAnalyticsData(analyticsResponse);
-        setRecentWorkouts(workoutsResponse.workouts || []);
-        setLastWorkout(lastWorkoutResponse);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadProfileData();
-  }, []);
 
   const profileHighlights = useMemo<ProfileHighlight[]>(() => {
     if (!analyticsData) {
@@ -109,7 +114,11 @@ export function ProfilePage() {
     try {
       setDeletingWorkoutIdentifier(workout._id);
       await workoutAPI.delete(workout._id);
-      setRecentWorkouts((current) => current.filter((entry) => entry._id !== workout._id));
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.profileRecentWorkouts() }),
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.profileAnalytics() }),
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.profileLastWorkout() }),
+      ]);
       setProfileFeedback("Workout deleted.");
     } catch {
       setProfileFeedback("Unable to delete workout right now.");
