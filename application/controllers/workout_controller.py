@@ -138,13 +138,13 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
     ).strip()
     sort_order = (request.args.get("order", default="desc", type=str) or "desc").strip().lower()
     requested_exercise_name = (
-        (request.args.get("exercise_name", default="", type=str) or "").strip().lower()
+        (request.args.get("exercise_name", default="", type=str) or "").strip()
     )
     requested_target_muscle_group = (
-        (request.args.get("target_muscle_group", default="", type=str) or "").strip().lower()
+        (request.args.get("target_muscle_group", default="", type=str) or "").strip()
     )
     requested_session_tag = (
-        (request.args.get("session_tag", default="", type=str) or "").strip().lower()
+        (request.args.get("session_tag", default="", type=str) or "").strip()
     )
     start_date_text = (request.args.get("start_date", default="", type=str) or "").strip()
     end_date_text = (request.args.get("end_date", default="", type=str) or "").strip()
@@ -167,8 +167,17 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
         return jsonify({"error": "start_date cannot be greater than end_date."}), 400
 
     try:
-        workouts = application_workout_service.retrieve_workout_history(
-            user_identifier=user_identifier
+        page_items, total_count = application_workout_service.retrieve_workouts_page(
+            user_identifier=user_identifier,
+            page_number=page_number,
+            page_size=page_size,
+            sort_field=sort_field,
+            sort_order=sort_order,
+            exercise_name=requested_exercise_name,
+            target_muscle_group=requested_target_muscle_group,
+            session_tag=requested_session_tag,
+            start_date=start_date,
+            end_date=end_date,
         )
     except RuntimeError:
         logger.exception(
@@ -176,69 +185,12 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
         )
         return jsonify({"error": "Database unavailable."}), 503
 
-    reverse_sort = sort_order != "asc"
-    if sort_field == "date_of_workout":
-        workouts = sorted(
-            workouts,
-            key=lambda workout: application_workout_service.normalise_datetime_to_utc(
-                workout.date_of_workout
-            ),
-            reverse=reverse_sort,
-        )
-
-    if requested_exercise_name:
-        workouts = [
-            workout
-            for workout in workouts
-            if any(
-                requested_exercise_name in (exercise.exercise_name or "").strip().lower()
-                for exercise in workout.exercises
-            )
-        ]
-
-    if requested_target_muscle_group:
-        workouts = [
-            workout
-            for workout in workouts
-            if any(
-                requested_target_muscle_group in (muscle_group or "").strip().lower()
-                for muscle_group in workout.target_muscle_groups
-            )
-        ]
-
-    if requested_session_tag:
-        workouts = [
-            workout
-            for workout in workouts
-            if any(
-                requested_session_tag in (session_tag or "").strip().lower()
-                for session_tag in (workout.session_tags or [])
-            )
-        ]
-
-    if start_date or end_date:
-        filtered_workouts = []
-        for workout in workouts:
-            workout_date = application_workout_service.normalise_datetime_to_utc(
-                workout.date_of_workout
-            ).date()
-            if start_date and workout_date < start_date:
-                continue
-            if end_date and workout_date > end_date:
-                continue
-            filtered_workouts.append(workout)
-        workouts = filtered_workouts
-
-    total_items = len(workouts)
-    total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 0
-    start_index = (page_number - 1) * page_size
-    end_index = start_index + page_size
-    page_items = workouts[start_index:end_index]
+    total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
 
     return jsonify(
         {
             "workouts": [workout.model_dump(by_alias=True) for workout in page_items],
-            "total": total_items,
+            "total": total_count,
             "total_pages": total_pages,
             "page": page_number,
             "limit": page_size,

@@ -6,6 +6,11 @@ import logging
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional
+from application.cache import (
+    WORKOUT_CACHE_NAMESPACE,
+    WORKOUT_RELATED_CACHE_NAMESPACE,
+    application_cache_manager,
+)
 from application.models.workout import WorkoutDocument, ExerciseLog
 from application.repositories.workout_repository import WorkoutRepository
 
@@ -26,6 +31,18 @@ class WorkoutService:
             workout_repository: The injected data access object.
         """
         self.workout_repository = workout_repository
+
+    def _cache_key(self, namespace: str, *segments: object) -> str:
+        return application_cache_manager.build_cache_key(namespace, *segments)
+
+    def _invalidate_workout_related_caches(self, user_identifier: Optional[str]) -> None:
+        application_cache_manager.invalidate_namespace(WORKOUT_CACHE_NAMESPACE)
+        application_cache_manager.invalidate_namespace(WORKOUT_RELATED_CACHE_NAMESPACE)
+        if user_identifier:
+            application_cache_manager.invalidate_namespace(f"{WORKOUT_CACHE_NAMESPACE}:{user_identifier}")
+            application_cache_manager.invalidate_namespace(
+                f"{WORKOUT_RELATED_CACHE_NAMESPACE}:{user_identifier}"
+            )
 
     def normalise_datetime_to_utc(self, date_time_value: datetime) -> datetime:
         """
@@ -108,7 +125,9 @@ class WorkoutService:
         logger.info(
             "Recording new workout session with %d exercises.", len(workout_document.exercises)
         )
-        return self.workout_repository.create_workout(workout_document=workout_document)
+        result_identifier = self.workout_repository.create_workout(workout_document=workout_document)
+        self._invalidate_workout_related_caches(workout_document.user_identifier)
+        return result_identifier
 
     def retrieve_workout_history(
         self, user_identifier: Optional[str] = None
@@ -161,10 +180,14 @@ class WorkoutService:
         """
         logger.info("Removing workout identifier=%s", identifier)
         if user_identifier is None:
-            return self.workout_repository.delete_workout_by_identifier(identifier=identifier)
-        return self.workout_repository.delete_workout_by_identifier(
-            identifier=identifier, user_identifier=user_identifier
-        )
+            deletion_result = self.workout_repository.delete_workout_by_identifier(identifier=identifier)
+        else:
+            deletion_result = self.workout_repository.delete_workout_by_identifier(
+                identifier=identifier, user_identifier=user_identifier
+            )
+        if deletion_result:
+            self._invalidate_workout_related_caches(user_identifier)
+        return deletion_result
 
     def modify_workout_session(
         self,
@@ -184,12 +207,16 @@ class WorkoutService:
         """
         logger.info("Modifying workout identifier=%s", identifier)
         if user_identifier is None:
-            return self.workout_repository.update_workout_by_identifier(
+            modification_result = self.workout_repository.update_workout_by_identifier(
                 identifier=identifier, updated_workout=workout_document
             )
-        return self.workout_repository.update_workout_by_identifier(
-            identifier=identifier, updated_workout=workout_document, user_identifier=user_identifier
-        )
+        else:
+            modification_result = self.workout_repository.update_workout_by_identifier(
+                identifier=identifier, updated_workout=workout_document, user_identifier=user_identifier
+            )
+        if modification_result:
+            self._invalidate_workout_related_caches(user_identifier)
+        return modification_result
 
     def retrieve_recent_workouts(
         self, user_identifier: Optional[str] = None, limit: int = 5
@@ -225,6 +252,50 @@ class WorkoutService:
             The newest workout document, or None when none exist.
         """
         return self.workout_repository.retrieve_most_recent_workout(user_identifier=user_identifier)
+
+    def retrieve_workouts_page(
+        self,
+        user_identifier: Optional[str] = None,
+        page_number: int = 1,
+        page_size: int = 20,
+        sort_field: str = "date_of_workout",
+        sort_order: str = "desc",
+        exercise_name: str = "",
+        target_muscle_group: str = "",
+        session_tag: str = "",
+        start_date: Optional[object] = None,
+        end_date: Optional[object] = None,
+    ) -> tuple[List[WorkoutDocument], int]:
+        """
+        Retrieves a paginated and filtered page of workout documents via server-side query.
+
+        Args:
+            user_identifier: Optional user scope.
+            page_number: 1-based page number.
+            page_size: Maximum items per page.
+            sort_field: The field to sort by.
+            sort_order: Sort direction ('asc' or 'desc').
+            exercise_name: Partial exercise name filter.
+            target_muscle_group: Partial muscle group filter.
+            session_tag: Partial session tag filter.
+            start_date: Optional start date for date range filtering.
+            end_date: Optional end date for date range filtering.
+
+        Returns:
+            A tuple containing the page of filtered workouts and the total matching count.
+        """
+        return self.workout_repository.retrieve_workouts_page(
+            user_identifier=user_identifier,
+            page_number=page_number,
+            page_size=page_size,
+            sort_field=sort_field,
+            sort_order=sort_order,
+            exercise_name=exercise_name,
+            target_muscle_group=target_muscle_group,
+            session_tag=session_tag,
+            start_date=start_date,
+            end_date=end_date,
+        )
 
     def build_last_used_values_map(
         self, user_identifier: Optional[str]
@@ -279,6 +350,12 @@ class WorkoutService:
         Returns:
             A dictionary containing aggregate workout statistics.
         """
+        cache_key = self._cache_key(WORKOUT_RELATED_CACHE_NAMESPACE, f"profile_summary:{user_identifier}")
+        cached_result = application_cache_manager.get(cache_key)
+        if cached_result is not None:
+            logger.debug("Cache hit for profile_summary user_identifier=%s", user_identifier)
+            return cached_result
+
         workouts = self.retrieve_workout_history(user_identifier=user_identifier)
         recent_workouts = sorted(
             workouts,
@@ -304,7 +381,7 @@ class WorkoutService:
         most_trained_muscle_group = None
         if target_muscle_counter:
             most_trained_muscle_group = target_muscle_counter.most_common(1)[0][0]
-        return {
+        result = {
             "total_workouts": total_workouts,
             "total_exercises": total_exercises,
             "total_sets": total_sets,
@@ -314,6 +391,8 @@ class WorkoutService:
             "latest_workout": recent_workouts[0] if recent_workouts else None,
             "recent_workouts": recent_workouts[:5],
         }
+        application_cache_manager.set(cache_key, result)
+        return result
 
     def calculate_total_sets(self, workout_document: WorkoutDocument) -> int:
         """
@@ -542,6 +621,20 @@ class WorkoutService:
         Returns:
             A serialisable dictionary containing summary cards and chart datasets.
         """
+        cache_key = self._cache_key(
+            WORKOUT_RELATED_CACHE_NAMESPACE,
+            f"dashboard_analytics:{user_identifier}:{range_days}:{exercise_name}",
+        )
+        cached_result = application_cache_manager.get(cache_key)
+        if cached_result is not None:
+            logger.debug(
+                "Cache hit for dashboard_analytics user_identifier=%s range_days=%s exercise_name=%s",
+                user_identifier,
+                range_days,
+                exercise_name,
+            )
+            return cached_result
+
         all_workouts = sorted(
             self.retrieve_workout_history(user_identifier=user_identifier),
             key=lambda workout: self.normalise_datetime_to_utc(workout.date_of_workout),
@@ -634,7 +727,7 @@ class WorkoutService:
         )
         current_training_streak_weeks = self.calculate_training_streak_weeks(all_workouts)
         personal_records = self.build_personal_records(all_workouts)
-        return {
+        result = {
             "filters": {
                 "range_days": range_days,
                 "selected_exercise": selected_exercise_name,
@@ -681,3 +774,5 @@ class WorkoutService:
                 "personal_records": personal_records,
             },
         }
+        application_cache_manager.set(cache_key, result)
+        return result

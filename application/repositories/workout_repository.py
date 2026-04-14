@@ -100,6 +100,70 @@ class WorkoutRepository:
         logger.debug("Retrieved %d workouts from database.", len(workouts))
         return workouts
 
+    def retrieve_workouts_page(
+        self,
+        user_identifier: Optional[str] = None,
+        page_number: int = 1,
+        page_size: int = 20,
+        sort_field: str = "date_of_workout",
+        sort_order: str = "desc",
+        exercise_name: str = "",
+        target_muscle_group: str = "",
+        session_tag: str = "",
+        start_date: Optional[Any] = None,
+        end_date: Optional[Any] = None,
+    ) -> tuple[List[WorkoutDocument], int]:
+        """
+        Retrieves a filtered page of workout documents and the total matching count.
+        """
+        from datetime import datetime, timezone
+        
+        query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
+        if exercise_name:
+            query_filter["exercises.exercise_name"] = {"$regex": exercise_name, "$options": "i"}
+        if target_muscle_group:
+            query_filter["target_muscle_groups"] = {
+                "$regex": target_muscle_group,
+                "$options": "i",
+            }
+        if session_tag:
+            query_filter["session_tags"] = {"$regex": session_tag, "$options": "i"}
+        if start_date or end_date:
+            date_filter: Dict[str, Any] = {}
+            if start_date is not None:
+                # Convert date to datetime at start of day UTC
+                if hasattr(start_date, "year") and not hasattr(start_date, "hour"):
+                    start_date = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+                date_filter["$gte"] = start_date
+            if end_date is not None:
+                # Convert date to datetime at end of day UTC
+                if hasattr(end_date, "year") and not hasattr(end_date, "hour"):
+                    end_date = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+                date_filter["$lte"] = end_date
+            query_filter["date_of_workout"] = date_filter
+
+        allowed_sort_fields = {"date_of_workout", "_id"}
+        sort_field_name = sort_field if sort_field in allowed_sort_fields else "date_of_workout"
+        sort_direction = -1 if sort_order != "asc" else 1
+
+        total_count = self.collection.count_documents(query_filter)
+        cursor = (
+            self.collection.find(query_filter)
+            .sort(sort_field_name, sort_direction)
+            .skip(max(page_number - 1, 0) * page_size)
+            .limit(page_size)
+        )
+        workouts: List[WorkoutDocument] = []
+        for document in cursor:
+            document["_id"] = str(document["_id"])
+            workouts.append(WorkoutDocument(**document))
+        logger.debug(
+            "Retrieved %d paginated workouts from database with total_count=%d.",
+            len(workouts),
+            total_count,
+        )
+        return workouts, total_count
+
     def retrieve_most_recent_workout(
         self, user_identifier: Optional[str] = None
     ) -> Optional[WorkoutDocument]:

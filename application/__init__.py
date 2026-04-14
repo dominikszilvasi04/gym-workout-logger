@@ -13,6 +13,7 @@ from cachelib import FileSystemCache
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import OperationFailure
 from typing import Type
+from application.cache import application_cache_manager
 from application.configuration import ApplicationConfiguration, DevelopmentConfiguration
 from application.database import database_manager
 from application.controllers.workout_controller import workout_blueprint
@@ -64,6 +65,14 @@ def create_application(
         cache_dir=session_cache_directory,
         threshold=500,
         mode=0o600,
+    )
+    application_cache_directory = flask_application.config.get("APPLICATION_CACHE_DIR", ".flask_cache")
+    application_cache_timeout = int(
+        flask_application.config.get("APPLICATION_CACHE_DEFAULT_TIMEOUT_SECONDS", 300)
+    )
+    application_cache_manager.initialise(
+        cache_directory=application_cache_directory,
+        default_timeout_seconds=application_cache_timeout,
     )
     flask_application.config["RATELIMIT_DEFAULT"] = flask_application.config.get(
         "RATE_LIMIT_DEFAULT", "300 per hour"

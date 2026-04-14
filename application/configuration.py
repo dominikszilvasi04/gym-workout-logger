@@ -22,6 +22,12 @@ class ApplicationConfiguration:
     SESSION_TYPE: str = os.environ.get("APPLICATION_SESSION_TYPE", "cachelib")
     SESSION_PERMANENT: bool = False
     SESSION_CACHE_DIR: str = os.environ.get("APPLICATION_SESSION_CACHE_DIR", ".flask_session")
+    APPLICATION_CACHE_DIR: str = os.environ.get(
+        "APPLICATION_CACHE_DIR", ".flask_cache"
+    )
+    APPLICATION_CACHE_DEFAULT_TIMEOUT_SECONDS: int = int(
+        os.environ.get("APPLICATION_CACHE_DEFAULT_TIMEOUT_SECONDS", "300")
+    )
     SESSION_COOKIE_HTTPONLY: bool = True
     SESSION_COOKIE_SAMESITE: str = "Lax"
     SESSION_COOKIE_SECURE: bool = (
@@ -77,6 +83,7 @@ class TestingConfiguration(ApplicationConfiguration):
     TESTING: bool = True
     DATABASE_NAME: str = "gym_workout_logger_testing_database"
     CSRF_PROTECTION_ENABLED: bool = False
+    APPLICATION_CACHE_DEFAULT_TIMEOUT_SECONDS: int = 1
 
 
 class ProductionConfiguration(ApplicationConfiguration):
