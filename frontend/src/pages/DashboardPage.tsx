@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { differenceInCalendarDays, format } from "date-fns";
 import { Activity, ArrowRight, CalendarDays, ChevronRight, Flame, Repeat2, Scale, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { ApplicationShell } from "../components/layout/ApplicationShell";
@@ -8,7 +9,8 @@ import { Badge } from "../components/common/Badge";
 import { Button } from "../components/common/Button";
 import { Tabs } from "../components/common/Tabs";
 import { exerciseAPI, goalAPI, workoutAPI } from "../services/api";
-import type { AnalyticsData, ExerciseDefinition, ExerciseGoalProgress, Workout } from "../types";
+import { queryKeyRegistry } from "../services/queryKeys";
+import type { ExerciseGoalProgress, Workout } from "../types";
 
 function isIOSDevice() {
   if (typeof navigator === "undefined") {
@@ -63,14 +65,10 @@ function formatDateInputMask(rawValue: string) {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
-  const [recentWorkouts, setRecentWorkouts] = useState<Workout[]>([]);
+  const queryClient = useQueryClient();
   const [selectedRange, setSelectedRange] = useState("30");
-  const [loading, setLoading] = useState(true);
   const [deletingWorkoutIdentifier, setDeletingWorkoutIdentifier] = useState<string | null>(null);
   const [sessionFeedback, setSessionFeedback] = useState<string | null>(null);
-  const [goals, setGoals] = useState<ExerciseGoalProgress[]>([]);
-  const [exerciseDefinitions, setExerciseDefinitions] = useState<ExerciseDefinition[]>([]);
   const [goalFeedback, setGoalFeedback] = useState<string | null>(null);
   const [creatingGoal, setCreatingGoal] = useState(false);
   const [deletingGoalIdentifier, setDeletingGoalIdentifier] = useState<string | null>(null);
@@ -90,33 +88,44 @@ export function DashboardPage() {
     target_repetitions: "",
     target_date: "",
   });
+  const selectedRangeInDays = Number(selectedRange);
+
+  const analyticsQuery = useQuery({
+    queryKey: queryKeyRegistry.dashboardAnalytics(selectedRangeInDays),
+    queryFn: () => workoutAPI.getAnalytics(selectedRangeInDays),
+  });
+
+  const recentWorkoutsQuery = useQuery({
+    queryKey: queryKeyRegistry.dashboardRecentWorkouts(),
+    queryFn: async () => {
+      const response = await workoutAPI.getAll(1, 10);
+      return response.workouts || [];
+    },
+  });
+
+  const goalsQuery = useQuery({
+    queryKey: queryKeyRegistry.dashboardGoals(),
+    queryFn: () => goalAPI.getAll(),
+  });
+
+  const exerciseDefinitionsQuery = useQuery({
+    queryKey: queryKeyRegistry.dashboardExerciseDefinitions(),
+    queryFn: () => exerciseAPI.getAll(),
+  });
+
+  const analyticsData = analyticsQuery.data ?? null;
+  const recentWorkouts = recentWorkoutsQuery.data ?? [];
+  const goals = goalsQuery.data ?? [];
+  const exerciseDefinitions = exerciseDefinitionsQuery.data ?? [];
+  const loading =
+    analyticsQuery.isPending ||
+    recentWorkoutsQuery.isPending ||
+    goalsQuery.isPending ||
+    exerciseDefinitionsQuery.isPending;
 
   useEffect(() => {
     setIsIOSFallback(isIOSDevice());
   }, []);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const analyticsResponse = await workoutAPI.getAnalytics(Number(selectedRange));
-        setAnalyticsData(analyticsResponse);
-
-        const workoutsResponse = await workoutAPI.getAll(1, 10);
-        setRecentWorkouts(workoutsResponse.workouts || []);
-
-        const goalsResponse = await goalAPI.getAll();
-        setGoals(goalsResponse);
-
-        const exercisesResponse = await exerciseAPI.getAll();
-        setExerciseDefinitions(exercisesResponse);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadData();
-  }, [selectedRange]);
 
   const summaryCards = useMemo(() => {
     if (!analyticsData) {
@@ -239,9 +248,10 @@ export function DashboardPage() {
     try {
       setDeletingWorkoutIdentifier(workout._id);
       await workoutAPI.delete(workout._id);
-      setRecentWorkouts((current) => current.filter((entry) => entry._id !== workout._id));
-      const refreshedAnalytics = await workoutAPI.getAnalytics(Number(selectedRange));
-      setAnalyticsData(refreshedAnalytics);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.dashboardRecentWorkouts() }),
+        queryClient.invalidateQueries({ queryKey: queryKeyRegistry.dashboardAnalytics(selectedRangeInDays) }),
+      ]);
       setSessionFeedback("Workout deleted.");
     } catch {
       setSessionFeedback("Unable to delete workout right now.");
@@ -289,8 +299,7 @@ export function DashboardPage() {
         payload.target_date = normalizedTargetDate;
       }
       await goalAPI.create(payload);
-      const refreshedGoals = await goalAPI.getAll();
-      setGoals(refreshedGoals);
+      await queryClient.invalidateQueries({ queryKey: queryKeyRegistry.dashboardGoals() });
       setGoalForm({
         exercise_definition_identifier: "",
         exercise_name: "",
@@ -314,8 +323,7 @@ export function DashboardPage() {
     try {
       setDeletingGoalIdentifier(goal._id);
       await goalAPI.delete(goal._id);
-      const refreshedGoals = await goalAPI.getAll();
-      setGoals(refreshedGoals);
+      await queryClient.invalidateQueries({ queryKey: queryKeyRegistry.dashboardGoals() });
       setGoalFeedback("Goal deleted.");
     } catch {
       setGoalFeedback("Unable to delete goal right now.");
@@ -358,8 +366,7 @@ export function DashboardPage() {
         target_repetitions: targetRepetitions,
         ...(normalizedTargetDate ? { target_date: normalizedTargetDate } : {}),
       });
-      const refreshedGoals = await goalAPI.getAll();
-      setGoals(refreshedGoals);
+      await queryClient.invalidateQueries({ queryKey: queryKeyRegistry.dashboardGoals() });
       setEditingGoalIdentifier(null);
       setGoalFeedback("Goal updated.");
     } catch {

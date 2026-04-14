@@ -1,6 +1,7 @@
 import { MemoryRouter } from "react-router-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DashboardPage } from "./DashboardPage";
 import type { AnalyticsData, Workout } from "../types";
 
@@ -65,6 +66,13 @@ const workoutsFixture: Workout[] = [
 ];
 
 describe("DashboardPage", () => {
+  const createTestQueryClient = () =>
+    new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+      },
+    });
+
   beforeEach(() => {
     getAnalyticsMock.mockReset();
     getAllMock.mockReset();
@@ -77,10 +85,14 @@ describe("DashboardPage", () => {
   });
 
   it("loads analytics and recent sessions", async () => {
+    const queryClient = createTestQueryClient();
+
     render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
+      </QueryClientProvider>
     );
 
     await waitFor(() => {
