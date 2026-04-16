@@ -1200,6 +1200,18 @@ export function LogWorkoutPage() {
           autoFocus
         />
 
+        {searchPhrase.trim().length > 0 ? (
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              className="rounded-lg px-2 py-1 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-100/40"
+              onClick={() => setSearchPhrase("")}
+            >
+              Clear search
+            </button>
+          </div>
+        ) : null}
+
         <div className="mt-4 min-h-[18rem] space-y-4">
           {Object.entries(exercisesByMuscleGroup)
             .sort(([first], [second]) => first.localeCompare(second))
