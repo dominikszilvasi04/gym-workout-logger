@@ -95,7 +95,7 @@ def test_get_profile_returns_correct_fields(test_client):
     response = test_client.get("/api/auth/me")
     assert response.status_code == 200
     data = response.get_json()
-    
+
     # Check expected fields
     assert "email" in data
     assert "display_name" in data
@@ -104,7 +104,7 @@ def test_get_profile_returns_correct_fields(test_client):
 def test_profile_update_preserves_email(test_client):
     """Test that profile updates preserve user email."""
     email = "preserve@example.com"
-    
+
     # Register and login
     test_client.post(
         "/register",
@@ -193,6 +193,6 @@ def test_multiple_users_different_profiles(test_client):
     # Get profile 2
     profile2 = test_client.get("/api/auth/me").get_json()
     assert profile2.get("email") == "user2@example.com"
-    
+
     # Verify they're different
     assert profile1.get("email") != profile2.get("email")

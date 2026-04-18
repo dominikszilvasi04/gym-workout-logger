@@ -2,7 +2,6 @@
 Integration tests for authentication endpoints to improve coverage of auth_controller.
 """
 
-import pytest
 
 
 def test_login_page_renders_when_not_authenticated(test_client):
@@ -129,7 +128,7 @@ def test_logout_redirects_after_clearing_session(test_client):
 def test_register_with_duplicate_email(test_client):
     """Test that registering with duplicate email is rejected."""
     email = "duplicate@example.com"
-    
+
     # Register first user
     response1 = test_client.post(
         "/register",

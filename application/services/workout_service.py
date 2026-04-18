@@ -40,13 +40,18 @@ class WorkoutService:
         application_cache_manager.invalidate_namespace(WORKOUT_RELATED_CACHE_NAMESPACE)
         # Also invalidate goal progress caches as workouts affect goal progress
         from application.cache import GOAL_CACHE_NAMESPACE
+
         application_cache_manager.invalidate_namespace(GOAL_CACHE_NAMESPACE)
         if user_identifier:
-            application_cache_manager.invalidate_namespace(f"{WORKOUT_CACHE_NAMESPACE}:{user_identifier}")
+            application_cache_manager.invalidate_namespace(
+                f"{WORKOUT_CACHE_NAMESPACE}:{user_identifier}"
+            )
             application_cache_manager.invalidate_namespace(
                 f"{WORKOUT_RELATED_CACHE_NAMESPACE}:{user_identifier}"
             )
-            application_cache_manager.invalidate_namespace(f"{GOAL_CACHE_NAMESPACE}:{user_identifier}")
+            application_cache_manager.invalidate_namespace(
+                f"{GOAL_CACHE_NAMESPACE}:{user_identifier}"
+            )
 
     def normalise_datetime_to_utc(self, date_time_value: datetime) -> datetime:
         """
@@ -129,7 +134,9 @@ class WorkoutService:
         logger.info(
             "Recording new workout session with %d exercises.", len(workout_document.exercises)
         )
-        result_identifier = self.workout_repository.create_workout(workout_document=workout_document)
+        result_identifier = self.workout_repository.create_workout(
+            workout_document=workout_document
+        )
         self._invalidate_workout_related_caches(workout_document.user_identifier)
         return result_identifier
 
@@ -184,7 +191,9 @@ class WorkoutService:
         """
         logger.info("Removing workout identifier=%s", identifier)
         if user_identifier is None:
-            deletion_result = self.workout_repository.delete_workout_by_identifier(identifier=identifier)
+            deletion_result = self.workout_repository.delete_workout_by_identifier(
+                identifier=identifier
+            )
         else:
             deletion_result = self.workout_repository.delete_workout_by_identifier(
                 identifier=identifier, user_identifier=user_identifier
@@ -216,7 +225,9 @@ class WorkoutService:
             )
         else:
             modification_result = self.workout_repository.update_workout_by_identifier(
-                identifier=identifier, updated_workout=workout_document, user_identifier=user_identifier
+                identifier=identifier,
+                updated_workout=workout_document,
+                user_identifier=user_identifier,
             )
         if modification_result:
             self._invalidate_workout_related_caches(user_identifier)
@@ -354,7 +365,9 @@ class WorkoutService:
         Returns:
             A dictionary containing aggregate workout statistics.
         """
-        cache_key = self._cache_key(WORKOUT_RELATED_CACHE_NAMESPACE, f"profile_summary:{user_identifier}")
+        cache_key = self._cache_key(
+            WORKOUT_RELATED_CACHE_NAMESPACE, f"profile_summary:{user_identifier}"
+        )
         cached_result = application_cache_manager.get(cache_key)
         if cached_result is not None:
             logger.debug("Cache hit for profile_summary user_identifier=%s", user_identifier)

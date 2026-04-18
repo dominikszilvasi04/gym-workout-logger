@@ -35,8 +35,12 @@ class ExerciseGoalService:
         application_cache_manager.invalidate_namespace(GOAL_CACHE_NAMESPACE)
         application_cache_manager.invalidate_namespace(PROFILE_CACHE_NAMESPACE)
         if user_identifier:
-            application_cache_manager.invalidate_namespace(f"{GOAL_CACHE_NAMESPACE}:{user_identifier}")
-            application_cache_manager.invalidate_namespace(f"{PROFILE_CACHE_NAMESPACE}:{user_identifier}")
+            application_cache_manager.invalidate_namespace(
+                f"{GOAL_CACHE_NAMESPACE}:{user_identifier}"
+            )
+            application_cache_manager.invalidate_namespace(
+                f"{PROFILE_CACHE_NAMESPACE}:{user_identifier}"
+            )
 
     def create_goal(self, goal_document: ExerciseGoalDocument) -> str:
         result_identifier = self.exercise_goal_repository.create_goal(goal_document)

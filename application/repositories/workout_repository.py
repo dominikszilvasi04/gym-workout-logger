@@ -117,7 +117,7 @@ class WorkoutRepository:
         Retrieves a filtered page of workout documents and the total matching count.
         """
         from datetime import datetime, timezone
-        
+
         query_filter: Dict[str, Any] = _build_user_scope_filter(user_identifier)
         if exercise_name:
             query_filter["exercises.exercise_name"] = {"$regex": exercise_name, "$options": "i"}
@@ -133,12 +133,16 @@ class WorkoutRepository:
             if start_date is not None:
                 # Convert date to datetime at start of day UTC
                 if hasattr(start_date, "year") and not hasattr(start_date, "hour"):
-                    start_date = datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+                    start_date = datetime.combine(start_date, datetime.min.time()).replace(
+                        tzinfo=timezone.utc
+                    )
                 date_filter["$gte"] = start_date
             if end_date is not None:
                 # Convert date to datetime at end of day UTC
                 if hasattr(end_date, "year") and not hasattr(end_date, "hour"):
-                    end_date = datetime.combine(end_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+                    end_date = datetime.combine(end_date, datetime.max.time()).replace(
+                        tzinfo=timezone.utc
+                    )
                 date_filter["$lte"] = end_date
             query_filter["date_of_workout"] = date_filter
 

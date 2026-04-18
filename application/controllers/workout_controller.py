@@ -138,14 +138,12 @@ def retrieve_workouts_endpoint() -> tuple[Response, int]:
     ).strip()
     sort_order = (request.args.get("order", default="desc", type=str) or "desc").strip().lower()
     requested_exercise_name = (
-        (request.args.get("exercise_name", default="", type=str) or "").strip()
-    )
+        request.args.get("exercise_name", default="", type=str) or ""
+    ).strip()
     requested_target_muscle_group = (
-        (request.args.get("target_muscle_group", default="", type=str) or "").strip()
-    )
-    requested_session_tag = (
-        (request.args.get("session_tag", default="", type=str) or "").strip()
-    )
+        request.args.get("target_muscle_group", default="", type=str) or ""
+    ).strip()
+    requested_session_tag = (request.args.get("session_tag", default="", type=str) or "").strip()
     start_date_text = (request.args.get("start_date", default="", type=str) or "").strip()
     end_date_text = (request.args.get("end_date", default="", type=str) or "").strip()
 

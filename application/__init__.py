@@ -66,7 +66,9 @@ def create_application(
         threshold=500,
         mode=0o600,
     )
-    application_cache_directory = flask_application.config.get("APPLICATION_CACHE_DIR", ".flask_cache")
+    application_cache_directory = flask_application.config.get(
+        "APPLICATION_CACHE_DIR", ".flask_cache"
+    )
     application_cache_timeout = int(
         flask_application.config.get("APPLICATION_CACHE_DEFAULT_TIMEOUT_SECONDS", 300)
     )

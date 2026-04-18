@@ -33,7 +33,7 @@ def test_protected_admin_endpoints(test_client):
         ("/api/admin/export", "GET"),
         ("/api/admin/audit-logs", "GET"),
     ]
-    
+
     for endpoint, method in endpoints:
         if method == "GET":
             response = test_client.get(endpoint, follow_redirects=False)
@@ -41,7 +41,7 @@ def test_protected_admin_endpoints(test_client):
             response = test_client.post(endpoint, follow_redirects=False)
         elif method == "DELETE":
             response = test_client.delete(endpoint, follow_redirects=False)
-        
+
         # Unauth should get 401 or 403 or redirected
         assert response.status_code in [401, 403, 302, 404], f"Endpoint {endpoint} not protected"
 
