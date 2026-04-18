@@ -3,7 +3,6 @@ Integration tests for authentication endpoints to improve coverage of auth_contr
 """
 
 
-
 def test_login_page_renders_when_not_authenticated(test_client):
     """Test that login page is accessible when not authenticated."""
     response = test_client.get("/login")
